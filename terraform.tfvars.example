@@ -1,0 +1,44 @@
+# Docker-Apps Terraform Configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# Cluster configuration
+cluster_name    = "home-lab"
+environment     = "production"
+kubeconfig_path = "~/.kube/config"
+
+# Enable/disable modules
+enable_portfolio           = true
+enable_jellyfin            = false
+enable_qbittorrent         = true
+enable_pihole              = true
+enable_monitoring          = true
+enable_network_policies    = true
+enable_pod_security_standards = true
+enable_resource_quotas     = true
+enable_pod_disruption_budgets = true
+
+# Pi-hole configuration
+pihole_web_password = "changeme"  # Change this to a secure password!
+
+# Application configurations
+portfolio_replicas   = 1
+jellyfin_replicas    = 1
+qbittorrent_replicas = 1
+
+# Storage configuration
+jellyfin_storage_class = "local-path"
+jellyfin_config_size   = "20Gi"
+jellyfin_cache_size    = "5Gi"
+
+# Resource defaults (for standard services)
+default_cpu_request    = "100m"
+default_memory_request = "128Mi"
+default_cpu_limit      = "250m"
+default_memory_limit   = "256Mi"
+
+# Tags applied to all resources
+tags = {
+  managed-by  = "terraform"
+  environment = "production"
+  cluster     = "home-lab"
+}

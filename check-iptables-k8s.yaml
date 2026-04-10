@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: check-iptables-k8s
+  namespace: kube-system
+spec:
+  nodeName: k8s
+  hostNetwork: true
+  hostPID: true
+  containers:
+  - name: nsenter
+    image: busybox
+    command:
+    - nsenter
+    - "--target"
+    - "1"
+    - "--mount"
+    - "--uts"
+    - "--ipc"
+    - "--net"
+    - "--pid"
+    - "--"
+    - /bin/sh
+    - "-c"
+    - |
+      echo "=== kube-proxy mode ==="
+      iptables -t nat -L KUBE-SERVICES -n 2>/dev/null | grep 192.168.1.210
+      echo "=== PREROUTING ==="
+      iptables -t nat -L PREROUTING -n 2>/dev/null | head -10
+      echo "=== Check if strictARP is set ==="
+      cat /proc/sys/net/ipv4/conf/all/arp_ignore
+      cat /proc/sys/net/ipv4/conf/enp1s0/arp_ignore
+      echo "=== arping test ==="
+      if command -v arping >/dev/null 2>&1; then
+        arping -c 2 -I enp1s0 192.168.1.210
+      else
+        echo "arping not available"
+      fi
+      echo "=== Check KUBE-EXT chains for 192.168.1.210 ==="
+      iptables -t nat -S 2>/dev/null | grep 192.168.1.210
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "16Mi"
+      limits:
+        cpu: "50m"
+        memory: "64Mi"
+  restartPolicy: Never

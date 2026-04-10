@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fix-firewall-k8s
+  namespace: kube-system
+spec:
+  nodeName: k8s
+  hostNetwork: true
+  hostPID: true
+  containers:
+  - name: nsenter
+    image: busybox
+    command:
+    - nsenter
+    - "--target"
+    - "1"
+    - "--mount"
+    - "--uts"
+    - "--ipc"
+    - "--net"
+    - "--pid"
+    - "--"
+    - /bin/sh
+    - "-c"
+    - |
+      if command -v firewall-cmd >/dev/null 2>&1; then
+        echo "=== firewalld found ==="
+        firewall-cmd --list-all
+        firewall-cmd --permanent --add-port=7946/tcp
+        firewall-cmd --permanent --add-port=7946/udp
+        firewall-cmd --permanent --add-port=80/tcp
+        firewall-cmd --permanent --add-port=443/tcp
+        firewall-cmd --permanent --add-port=53/tcp
+        firewall-cmd --permanent --add-port=53/udp
+        firewall-cmd --reload
+        echo "=== After fix ==="
+        firewall-cmd --list-ports
+      elif command -v ufw >/dev/null 2>&1; then
+        echo "=== ufw found ==="
+        ufw status verbose
+      elif command -v iptables >/dev/null 2>&1; then
+        echo "=== iptables ==="
+        iptables -L INPUT -n --line-numbers | head -30
+      else
+        echo "No firewall found"
+      fi
+      echo "=== ARP settings ==="
+      cat /proc/sys/net/ipv4/conf/all/arp_ignore
+      cat /proc/sys/net/ipv4/conf/all/arp_announce
+      echo "=== IP addresses ==="
+      ip addr show
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "16Mi"
+      limits:
+        cpu: "50m"
+        memory: "64Mi"
+  restartPolicy: Never

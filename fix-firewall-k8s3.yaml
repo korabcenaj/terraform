@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fix-firewall-k8s3
+  namespace: kube-system
+spec:
+  nodeName: k8s3
+  hostNetwork: true
+  hostPID: true
+  containers:
+  - name: nsenter
+    image: busybox
+    command:
+    - nsenter
+    - "--target"
+    - "1"
+    - "--mount"
+    - "--uts"
+    - "--ipc"
+    - "--net"
+    - "--pid"
+    - "--"
+    - /bin/sh
+    - "-c"
+    - |
+      echo "=== Current zone for flannel.1 ==="
+      firewall-cmd --get-zone-of-interface=flannel.1 2>&1 || true
+      echo "=== Current zone for cni0 ==="
+      firewall-cmd --get-zone-of-interface=cni0 2>&1 || true
+      echo "=== Add flannel.1 to trusted zone ==="
+      firewall-cmd --permanent --zone=trusted --add-interface=flannel.1 2>&1
+      echo "=== Add cni0 to trusted zone ==="
+      firewall-cmd --permanent --zone=trusted --add-interface=cni0 2>&1
+      echo "=== Enable masquerade in default zone ==="
+      firewall-cmd --permanent --add-masquerade 2>&1
+      echo "=== Reload ==="
+      firewall-cmd --reload 2>&1
+      echo "=== Verify flannel.1 zone ==="
+      firewall-cmd --get-zone-of-interface=flannel.1 2>&1
+      echo "=== Verify cni0 zone ==="
+      firewall-cmd --get-zone-of-interface=cni0 2>&1
+      echo "=== Trusted zone interfaces ==="
+      firewall-cmd --zone=trusted --list-all 2>&1
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "16Mi"
+      limits:
+        cpu: "50m"
+        memory: "64Mi"
+  restartPolicy: Never
