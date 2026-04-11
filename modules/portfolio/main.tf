@@ -11,8 +11,7 @@ resource "kubernetes_config_map" "portfolio_html" {
   }
 
   data = {
-    #    "index.html" = file("${path.module}/../../portfolio-container/portfolio.html")
-    "index.html" = file("${path.root}/../portfolio-container/portfolio.html")
+    "index.html" = file("${path.module}/../../portfolio-container/portfolio.html")
   }
 }
 
