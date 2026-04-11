@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  TF_IN_AUTOMATION: true
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -26,13 +29,10 @@ jobs:
           terraform_version: 1.8.5
 
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -backend=false -input=false
 
       - name: Terraform Fmt Check
         run: terraform fmt -check -recursive
 
       - name: Terraform Validate
         run: terraform validate
-
-      - name: Terraform Plan
-        run: terraform plan -input=false -lock=false -no-color

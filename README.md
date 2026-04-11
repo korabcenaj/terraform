@@ -199,16 +199,106 @@ terraform apply -var="enable_metrics_server=false"
 
 ## CI (Terraform Checks)
 
-A GitHub Actions workflow is included at [.github/workflows/terraform-ci.yml](.github/workflows/terraform-ci.yml).
+A default CI workflow is included at [.github/workflows/terraform-ci.yml](.github/workflows/terraform-ci.yml).
 
-It runs:
+It always runs:
 
 ```bash
-terraform init
+terraform init -backend=false
 terraform fmt -check -recursive
 terraform validate
-terraform plan -lock=false -no-color
 ```
+
+A separate manual plan workflow is included at [.github/workflows/terraform-plan.yml](.github/workflows/terraform-plan.yml).
+
+It requires the GitHub secret `KUBECONFIG_B64`, set to a base64-encoded kubeconfig for your cluster.
+
+For this repository, the manual plan workflow is intended to run on a self-hosted Linux runner inside the homelab.
+If the kubeconfig server is something like `https://k8s-master.local:6443`, a GitHub-hosted runner will usually fail unless that name is resolvable and routable from the runner.
+
+Create that secret from a local kubeconfig with:
+
+```bash
+base64 ~/.kube/config | tr -d '\n'
+```
+
+Use the output as the value for the repository secret `KUBECONFIG_B64`.
+
+Use a dedicated automation kubeconfig if needed. Its `server` endpoint must be reachable from the runner that executes the workflow.
+
+Recommended runner shape:
+
+- GitHub self-hosted runner
+- Linux host on the same LAN as the cluster
+- `terraform`, `kubectl`, and network access to the Kubernetes API
+- runner labels including `self-hosted`, `linux`, `homelab`, and `terraform`
+- local DNS resolution for the Kubernetes API server hostname (e.g., `k8s-master.local`)
+
+If the kubeconfig server uses a private/local hostname like `https://k8s-master.local:6443`, ensure the runner host can resolve it.
+
+For this setup, add an entry to `/etc/hosts`:
+
+```bash
+echo "192.168.1.15 k8s-master.local" | sudo tee -a /etc/hosts
+```
+
+Adjust the IP and hostname to match your cluster's actual API server.
+
+High-level setup:
+
+```bash
+# 1. In GitHub, open Settings -> Actions -> Runners and generate a repository runner token.
+# 2. On the chosen homelab host, run:
+
+export GH_RUNNER_TOKEN=<runner-registration-token>
+./scripts/setup-github-runner.sh install --service
+```
+
+Once the runner is registered and online, the manual workflow can execute cluster-backed plans without exposing the API publicly.
+
+Useful runner lifecycle commands:
+
+```bash
+./scripts/setup-github-runner.sh status
+./scripts/setup-github-runner.sh stop
+./scripts/setup-github-runner.sh start
+./scripts/setup-github-runner.sh remove --token <runner-removal-token>
+```
+
+Generate the `KUBECONFIG_B64` secret value with:
+
+```bash
+./scripts/print-kubeconfig-b64.sh
+```
+
+Or point it at a dedicated automation kubeconfig:
+
+```bash
+./scripts/print-kubeconfig-b64.sh /path/to/automation-kubeconfig
+```
+
+If `gh` is installed and authenticated, update the GitHub repository secret directly with:
+
+```bash
+./scripts/set-github-secret.sh --name KUBECONFIG_B64
+```
+
+Install `gh` on Ubuntu/Debian with:
+
+```bash
+./scripts/install-gh.sh
+gh auth login
+./scripts/set-github-secret.sh --name KUBECONFIG_B64
+```
+
+If `sudo` prompts for a password on this host, run the installer directly in an interactive shell and complete the prompt there.
+
+The manual plan workflow refuses to run unless one of these is true:
+
+- `terraform.tfstate` is available in the workflow checkout
+- a real Terraform backend is enabled in `provider.tf`
+
+This prevents misleading plans generated from an empty state on GitHub-hosted runners.
 
 ## Backup and Restore Runbook
 

@@ -1,0 +1,76 @@
+name: Terraform Plan
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: true
+
+jobs:
+  terraform-plan:
+    runs-on:
+      - self-hosted
+      - linux
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require kubeconfig secret
+        run: |
+          if [[ -z "${{ secrets.KUBECONFIG_B64 }}" ]]; then
+            echo "KUBECONFIG_B64 is required for the manual Terraform plan workflow."
+            exit 1
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Verify cluster reachability
+        run: |
+          if ! kubectl --request-timeout=10s get --raw=/readyz >/dev/null 2>&1; then
+            echo "Kubernetes API is not reachable from this runner using the provided kubeconfig."
+            echo "For homelab clusters, use a self-hosted runner or a kubeconfig whose server endpoint is reachable from the runner."
+            exit 1
+          fi
+
+      - name: Ensure plan has state context
+        run: |
+          if [[ -f terraform.tfstate ]]; then
+            echo "Using checked-in local Terraform state."
+            exit 0
+          fi
+
+          if grep -Eq '^[[:space:]]*backend[[:space:]]+"' provider.tf; then
+            echo "Backend configuration detected in provider.tf."
+            exit 0
+          fi
+
+          echo "No terraform.tfstate file is present in the repository checkout and no backend is enabled in provider.tf."
+          echo "Refusing to run terraform plan from an empty state because that would be misleading."
+          exit 1
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -lock=false -no-color
