@@ -5,7 +5,8 @@
 
 # Terraform working directory
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl should be committed to pin provider versions
+# .terraform.lock.hcl
 
 # IDE
 .vscode/
@@ -37,3 +38,6 @@ null
 # Temporary files
 *.tmp
 *.temp
+
+# Local backups
+backups/

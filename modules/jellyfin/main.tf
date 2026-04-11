@@ -65,7 +65,14 @@ resource "kubernetes_deployment" "jellyfin" {
       spec {
         container {
           name  = "jellyfin"
-          image = "jellyfin/jellyfin:latest"
+          image = "jellyfin/jellyfin:10.10.7"
+
+          security_context {
+            allow_privilege_escalation = false
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
 
           port {
             container_port = 8096
@@ -180,4 +187,49 @@ resource "kubernetes_service" "jellyfin" {
   }
 
   depends_on = [kubernetes_deployment.jellyfin]
+}
+
+resource "kubernetes_ingress_v1" "jellyfin" {
+  metadata {
+    name      = "jellyfin"
+    namespace = var.namespace
+    labels = merge(
+      var.tags,
+      {
+        app = "jellyfin"
+      }
+    )
+    annotations = {
+      "cert-manager.io/cluster-issuer" = "local-lan-ca"
+    }
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+
+    tls {
+      hosts       = ["jellyfin.local.lan"]
+      secret_name = "jellyfin-tls"
+    }
+
+    rule {
+      host = "jellyfin.local.lan"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service.jellyfin.metadata[0].name
+              port {
+                number = 8096
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [kubernetes_service.jellyfin]
 }

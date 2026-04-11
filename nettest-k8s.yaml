@@ -23,14 +23,16 @@ spec:
     - /bin/bash
     - "-c"
     - |
+      echo "=== Node IP and interfaces ==="
+      ip -4 addr show enp1s0 | head -5
+      echo "=== ARP announce for 192.168.1.210 ==="
+      arping -c 3 -A -I enp1s0 192.168.1.210 2>&1
+      echo "=== iptables NAT for pihole ==="
+      iptables -t nat -S 2>/dev/null | grep 192.168.1.210 | head -5
       echo "=== Curl pihole pod directly ==="
       curl -s --max-time 5 http://10.244.3.24:80/ 2>&1 | head -3
-      echo ""
-      echo "=== Curl pihole via LoadBalancer IP ==="
+      echo "=== Curl pihole via LB ==="
       curl -s --max-time 5 http://192.168.1.210:80/ 2>&1 | head -3
-      echo ""
-      echo "=== DNS query via pihole ==="
-      dig @192.168.1.210 google.com +short +timeout=3 2>&1
     securityContext:
       privileged: true
     resources:

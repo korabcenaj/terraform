@@ -16,11 +16,11 @@ resource "kubernetes_resource_quota" "portfolio" {
 
   spec {
     hard = {
-      "pods"                = var.portfolio_pod_limit
-      "requests.cpu"        = var.portfolio_cpu_request_quota
-      "requests.memory"     = var.portfolio_memory_request_quota
-      "limits.cpu"          = var.portfolio_cpu_limit_quota
-      "limits.memory"       = var.portfolio_memory_limit_quota
+      "pods"                   = var.portfolio_pod_limit
+      "requests.cpu"           = var.portfolio_cpu_request_quota
+      "requests.memory"        = var.portfolio_memory_request_quota
+      "limits.cpu"             = var.portfolio_cpu_limit_quota
+      "limits.memory"          = var.portfolio_memory_limit_quota
       "persistentvolumeclaims" = "5"
     }
   }
@@ -42,11 +42,11 @@ resource "kubernetes_resource_quota" "qbittorrent" {
 
   spec {
     hard = {
-      "pods"                = var.qbittorrent_pod_limit
-      "requests.cpu"        = var.qbittorrent_cpu_request_quota
-      "requests.memory"     = var.qbittorrent_memory_request_quota
-      "limits.cpu"          = var.qbittorrent_cpu_limit_quota
-      "limits.memory"       = var.qbittorrent_memory_limit_quota
+      "pods"                   = var.qbittorrent_pod_limit
+      "requests.cpu"           = var.qbittorrent_cpu_request_quota
+      "requests.memory"        = var.qbittorrent_memory_request_quota
+      "limits.cpu"             = var.qbittorrent_cpu_limit_quota
+      "limits.memory"          = var.qbittorrent_memory_limit_quota
       "persistentvolumeclaims" = "5"
     }
   }
@@ -68,11 +68,11 @@ resource "kubernetes_resource_quota" "jellyfin" {
 
   spec {
     hard = {
-      "pods"                = var.jellyfin_pod_limit
-      "requests.cpu"        = var.jellyfin_cpu_request_quota
-      "requests.memory"     = var.jellyfin_memory_request_quota
-      "limits.cpu"          = var.jellyfin_cpu_limit_quota
-      "limits.memory"       = var.jellyfin_memory_limit_quota
+      "pods"                   = var.jellyfin_pod_limit
+      "requests.cpu"           = var.jellyfin_cpu_request_quota
+      "requests.memory"        = var.jellyfin_memory_request_quota
+      "limits.cpu"             = var.jellyfin_cpu_limit_quota
+      "limits.memory"          = var.jellyfin_memory_limit_quota
       "persistentvolumeclaims" = "10"
     }
   }

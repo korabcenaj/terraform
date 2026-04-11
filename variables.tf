@@ -50,12 +50,31 @@ variable "enable_pihole" {
 variable "pihole_web_password" {
   description = "Pi-hole web UI password"
   type        = string
-  default     = "admin"
   sensitive   = true
+
+  validation {
+    condition = (
+      length(trimspace(var.pihole_web_password)) >= 12 &&
+      can(regex("[A-Z]", trimspace(var.pihole_web_password))) &&
+      can(regex("[a-z]", trimspace(var.pihole_web_password))) &&
+      can(regex("[0-9]", trimspace(var.pihole_web_password))) &&
+      can(regex("[^A-Za-z0-9]", trimspace(var.pihole_web_password))) &&
+      lower(trimspace(var.pihole_web_password)) != "admin" &&
+      lower(trimspace(var.pihole_web_password)) != "password" &&
+      lower(trimspace(var.pihole_web_password)) != "changeme"
+    )
+    error_message = "pihole_web_password must be at least 12 characters, include uppercase/lowercase letters, a number, and a symbol, and must not be a weak default such as admin, password, or changeme."
+  }
 }
 
 variable "enable_monitoring" {
   description = "Enable monitoring stack"
+  type        = bool
+  default     = true
+}
+
+variable "enable_metrics_server" {
+  description = "Enable metrics-server for kubectl top and autoscaling signals"
   type        = bool
   default     = true
 }
@@ -151,7 +170,7 @@ variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    managed-by = "terraform"
+    managed-by  = "terraform"
     environment = "production"
     cluster     = "home-lab"
   }

@@ -15,7 +15,7 @@ resource "kubernetes_pod_disruption_budget_v1" "portfolio" {
   }
 
   spec {
-    min_available = var.portfolio_min_available
+    max_unavailable = var.portfolio_max_unavailable
     selector {
       match_labels = {
         app = "portfolio"
@@ -39,7 +39,7 @@ resource "kubernetes_pod_disruption_budget_v1" "qbittorrent" {
   }
 
   spec {
-    min_available = var.qbittorrent_min_available
+    max_unavailable = var.qbittorrent_max_unavailable
     selector {
       match_labels = {
         app = "qbittorrent"
@@ -63,7 +63,7 @@ resource "kubernetes_pod_disruption_budget_v1" "jellyfin" {
   }
 
   spec {
-    min_available = var.jellyfin_min_available
+    max_unavailable = var.jellyfin_max_unavailable
     selector {
       match_labels = {
         app = "jellyfin"
@@ -87,7 +87,7 @@ resource "kubernetes_pod_disruption_budget_v1" "pihole" {
   }
 
   spec {
-    min_available = var.pihole_min_available
+    max_unavailable = var.pihole_max_unavailable
     selector {
       match_labels = {
         app = "pihole"

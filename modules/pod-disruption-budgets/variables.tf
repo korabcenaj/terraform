@@ -42,26 +42,26 @@ variable "pihole_namespace" {
   type        = string
 }
 
-variable "portfolio_min_available" {
-  description = "Minimum available portfolio pods during disruptions"
+variable "portfolio_max_unavailable" {
+  description = "Maximum unavailable portfolio pods during disruptions"
   type        = number
   default     = 1
 }
 
-variable "qbittorrent_min_available" {
-  description = "Minimum available qbittorrent pods during disruptions"
+variable "qbittorrent_max_unavailable" {
+  description = "Maximum unavailable qbittorrent pods during disruptions"
   type        = number
   default     = 1
 }
 
-variable "jellyfin_min_available" {
-  description = "Minimum available jellyfin pods during disruptions"
+variable "jellyfin_max_unavailable" {
+  description = "Maximum unavailable jellyfin pods during disruptions"
   type        = number
   default     = 1
 }
 
-variable "pihole_min_available" {
-  description = "Minimum available pihole pods during disruptions"
+variable "pihole_max_unavailable" {
+  description = "Maximum unavailable pihole pods during disruptions"
   type        = number
   default     = 1
 }

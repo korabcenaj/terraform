@@ -1,3 +1,38 @@
+# Pi-hole web password stored as a Kubernetes Secret
+resource "kubernetes_secret" "pihole_web_password" {
+  metadata {
+    name      = "pihole-web-password"
+    namespace = var.namespace
+    labels    = var.tags
+  }
+
+  data = {
+    WEBPASSWORD = var.web_password
+  }
+
+  type = "Opaque"
+}
+
+# Custom DNS records for local LAN resolution
+# Wildcard *.local.lan → ingress IP + any additional records
+resource "kubernetes_config_map" "pihole_custom_dns" {
+  metadata {
+    name      = "pihole-custom-dns"
+    namespace = var.namespace
+    labels    = var.tags
+  }
+
+  data = {
+    "02-local-dns.conf" = join("\n", concat(
+      ["# Wildcard DNS for local.lan → ingress controller"],
+      ["address=/local.lan/${var.ingress_ip}"],
+      [""],
+      ["# Additional custom DNS records"],
+      [for hostname, ip in var.local_dns_records : "host-record=${hostname},${ip}"],
+    ))
+  }
+}
+
 # PersistentVolumeClaim for Pi-hole data
 resource "kubernetes_persistent_volume_claim" "pihole_data" {
   metadata {
@@ -6,7 +41,8 @@ resource "kubernetes_persistent_volume_claim" "pihole_data" {
     labels    = var.tags
   }
   spec {
-    access_modes = ["ReadWriteOnce"]
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = "local-path"
     resources {
       requests = {
         storage = var.pihole_storage_size
@@ -32,6 +68,10 @@ resource "kubernetes_deployment" "pihole" {
   spec {
     replicas = var.replicas
 
+    strategy {
+      type = "Recreate"
+    }
+
     selector {
       match_labels = {
         app = "pihole"
@@ -46,10 +86,31 @@ resource "kubernetes_deployment" "pihole" {
       }
 
       spec {
+        host_network = true
+        dns_policy   = "ClusterFirstWithHostNet"
+        affinity {
+          node_affinity {
+            required_during_scheduling_ignored_during_execution {
+              node_selector_term {
+                match_expressions {
+                  key      = "kubernetes.io/hostname"
+                  operator = "NotIn"
+                  values   = ["k8s3"]
+                }
+              }
+            }
+          }
+        }
         volume {
           name = "pihole-data"
           persistent_volume_claim {
             claim_name = kubernetes_persistent_volume_claim.pihole_data.metadata[0].name
+          }
+        }
+        volume {
+          name = "custom-dns"
+          config_map {
+            name = kubernetes_config_map.pihole_custom_dns.metadata[0].name
           }
         }
         container {
@@ -87,8 +148,13 @@ resource "kubernetes_deployment" "pihole" {
           }
 
           env {
-            name  = "WEBPASSWORD"
-            value = var.web_password
+            name = "WEBPASSWORD"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.pihole_web_password.metadata[0].name
+                key  = "WEBPASSWORD"
+              }
+            }
           }
 
           env {
@@ -106,6 +172,26 @@ resource "kubernetes_deployment" "pihole" {
             value = "all"
           }
 
+          env {
+            name  = "INTERFACE"
+            value = "all"
+          }
+
+          env {
+            name  = "FTLCONF_dns_listeningMode"
+            value = "all"
+          }
+
+          env {
+            name  = "FTLCONF_misc_etc_dnsmasq_d"
+            value = "true"
+          }
+
+          env {
+            name  = "VIRTUAL_HOST"
+            value = "pihole.local.lan"
+          }
+
           resources {
             requests = {
               cpu    = var.cpu_request
@@ -120,6 +206,12 @@ resource "kubernetes_deployment" "pihole" {
           volume_mount {
             name       = "pihole-data"
             mount_path = "/etc/pihole"
+          }
+
+          volume_mount {
+            name       = "custom-dns"
+            mount_path = "/etc/dnsmasq.d/02-local-dns.conf"
+            sub_path   = "02-local-dns.conf"
           }
 
           liveness_probe {
@@ -161,6 +253,10 @@ resource "kubernetes_service" "pihole" {
         app = "pihole"
       }
     )
+  }
+
+  lifecycle {
+    ignore_changes = [metadata[0].annotations]
   }
 
   spec {
@@ -212,10 +308,18 @@ resource "kubernetes_ingress_v1" "pihole" {
         app = "pihole"
       }
     )
+    annotations = {
+      "cert-manager.io/cluster-issuer" = "local-lan-ca"
+    }
   }
 
   spec {
     ingress_class_name = "nginx"
+
+    tls {
+      hosts       = ["pihole.local.lan"]
+      secret_name = "pihole-tls"
+    }
 
     rule {
       host = "pihole.local.lan"

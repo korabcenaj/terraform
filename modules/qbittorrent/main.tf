@@ -9,7 +9,7 @@ resource "kubernetes_persistent_volume" "qbit_config" {
     }
 
     access_modes = ["ReadWriteOnce"]
-    
+
     persistent_volume_source {
       local {
         path = "/home/kub/qbittorrent-data"
@@ -66,6 +66,10 @@ resource "kubernetes_deployment" "qbittorrent" {
   spec {
     replicas = var.replicas
 
+    strategy {
+      type = "Recreate"
+    }
+
     selector {
       match_labels = {
         app = "qbittorrent"
@@ -82,7 +86,7 @@ resource "kubernetes_deployment" "qbittorrent" {
       spec {
         container {
           name              = "qbittorrent"
-          image             = "linuxserver/qbittorrent:latest"
+          image             = "linuxserver/qbittorrent:5.1.4"
           image_pull_policy = "IfNotPresent"
 
           port {
@@ -190,10 +194,18 @@ resource "kubernetes_ingress_v1" "qbittorrent" {
         app = "qbittorrent"
       }
     )
+    annotations = {
+      "cert-manager.io/cluster-issuer" = "local-lan-ca"
+    }
   }
 
   spec {
     ingress_class_name = "nginx"
+
+    tls {
+      hosts       = ["qbittorrent.local.lan"]
+      secret_name = "qbittorrent-tls"
+    }
 
     rule {
       host = "qbittorrent.local.lan"

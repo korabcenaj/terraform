@@ -11,8 +11,8 @@ resource "kubernetes_config_map" "portfolio_html" {
   }
 
   data = {
-#    "index.html" = file("${path.module}/../../portfolio-container/portfolio.html")
-   "index.html" = file("${path.root}/../portfolio-container/portfolio.html")
+    #    "index.html" = file("${path.module}/../../portfolio-container/portfolio.html")
+    "index.html" = file("${path.root}/../portfolio-container/portfolio.html")
   }
 }
 
@@ -50,8 +50,18 @@ resource "kubernetes_deployment" "portfolio" {
       spec {
         container {
           name  = "portfolio"
-          image = "nginx:alpine"
-          
+          image = "nginx:1.29-alpine"
+
+          security_context {
+            allow_privilege_escalation = false
+            read_only_root_filesystem  = false
+            run_as_non_root            = false
+            capabilities {
+              drop = ["ALL"]
+              add  = ["NET_BIND_SERVICE", "CHOWN", "SETUID", "SETGID"]
+            }
+          }
+
           port {
             container_port = 80
             name           = "http"
@@ -153,10 +163,18 @@ resource "kubernetes_ingress_v1" "portfolio" {
         app = "portfolio"
       }
     )
+    annotations = {
+      "cert-manager.io/cluster-issuer" = "local-lan-ca"
+    }
   }
 
   spec {
     ingress_class_name = "nginx"
+
+    tls {
+      hosts       = ["portfolio.local.lan"]
+      secret_name = "portfolio-tls"
+    }
 
     rule {
       host = "portfolio.local.lan"

@@ -29,7 +29,7 @@ output "qbittorrent_namespace" {
 
 output "portfolio_service" {
   description = "Portfolio service information"
-  value       = try({
+  value = try({
     name      = "portfolio-web"
     namespace = kubernetes_namespace.portfolio[0].metadata[0].name
     type      = "ClusterIP"
@@ -39,7 +39,7 @@ output "portfolio_service" {
 
 output "jellyfin_service" {
   description = "Jellyfin service information"
-  value       = try({
+  value = try({
     name      = "jellyfin"
     namespace = kubernetes_namespace.jellyfin[0].metadata[0].name
     type      = "ClusterIP"
@@ -50,11 +50,17 @@ output "jellyfin_service" {
 output "deployed_modules" {
   description = "Deployed modules summary"
   value = {
-    portfolio     = var.enable_portfolio
-    jellyfin      = var.enable_jellyfin
-    qbittorrent   = var.enable_qbittorrent
-    pihole        = var.enable_pihole
-    monitoring    = var.enable_monitoring
+    portfolio        = var.enable_portfolio
+    jellyfin         = var.enable_jellyfin
+    qbittorrent      = var.enable_qbittorrent
+    pihole           = var.enable_pihole
+    monitoring       = var.enable_monitoring
+    metrics_server   = var.enable_metrics_server
     network_policies = var.enable_network_policies
   }
+}
+
+output "metrics_server_release" {
+  description = "Metrics-server deployment name"
+  value       = try(module.metrics_server[0].release_name, null)
 }

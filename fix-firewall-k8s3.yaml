@@ -23,23 +23,14 @@ spec:
     - /bin/sh
     - "-c"
     - |
-      echo "=== Current zone for flannel.1 ==="
-      firewall-cmd --get-zone-of-interface=flannel.1 2>&1 || true
-      echo "=== Current zone for cni0 ==="
-      firewall-cmd --get-zone-of-interface=cni0 2>&1 || true
-      echo "=== Add flannel.1 to trusted zone ==="
-      firewall-cmd --permanent --zone=trusted --add-interface=flannel.1 2>&1
-      echo "=== Add cni0 to trusted zone ==="
-      firewall-cmd --permanent --zone=trusted --add-interface=cni0 2>&1
-      echo "=== Enable masquerade in default zone ==="
-      firewall-cmd --permanent --add-masquerade 2>&1
-      echo "=== Reload ==="
-      firewall-cmd --reload 2>&1
-      echo "=== Verify flannel.1 zone ==="
+      echo "=== Firewall zones ==="
       firewall-cmd --get-zone-of-interface=flannel.1 2>&1
-      echo "=== Verify cni0 zone ==="
       firewall-cmd --get-zone-of-interface=cni0 2>&1
-      echo "=== Trusted zone interfaces ==="
+      echo "=== Ports ==="
+      firewall-cmd --list-ports
+      echo "=== Rich rules ==="
+      firewall-cmd --list-rich-rules
+      echo "=== Trusted zone ==="
       firewall-cmd --zone=trusted --list-all 2>&1
     securityContext:
       privileged: true

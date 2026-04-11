@@ -47,7 +47,7 @@ resource "kubernetes_network_policy" "allow_dns" {
 resource "kubernetes_network_policy" "allow_from_ingress" {
   #for_each = toset(var.namespaces_with_policies)
   for_each = toset([for ns in var.namespaces_with_policies : ns if ns == "default"])
-#  count     = each.value == "default" ? 1 : 0
+  #  count     = each.value == "default" ? 1 : 0
   metadata {
     name      = "allow-from-ingress"
     namespace = each.value

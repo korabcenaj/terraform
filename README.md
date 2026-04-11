@@ -178,6 +178,71 @@ terraform output
 terraform output -json
 ```
 
+## Metrics Server
+
+`metrics-server` is now managed by Terraform and enabled by default.
+
+```bash
+# Verify deployment
+kubectl get deploy -n kube-system metrics-server
+
+# Verify live metrics
+kubectl top nodes
+kubectl top pods -A
+```
+
+Disable if needed:
+
+```bash
+terraform apply -var="enable_metrics_server=false"
+```
+
+## CI (Terraform Checks)
+
+A GitHub Actions workflow is included at [.github/workflows/terraform-ci.yml](.github/workflows/terraform-ci.yml).
+
+It runs:
+
+```bash
+terraform init
+terraform fmt -check -recursive
+terraform validate
+terraform plan -lock=false -no-color
+```
+
+## Backup and Restore Runbook
+
+Backup script: [scripts/backup.sh](scripts/backup.sh)
+Restore script: [scripts/restore.sh](scripts/restore.sh)
+
+What gets backed up:
+
+- Terraform state files
+- cert-manager root CA secret (`local-lan-ca-secret`)
+- Pi-hole configuration (`/etc/pihole`, `/etc/dnsmasq.d`)
+
+Create backup:
+
+```bash
+./scripts/backup.sh
+```
+
+Restore backup:
+
+```bash
+./scripts/restore.sh --dry-run backups/<timestamp>
+./scripts/restore.sh --yes backups/<timestamp>
+```
+
+Example:
+
+```bash
+./scripts/restore.sh --dry-run backups/20260411-120000
+./scripts/restore.sh --yes backups/20260411-120000
+```
+
+Note: Terraform state restore is intentionally manual to avoid accidental state overwrite.
+
 ## State Management
 
 ### Important: Backup State

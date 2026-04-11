@@ -28,7 +28,7 @@ resource "kubernetes_network_policy" "portfolio" {
       from {
         namespace_selector {
           match_labels = {
-            name = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "ingress-nginx"
           }
         }
       }
@@ -43,7 +43,7 @@ resource "kubernetes_network_policy" "portfolio" {
       to {
         namespace_selector {
           match_labels = {
-            name = "kube-system"
+            "kubernetes.io/metadata.name" = "kube-system"
           }
         }
       }
@@ -96,7 +96,7 @@ resource "kubernetes_network_policy" "qbittorrent" {
       from {
         namespace_selector {
           match_labels = {
-            name = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "ingress-nginx"
           }
         }
       }
@@ -111,7 +111,7 @@ resource "kubernetes_network_policy" "qbittorrent" {
       to {
         namespace_selector {
           match_labels = {
-            name = "kube-system"
+            "kubernetes.io/metadata.name" = "kube-system"
           }
         }
       }
@@ -160,7 +160,7 @@ resource "kubernetes_network_policy" "jellyfin" {
       from {
         namespace_selector {
           match_labels = {
-            name = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "ingress-nginx"
           }
         }
       }
@@ -175,7 +175,7 @@ resource "kubernetes_network_policy" "jellyfin" {
       to {
         namespace_selector {
           match_labels = {
-            name = "kube-system"
+            "kubernetes.io/metadata.name" = "kube-system"
           }
         }
       }
@@ -238,17 +238,85 @@ resource "kubernetes_network_policy" "pihole" {
       }
     }
 
+    # Allow DNS ingress from LAN (via MetalLB LoadBalancer)
+    ingress {
+      from {
+        ip_block {
+          cidr = "192.168.1.0/24"
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+      ports {
+        port     = "53"
+        protocol = "TCP"
+      }
+    }
+
+    # Allow DNS ingress from cluster nodes (kube-proxy SNAT)
+    ingress {
+      from {
+        ip_block {
+          cidr = "10.244.0.0/16"
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+      ports {
+        port     = "53"
+        protocol = "TCP"
+      }
+    }
+
     # Allow web UI from ingress
     ingress {
       from {
         namespace_selector {
           match_labels = {
-            name = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "ingress-nginx"
           }
         }
       }
       ports {
         port     = "80"
+        protocol = "TCP"
+      }
+    }
+
+    # Allow web UI from LAN (via MetalLB LoadBalancer)
+    ingress {
+      from {
+        ip_block {
+          cidr = "192.168.1.0/24"
+        }
+      }
+      ports {
+        port     = "80"
+        protocol = "TCP"
+      }
+      ports {
+        port     = "443"
+        protocol = "TCP"
+      }
+    }
+
+    # Allow web UI from cluster nodes (kube-proxy SNAT)
+    ingress {
+      from {
+        ip_block {
+          cidr = "10.244.0.0/16"
+        }
+      }
+      ports {
+        port     = "80"
+        protocol = "TCP"
+      }
+      ports {
+        port     = "443"
         protocol = "TCP"
       }
     }
