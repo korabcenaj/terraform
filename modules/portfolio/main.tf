@@ -47,22 +47,23 @@ resource "kubernetes_deployment" "portfolio" {
       }
 
       spec {
+        automount_service_account_token = false
+
         container {
           name  = "portfolio"
-          image = "nginx:1.29-alpine"
+          image = "nginxinc/nginx-unprivileged:1.29-alpine"
 
           security_context {
             allow_privilege_escalation = false
-            read_only_root_filesystem  = false
-            run_as_non_root            = false
+            read_only_root_filesystem  = true
+            run_as_non_root            = true
             capabilities {
               drop = ["ALL"]
-              add  = ["NET_BIND_SERVICE", "CHOWN", "SETUID", "SETGID"]
             }
           }
 
           port {
-            container_port = 80
+            container_port = 8080
             name           = "http"
             protocol       = "TCP"
           }
@@ -70,6 +71,21 @@ resource "kubernetes_deployment" "portfolio" {
           volume_mount {
             name       = "html"
             mount_path = "/usr/share/nginx/html"
+          }
+
+          volume_mount {
+            name       = "tmp"
+            mount_path = "/tmp"
+          }
+
+          volume_mount {
+            name       = "nginx-cache"
+            mount_path = "/var/cache/nginx"
+          }
+
+          volume_mount {
+            name       = "nginx-run"
+            mount_path = "/var/run"
           }
 
           resources {
@@ -86,7 +102,7 @@ resource "kubernetes_deployment" "portfolio" {
           liveness_probe {
             http_get {
               path   = "/"
-              port   = 80
+              port   = 8080
               scheme = "HTTP"
             }
             initial_delay_seconds = 10
@@ -98,7 +114,7 @@ resource "kubernetes_deployment" "portfolio" {
           readiness_probe {
             http_get {
               path   = "/"
-              port   = 80
+              port   = 8080
               scheme = "HTTP"
             }
             initial_delay_seconds = 5
@@ -113,6 +129,21 @@ resource "kubernetes_deployment" "portfolio" {
           config_map {
             name = kubernetes_config_map.portfolio_html.metadata[0].name
           }
+        }
+
+        volume {
+          name = "tmp"
+          empty_dir {}
+        }
+
+        volume {
+          name = "nginx-cache"
+          empty_dir {}
+        }
+
+        volume {
+          name = "nginx-run"
+          empty_dir {}
         }
       }
     }
@@ -141,7 +172,7 @@ resource "kubernetes_service" "portfolio" {
 
     port {
       port        = 80
-      target_port = 80
+      target_port = 8080
       protocol    = "TCP"
       name        = "http"
     }

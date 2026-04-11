@@ -141,6 +141,16 @@ variable "jellyfin_cache_size" {
   default     = "5Gi"
 }
 
+variable "jellyfin_node_name" {
+  description = "Node name to pin Jellyfin on (must have access to media files)"
+  type        = string
+}
+
+variable "jellyfin_media_path" {
+  description = "Host path for Jellyfin media files"
+  type        = string
+}
+
 # Resource limits
 variable "default_cpu_request" {
   description = "Default CPU request for pods"

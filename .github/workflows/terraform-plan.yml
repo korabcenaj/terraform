@@ -60,12 +60,18 @@ jobs:
             exit 0
           fi
 
-          if grep -Eq '^[[:space:]]*backend[[:space:]]+"' provider.tf; then
-            echo "Backend configuration detected in provider.tf."
+          if grep -REq '^[[:space:]]*backend[[:space:]]+"' -- *.tf; then
+            echo "Backend configuration detected in Terraform configuration."
             exit 0
           fi
 
-          echo "No terraform.tfstate file is present in the repository checkout and no backend is enabled in provider.tf."
+          if [[ -f backend.tf.example ]]; then
+            echo "No terraform.tfstate file is present and remote backend is not enabled."
+            echo "Tip: copy backend.tf.example to backend.tf and provide backend-config values."
+            exit 1
+          fi
+
+          echo "No terraform.tfstate file is present in the repository checkout and no backend is enabled in Terraform files."
           echo "Refusing to run terraform plan from an empty state because that would be misleading."
           exit 1
 

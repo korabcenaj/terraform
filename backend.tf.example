@@ -1,0 +1,7 @@
+# Copy this file to backend.tf to enable remote state.
+#
+# This uses a partial backend configuration. Provide concrete values at init time
+# with -backend-config=backend.kubernetes.hcl.
+terraform {
+  backend "kubernetes" {}
+}

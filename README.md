@@ -207,6 +207,9 @@ It always runs:
 terraform init -backend=false
 terraform fmt -check -recursive
 terraform validate
+tflint --recursive
+tfsec
+kubeconform -strict -ignore-missing-schemas <root-manifests>
 ```
 
 A separate manual plan workflow is included at [.github/workflows/terraform-plan.yml](.github/workflows/terraform-plan.yml).
@@ -349,18 +352,31 @@ cp terraform/terraform.tfstate terraform/terraform.tfstate.backup
 
 ### Remote State (Recommended for Teams)
 
+This repository now includes a safe backend scaffold:
+
+```bash
+cp backend.tf.example backend.tf
+cp backend.kubernetes.hcl.example backend.kubernetes.hcl
+# Edit backend.kubernetes.hcl with your real values
+terraform init -migrate-state -backend-config=backend.kubernetes.hcl
+```
+
+Notes:
+
+- `backend.tf` is intentionally not committed by default.
+- `backend.kubernetes.hcl` is ignored by git.
+- Manual plan CI checks for either local `terraform.tfstate` or an enabled backend block.
+
 ```hcl
-# In provider.tf, uncomment and configure:
+# Example backend.tf content:
 terraform {
-  backend "s3" {
-    bucket         = "my-terraform-state"
-    key            = "docker-apps/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "terraform-locks"
-  }
+  backend "kubernetes" {}
 }
 ```
+
+Optional paid/cloud alternative:
+
+- Keep `backend.tf.example` and use `backend.s3.hcl.example` (S3 + DynamoDB locking).
 
 ## Troubleshooting
 

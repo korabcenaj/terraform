@@ -32,6 +32,10 @@ terraform.tfvars
 tfplan
 tfplan.*
 
+# Terraform backend config (may contain cluster/account details)
+backend.s3.hcl
+backend.kubernetes.hcl
+
 # Misc
 null
 

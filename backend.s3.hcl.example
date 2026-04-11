@@ -1,0 +1,8 @@
+# Copy to backend.s3.hcl and replace values.
+# This file is consumed by:
+# terraform init -migrate-state -backend-config=backend.s3.hcl
+bucket         = "my-terraform-state"
+key            = "docker-apps/terraform/terraform.tfstate"
+region         = "us-east-1"
+encrypt        = true
+dynamodb_table = "terraform-locks"

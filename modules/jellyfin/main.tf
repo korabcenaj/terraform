@@ -1,4 +1,6 @@
 resource "kubernetes_persistent_volume_claim" "jellyfin_config" {
+  wait_until_bound = false
+
   metadata {
     name      = "jellyfin-config"
     namespace = var.namespace
@@ -17,6 +19,8 @@ resource "kubernetes_persistent_volume_claim" "jellyfin_config" {
 }
 
 resource "kubernetes_persistent_volume_claim" "jellyfin_cache" {
+  wait_until_bound = false
+
   metadata {
     name      = "jellyfin-cache"
     namespace = var.namespace
@@ -63,12 +67,20 @@ resource "kubernetes_deployment" "jellyfin" {
       }
 
       spec {
+        node_selector = {
+          "kubernetes.io/hostname" = var.node_name
+        }
+
+        automount_service_account_token = false
+
         container {
           name  = "jellyfin"
           image = "jellyfin/jellyfin:10.10.7"
 
           security_context {
             allow_privilege_escalation = false
+            read_only_root_filesystem  = true
+            run_as_non_root            = true
             capabilities {
               drop = ["ALL"]
             }
@@ -98,6 +110,17 @@ resource "kubernetes_deployment" "jellyfin" {
           volume_mount {
             name       = "cache"
             mount_path = "/cache"
+          }
+
+          volume_mount {
+            name       = "media"
+            mount_path = "/media"
+            read_only  = true
+          }
+
+          volume_mount {
+            name       = "tmp"
+            mount_path = "/tmp"
           }
 
           resources {
@@ -148,6 +171,19 @@ resource "kubernetes_deployment" "jellyfin" {
           persistent_volume_claim {
             claim_name = kubernetes_persistent_volume_claim.jellyfin_cache.metadata[0].name
           }
+        }
+
+        volume {
+          name = "media"
+          host_path {
+            path = var.media_path
+            type = "Directory"
+          }
+        }
+
+        volume {
+          name = "tmp"
+          empty_dir {}
         }
       }
     }

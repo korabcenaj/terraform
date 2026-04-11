@@ -25,7 +25,7 @@ resource "kubernetes_namespace" "jellyfin" {
     name = "jellyfin"
     labels = {
       name                                 = "jellyfin"
-      "pod-security.kubernetes.io/enforce" = "baseline"
+      "pod-security.kubernetes.io/enforce" = "privileged"
       "pod-security.kubernetes.io/audit"   = "restricted"
       "pod-security.kubernetes.io/warn"    = "restricted"
     }
@@ -82,6 +82,8 @@ module "jellyfin" {
   storage_class  = var.jellyfin_storage_class
   config_size    = var.jellyfin_config_size
   cache_size     = var.jellyfin_cache_size
+  node_name      = var.jellyfin_node_name
+  media_path     = var.jellyfin_media_path
   cpu_request    = "250m"
   memory_request = "512Mi"
   cpu_limit      = "1000m"

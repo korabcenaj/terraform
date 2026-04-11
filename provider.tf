@@ -8,10 +8,8 @@ terraform {
     }
   }
 
-  # Uncomment to enable remote state (recommended for production)
-  # backend "local" {
-  #   path = "terraform.tfstate"
-  # }
+  # For remote state scaffolding, see backend.tf.example and
+  # backend.kubernetes.hcl.example (free) or backend.s3.hcl.example.
 }
 
 provider "kubernetes" {

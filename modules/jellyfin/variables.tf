@@ -56,3 +56,13 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "node_name" {
+  description = "Node name to pin Jellyfin scheduling (uses kubernetes.io/hostname selector)"
+  type        = string
+}
+
+variable "media_path" {
+  description = "Host path for media files, mounted read-only at /media"
+  type        = string
+}
