@@ -29,6 +29,12 @@ variable "enable_portfolio" {
   default     = true
 }
 
+variable "manage_portfolio_workload" {
+  description = "Whether Terraform should manage the portfolio deployment/service/ingress, or leave that to another controller such as Argo CD"
+  type        = bool
+  default     = false
+}
+
 variable "enable_jellyfin" {
   description = "Enable Jellyfin media server"
   type        = bool
@@ -68,7 +74,7 @@ variable "pihole_web_password" {
 }
 
 variable "enable_monitoring" {
-  description = "Enable monitoring stack"
+  description = "Enable monitoring stack (ingress + network policies for existing Prometheus/Grafana)"
   type        = bool
   default     = true
 }
@@ -101,6 +107,90 @@ variable "enable_pod_disruption_budgets" {
   description = "Enable Pod Disruption Budgets for HA"
   type        = bool
   default     = true
+}
+
+variable "enable_cert_manager" {
+  description = "Deploy cert-manager via Helm (manages TLS certificates for all ingresses)"
+  type        = bool
+  default     = true
+}
+
+variable "cert_manager_chart_version" {
+  description = "cert-manager Helm chart version"
+  type        = string
+  default     = "v1.17.1"
+}
+
+variable "enable_ingress_nginx" {
+  description = "Deploy ingress-nginx via Helm (the cluster's ingress controller)"
+  type        = bool
+  default     = true
+}
+
+variable "ingress_nginx_chart_version" {
+  description = "ingress-nginx Helm chart version"
+  type        = string
+  default     = "4.12.1"
+}
+
+variable "ingress_nginx_service_type" {
+  description = "Service type for the ingress-nginx controller (LoadBalancer or NodePort)"
+  type        = string
+  default     = "LoadBalancer"
+}
+
+variable "ingress_nginx_replicas" {
+  description = "Number of ingress-nginx controller replicas"
+  type        = number
+  default     = 1
+}
+
+variable "enable_kube_prometheus_stack" {
+  description = "Deploy kube-prometheus-stack via Helm (Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics)"
+  type        = bool
+  default     = true
+}
+
+variable "kube_prometheus_stack_chart_version" {
+  description = "kube-prometheus-stack Helm chart version"
+  type        = string
+  default     = "70.4.0"
+}
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "prometheus_retention" {
+  description = "Prometheus data retention period"
+  type        = string
+  default     = "30d"
+}
+
+variable "prometheus_storage_size" {
+  description = "Prometheus persistent volume size"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "prometheus_storage_class" {
+  description = "Storage class for Prometheus persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "grafana_storage_size" {
+  description = "Grafana persistent volume size"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "grafana_storage_class" {
+  description = "Storage class for Grafana persistent volume"
+  type        = string
+  default     = "local-path"
 }
 
 # Application configurations

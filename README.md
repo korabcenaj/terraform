@@ -1,110 +1,89 @@
-# Terraform Docker-Apps Infrastructure as Code
+# Homelab Kubernetes Platform — Infrastructure as Code
 
-## Quick Start
+> Production-grade, self-hosted Kubernetes platform managed entirely as code.
+> 4-node bare-metal cluster running a media, monitoring, DNS, and networking stack via
+> Terraform + GitOps (Argo CD), with full CI/CD, security hardening, and backup automation.
 
-### 1. Prerequisites
-
-```bash
-# Install Terraform
-curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-sudo apt-get update && sudo apt-get install terraform
-
-# Verify installation
-terraform --version
-
-# Ensure kubectl access
-kubectl cluster-info
-kubectl get nodes
-```
-
-### 2. Initialize Terraform
-
-```bash
-cd /home/mena/docker-apps/terraform
-
-# Initialize Terraform (downloads providers)
-terraform init
-
-# Verify configuration
-terraform validate
-terraform fmt -recursive
-```
-
-### 3. Plan Deployment
-
-```bash
-# Review what will be created/changed
-terraform plan -out=tfplan
-
-# Save plan for reproducibility
-terraform show tfplan
-```
-
-### 4. Apply Configuration
-
-```bash
-# Create all resources
-terraform apply tfplan
-
-# Or directly (requires confirmation)
-terraform apply
-
-# View outputs
-terraform output
-```
-
-### 5. Verify Deployment
-
-```bash
-# Check Kubernetes resources
-kubectl get namespaces
-kubectl get deployments -A
-kubectl get services -A
-
-# Portfolio service
-kubectl port-forward -n portfolio svc/portfolio-web 8080:80 &
-curl http://localhost:8080
-
-# Jellyfin service
-kubectl port-forward -n jellyfin svc/jellyfin 8096:8096 &
-# Access at http://localhost:8096
-```
+![Terraform](https://img.shields.io/badge/Terraform-≥1.8-7B42BC?logo=terraform&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-3-0F1689?logo=helm&logoColor=white)
+![Argo CD](https://img.shields.io/badge/Argo_CD-GitOps-EF7B4D?logo=argo&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-Grafana-E6522C?logo=prometheus&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
 
 ---
 
-## Configuration
+## Overview
 
-### Common Variables
+This repository contains the full Terraform configuration for a self-hosted homelab Kubernetes
+cluster. It manages both platform infrastructure (ingress controller, monitoring stack, TLS
+certificates) and application workloads (media server, DNS, torrent client) from a single,
+version-controlled codebase.
 
-Edit `terraform.tfvars` to customize:
+**Key design goals:**
+- Every resource is declared in code — no manual `kubectl apply` drift
+- Platform infrastructure is Helm-managed via Terraform's Helm provider
+- Application workloads that have an Argo CD owner are intentionally excluded from Terraform state (split controller ownership)
+- Security-first defaults: Pod Security Standards, Network Policies, Resource Quotas, and Pod Disruption Budgets on every namespace
+- Sensitive variables (`sensitive = true`) and a dedicated `secrets.auto.tfvars` (gitignored) keep secrets out of state diffs and version history
 
-```hcl
-# Enable/disable specific applications
-enable_portfolio    = true
-enable_jellyfin     = true
-enable_qbittorrent  = true
+---
 
-# Cluster settings
-cluster_name       = "home-lab"
-environment        = "production"
-kubeconfig_path    = "~/.kube/config"
+## Architecture
 
-# Resource allocation
-default_cpu_request    = "100m"
-default_memory_request = "128Mi"
-default_cpu_limit      = "250m"
-default_memory_limit   = "256Mi"
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  GitHub Repository (this repo)                                  │
+│                                                                 │
+│  .github/workflows/                                             │
+│  ├── terraform-ci.yml    (fmt, validate, tflint, tfsec,         │
+│  │                        kubeconform — runs on every PR/push)  │
+│  └── terraform-plan.yml  (full plan against live cluster —      │
+│                           self-hosted runner, manual dispatch)  │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ terraform apply
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Kubernetes Cluster  (4-node bare-metal, k8s v1.29)             │
+│                                                                 │
+│  Platform (Terraform-owned)         Apps (Argo CD-owned)        │
+│  ├── ingress-nginx (Helm)           └── portfolio               │
+│  ├── kube-prometheus-stack (Helm)                               │
+│  ├── cert-manager (kubectl/manual)                              │
+│  ├── metrics-server (Helm)                                      │
+│  ├── Jellyfin                                                   │
+│  ├── qBittorrent                                                │
+│  ├── Pi-hole                                                    │
+│  └── Network Policies / Resource Quotas / PDBs                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Scale Applications
+### Controller Ownership Model
 
-```bash
-# Increase replicas
-terraform apply -var="portfolio_replicas=2"
+| Resource | Owned by | Rationale |
+|---|---|---|
+| Namespaces, RBAC, Network Policies | Terraform | Platform concerns — stable, long-lived |
+| ingress-nginx, kube-prometheus-stack, metrics-server | Terraform (Helm) | Infrastructure — needs version pinning and drift detection |
+| Jellyfin, qBittorrent, Pi-hole | Terraform | No GitOps controller managing these |
+| Portfolio workload (Deployment, Service, Ingress) | Argo CD | Argo CD tracks image updates; Terraform owns the namespace only |
+| cert-manager | Unmanaged (manual) | Installed via kubectl with no Helm release secret; migration pending |
 
-# Or edit terraform.tfvars and apply
-```
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| IaC | Terraform ≥ 1.8, `hashicorp/kubernetes` ~> 2.25, `hashicorp/helm` ~> 2.13 |
+| Container Orchestration | Kubernetes 1.29 (bare-metal, kubeadm) |
+| Ingress | ingress-nginx 4.15.1 (Helm-managed) |
+| Monitoring | kube-prometheus-stack 82.18.0 — Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
+| TLS | cert-manager v1.14.5 with self-signed CA chain (selfsigned-bootstrap → local-lan-ca) |
+| GitOps | Argo CD (manages portfolio application) |
+| CI/CD | GitHub Actions — tfsec, TFLint, kubeconform, self-hosted plan runner |
+| DNS | Pi-hole (network-wide ad-blocking DNS) |
+| Media | Jellyfin (self-hosted media server) |
+| Node Metrics | metrics-server (enables `kubectl top`, HPA signals) |
 
 ---
 
@@ -112,416 +91,316 @@ terraform apply -var="portfolio_replicas=2"
 
 ```
 terraform/
-├── provider.tf              # Kubernetes provider config
-├── variables.tf             # Input variables
-├── main.tf                  # Main resources & modules
-├── outputs.tf               # Output values
-├── terraform.tfvars         # Variable values (customize this)
-├── terraform.tfstate        # Current state (auto-generated, don't edit)
+├── main.tf                          # Root module — wires all modules together
+├── variables.tf                     # All input variables with descriptions and validation
+├── outputs.tf                       # Cluster and service outputs
+├── provider.tf                      # kubernetes + helm providers
+├── terraform.tfvars                 # Tunable settings (committed, no secrets)
+├── secrets.auto.tfvars              # Sensitive values — gitignored
+├── secrets.auto.tfvars.example      # Template for required secrets
+├── backend.tf.example               # Remote state scaffold (kubernetes / S3+DynamoDB)
 │
-└── modules/                 # Reusable modules
-    ├── portfolio/           # Portfolio web application
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    ├── jellyfin/            # Jellyfin media server
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    ├── qbittorrent/         # qBittorrent torrent client
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    ├── monitoring/          # Monitoring stack reference
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    └── networking/          # Network policies
-        ├── main.tf
-        ├── variables.tf
-        └── outputs.tf
+├── .github/workflows/
+│   ├── terraform-ci.yml             # PR/push: fmt, validate, tflint, tfsec, kubeconform
+│   └── terraform-plan.yml           # Manual: full plan against live cluster (self-hosted runner)
+│
+├── scripts/
+│   ├── backup.sh                    # Snapshot state + cert-manager CA + Pi-hole config
+│   ├── restore.sh                   # Restore from snapshot with dry-run mode
+│   ├── setup-github-runner.sh       # Register/manage self-hosted GitHub Actions runner
+│   ├── set-github-secret.sh         # Push KUBECONFIG_B64 secret via gh CLI
+│   └── print-kubeconfig-b64.sh      # Encode kubeconfig for GitHub secret
+│
+└── modules/
+    ├── cert-manager/                # Helm release + selfsigned-bootstrap + local-lan-ca issuers
+    ├── ingress-nginx/               # Helm release, default IngressClass, metrics integration
+    ├── kube-prometheus-stack/       # Helm release, Prometheus + Grafana + Alertmanager
+    ├── metrics-server/              # Helm release for kubectl top / HPA
+    ├── monitoring/                  # Ingress + network-allow rules for Grafana/Prometheus
+    ├── networking/                  # Default-deny NetworkPolicy per namespace
+    ├── network-policies/            # Per-app allow rules (ingress, DNS, metrics scrape)
+    ├── resource-quotas/             # CPU/memory quotas per namespace
+    ├── pod-disruption-budgets/      # minAvailable PDBs for HA
+    ├── portfolio/                   # Namespace-only (workload owned by Argo CD)
+    ├── jellyfin/                    # Deployment, PVC, Service, Ingress, security hardening
+    ├── qbittorrent/                 # Deployment, PVC, Service, Ingress
+    └── pihole/                      # Deployment, Service (DNS UDP/TCP + Web UI)
 ```
 
-## Common Commands
+---
+
+## Security Model
+
+Every namespace gets the following by default (`enable_network_policies = true`):
+
+1. **Default-deny ingress** NetworkPolicy — blocks all traffic not explicitly allowed
+2. **Per-app allow rules** — explicit egress/ingress policies per workload (DNS, metrics scrape, HTTP ingress)
+3. **Pod Security Standards** — each namespace is labelled with appropriate enforcement level (`baseline` or `privileged`)
+4. **Resource Quotas** — CPU and memory limits prevent noisy-neighbour resource exhaustion
+5. **Pod Disruption Budgets** — `minAvailable: 1` on all stateful workloads
+
+Sensitive variables use `sensitive = true` and strong validation (e.g., `pihole_web_password`
+enforces length, character complexity, and blocks weak defaults like `admin` or `changeme`).
+
+---
+
+## Quick Start
+
+### Prerequisites
 
 ```bash
-# Initialize (first time only)
+# Terraform ≥ 1.8
+terraform --version
+
+# kubectl configured and pointing at target cluster
+kubectl cluster-info
+kubectl get nodes
+```
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/korabcenaj/terraform.git
+cd terraform
+
+# Copy and fill in secrets
+cp secrets.auto.tfvars.example secrets.auto.tfvars
+# Edit secrets.auto.tfvars — set pihole_web_password, grafana_admin_password
+```
+
+### 2. Initialize
+
+```bash
 terraform init
-
-# Validate configuration
 terraform validate
-
-# Format code
 terraform fmt -recursive
-
-# Plan changes (dry-run)
-terraform plan
-
-# Apply changes
-terraform apply
-
-# Destroy resources
-terraform destroy
-
-# View current state
-terraform state list
-
-# Inspect specific resource
-terraform state show kubernetes_deployment.portfolio
-
-# Get output values
-terraform output
-terraform output -json
 ```
 
-## Metrics Server
-
-`metrics-server` is now managed by Terraform and enabled by default.
+### 3. Plan
 
 ```bash
-# Verify deployment
-kubectl get deploy -n kube-system metrics-server
+terraform plan -out=tfplan
+terraform show tfplan
+```
 
-# Verify live metrics
+### 4. Apply
+
+```bash
+terraform apply tfplan
+```
+
+### 5. Verify
+
+```bash
+kubectl get namespaces
+kubectl get deployments -A
 kubectl top nodes
-kubectl top pods -A
+
+# Grafana
+kubectl port-forward -n monitoring svc/monitor-grafana 3000:80
+# open http://localhost:3000
+
+# Jellyfin
+kubectl port-forward -n jellyfin svc/jellyfin 8096:8096
+# open http://localhost:8096
 ```
 
-Disable if needed:
+---
 
-```bash
-terraform apply -var="enable_metrics_server=false"
+## Configuration
+
+All tunable settings live in `terraform.tfvars`. Secrets go in `secrets.auto.tfvars` (gitignored).
+
+```hcl
+# Feature flags — everything is opt-in
+enable_portfolio              = true
+manage_portfolio_workload     = false  # Argo CD owns the workload; Terraform owns the namespace
+enable_jellyfin               = true
+enable_ingress_nginx          = true
+enable_kube_prometheus_stack  = true
+enable_network_policies       = true
+enable_resource_quotas        = true
+enable_pod_disruption_budgets = true
+
+# Pin Helm chart versions to running cluster versions
+ingress_nginx_chart_version         = "4.15.1"
+kube_prometheus_stack_chart_version = "82.18.0"
 ```
 
-## CI (Terraform Checks)
-
-A default CI workflow is included at [.github/workflows/terraform-ci.yml](.github/workflows/terraform-ci.yml).
-
-It always runs:
+Scale an application without editing files:
 
 ```bash
-terraform init -backend=false
-terraform fmt -check -recursive
-terraform validate
-tflint --recursive
-tfsec
-kubeconform -strict -ignore-missing-schemas <root-manifests>
+terraform apply -var="portfolio_replicas=2"
 ```
 
-A separate manual plan workflow is included at [.github/workflows/terraform-plan.yml](.github/workflows/terraform-plan.yml).
+---
 
-It requires the GitHub secret `KUBECONFIG_B64`, set to a base64-encoded kubeconfig for your cluster.
+## CI/CD Pipelines
 
-For this repository, the manual plan workflow is intended to run on a self-hosted Linux runner inside the homelab.
-If the kubeconfig server is something like `https://k8s-master.local:6443`, a GitHub-hosted runner will usually fail unless that name is resolvable and routable from the runner.
+### Terraform CI ([.github/workflows/terraform-ci.yml](.github/workflows/terraform-ci.yml))
 
-Create that secret from a local kubeconfig with:
+Runs on every pull request and push to `main`:
 
-```bash
-base64 ~/.kube/config | tr -d '\n'
-```
+| Step | Tool | Purpose |
+|---|---|---|
+| Format check | `terraform fmt -check` | Enforce consistent style |
+| Validate | `terraform validate` | Catch HCL syntax and type errors |
+| Lint | `tflint --recursive` | Enforce Terraform best-practices |
+| Security scan | `tfsec` | SAST for misconfigurations |
+| Schema validation | `kubeconform` | Validate Kubernetes manifests against API schemas |
 
-Use the output as the value for the repository secret `KUBECONFIG_B64`.
+### Terraform Plan ([.github/workflows/terraform-plan.yml](.github/workflows/terraform-plan.yml))
 
-Use a dedicated automation kubeconfig if needed. Its `server` endpoint must be reachable from the runner that executes the workflow.
+Manual workflow run on a **self-hosted runner** inside the homelab network:
+- Decodes `KUBECONFIG_B64` from GitHub Secrets and writes `~/.kube/config`
+- Verifies cluster reachability before proceeding
+- Requires either a local `terraform.tfstate` or a configured remote backend — prevents misleading empty-state plans
 
-Recommended runner shape:
-
-- GitHub self-hosted runner
-- Linux host on the same LAN as the cluster
-- `terraform`, `kubectl`, and network access to the Kubernetes API
-- runner labels including `self-hosted`, `linux`, `homelab`, and `terraform`
-- local DNS resolution for the Kubernetes API server hostname (e.g., `k8s-master.local`)
-
-If the kubeconfig server uses a private/local hostname like `https://k8s-master.local:6443`, ensure the runner host can resolve it.
-
-For this setup, add an entry to `/etc/hosts`:
+#### Self-hosted runner setup
 
 ```bash
-echo "192.168.1.15 k8s-master.local" | sudo tee -a /etc/hosts
-```
-
-Adjust the IP and hostname to match your cluster's actual API server.
-
-High-level setup:
-
-```bash
-# 1. In GitHub, open Settings -> Actions -> Runners and generate a repository runner token.
-# 2. On the chosen homelab host, run:
-
-export GH_RUNNER_TOKEN=<runner-registration-token>
+# 1. Generate a runner token in GitHub → Settings → Actions → Runners
+export GH_RUNNER_TOKEN=<token>
 ./scripts/setup-github-runner.sh install --service
 ```
 
-Once the runner is registered and online, the manual workflow can execute cluster-backed plans without exposing the API publicly.
-
-Useful runner lifecycle commands:
+Runner lifecycle:
 
 ```bash
-./scripts/setup-github-runner.sh status
-./scripts/setup-github-runner.sh stop
-./scripts/setup-github-runner.sh start
-./scripts/setup-github-runner.sh remove --token <runner-removal-token>
+./scripts/setup-github-runner.sh status | start | stop
+./scripts/setup-github-runner.sh remove --token <removal-token>
 ```
 
-Generate the `KUBECONFIG_B64` secret value with:
+Set the kubeconfig secret:
 
 ```bash
+# Encode and upload in one step (requires gh CLI)
+./scripts/set-github-secret.sh --name KUBECONFIG_B64
+
+# Or encode manually
 ./scripts/print-kubeconfig-b64.sh
 ```
 
-Or point it at a dedicated automation kubeconfig:
-
-```bash
-./scripts/print-kubeconfig-b64.sh /path/to/automation-kubeconfig
-```
-
-If `gh` is installed and authenticated, update the GitHub repository secret directly with:
-
-```bash
-./scripts/set-github-secret.sh --name KUBECONFIG_B64
-```
-
-Install `gh` on Ubuntu/Debian with:
+Install `gh` CLI if needed:
 
 ```bash
 ./scripts/install-gh.sh
 gh auth login
-./scripts/set-github-secret.sh --name KUBECONFIG_B64
 ```
 
-If `sudo` prompts for a password on this host, run the installer directly in an interactive shell and complete the prompt there.
+---
 
-The manual plan workflow refuses to run unless one of these is true:
+## Remote State
 
-- `terraform.tfstate` is available in the workflow checkout
-- a real Terraform backend is enabled in `provider.tf`
-
-This prevents misleading plans generated from an empty state on GitHub-hosted runners.
-
-## Backup and Restore Runbook
-
-Backup script: [scripts/backup.sh](scripts/backup.sh)
-Restore script: [scripts/restore.sh](scripts/restore.sh)
-
-What gets backed up:
-
-- Terraform state files
-- cert-manager root CA secret (`local-lan-ca-secret`)
-- Pi-hole configuration (`/etc/pihole`, `/etc/dnsmasq.d`)
-
-Create backup:
+The project ships with backend scaffolding for two backends. Neither is committed by default.
 
 ```bash
-./scripts/backup.sh
-```
-
-Restore backup:
-
-```bash
-./scripts/restore.sh --dry-run backups/<timestamp>
-./scripts/restore.sh --yes backups/<timestamp>
-```
-
-Example:
-
-```bash
-./scripts/restore.sh --dry-run backups/20260411-120000
-./scripts/restore.sh --yes backups/20260411-120000
-```
-
-Note: Terraform state restore is intentionally manual to avoid accidental state overwrite.
-
-## State Management
-
-### Important: Backup State
-
-```bash
-# Terraform creates terraform.tfstate (contains all resource info)
-# BACKUP THIS FILE!
-
-cp terraform/terraform.tfstate terraform/terraform.tfstate.backup
-
-# For safety, commit to Git:
-# (after adding to .gitignore and using secrets management)
-```
-
-### Remote State (Recommended for Teams)
-
-This repository now includes a safe backend scaffold:
-
-```bash
+# Kubernetes secret backend (recommended for homelab)
 cp backend.tf.example backend.tf
 cp backend.kubernetes.hcl.example backend.kubernetes.hcl
-# Edit backend.kubernetes.hcl with your real values
 terraform init -migrate-state -backend-config=backend.kubernetes.hcl
 ```
 
-Notes:
-
-- `backend.tf` is intentionally not committed by default.
-- `backend.kubernetes.hcl` is ignored by git.
-- Manual plan CI checks for either local `terraform.tfstate` or an enabled backend block.
-
 ```hcl
-# Example backend.tf content:
+# backend.tf
 terraform {
   backend "kubernetes" {}
 }
 ```
 
-Optional paid/cloud alternative:
+S3 + DynamoDB locking is available via `backend.s3.hcl.example` for cloud-backed teams.
 
-- Keep `backend.tf.example` and use `backend.s3.hcl.example` (S3 + DynamoDB locking).
+---
 
-## Troubleshooting
+## Backup and Restore
 
-### Provider Issues
-
-```bash
-# Reinitialize providers
-terraform init -upgrade
-
-# Clear cached providers
-rm -rf .terraform
-terraform init
-```
-
-### Kubeconfig Issues
+The backup script snapshots Terraform state, the cert-manager root CA secret, and Pi-hole config.
 
 ```bash
-# Verify kubeconfig
-kubectl config view
+# Create snapshot
+./scripts/backup.sh
+# Output: backups/20260414-120000/
 
-# Use specific context
-terraform apply -var="kubeconfig_context=kubernetes-admin@kubernetes"
+# Dry-run restore (no writes)
+./scripts/restore.sh --dry-run backups/20260414-120000
+
+# Full restore
+./scripts/restore.sh --yes backups/20260414-120000
 ```
 
-### State Conflicts
+Terraform state restore is intentionally manual to prevent accidental state overwrites.
+
+---
+
+## Common Commands
 
 ```bash
-# Refresh state
-terraform refresh
-
-# Manually import resource
-terraform import kubernetes_deployment.portfolio \
-  portfolio/portfolio-web
+terraform init                           # Download providers (first time / after version changes)
+terraform validate                       # Syntax and type check
+terraform fmt -recursive                 # Format all .tf files
+terraform plan -out=tfplan               # Dry-run, save plan
+terraform apply tfplan                   # Apply saved plan
+terraform state list                     # List all managed resources
+terraform state show <resource>          # Inspect a specific resource
+terraform state rm <resource>            # Remove from state without destroying
+terraform import <resource> <id>         # Bring an existing resource under management
+terraform output -json                   # Structured output
+kubectl top nodes                        # Live node metrics (requires metrics-server)
 ```
 
-## Best Practices
+---
 
-✅ **Always plan before apply**
-```bash
-terraform plan -out=tfplan
-terraform apply tfplan
-```
+## Extending the Platform
 
-✅ **Use workspaces for environments**
-```bash
-terraform workspace new staging
-terraform apply
-terraform workspace select default
-```
+To add a new application:
 
-✅ **Version control**
-```bash
-git add terraform/
-git commit -m "Update cluster configuration"
-
-# But exclude state files
-echo "terraform.tfstate*" >> .gitignore
-```
-
-✅ **Document changes**
-```bash
-terraform apply -auto-approve \
-  -var="portfolio_replicas=2" \
-  -lock-timeout=0s
-```
-
-✅ **Destroy safely**
-```bash
-# Always verify before destroying
-terraform plan -destroy
-terraform destroy -auto-approve
-```
-
-## Advanced: Adding New Applications
-
-### 1. Create Module
+1. Create `modules/<myapp>/` with `main.tf`, `variables.tf`, `outputs.tf`
+2. Add `enable_myapp` variable to `variables.tf`
+3. Create the namespace and module block in `main.tf`
+4. Add the namespace to the `namespaces_with_policies` list in the `networking` module call
+5. Add quota and PDB entries in the respective module calls
 
 ```bash
-mkdir terraform/modules/myapp
-cd terraform/modules/myapp
-
-# Create: variables.tf, main.tf, outputs.tf
-```
-
-### 2. Reference in main.tf
-
-```hcl
-module "myapp" {
-  source    = "./modules/myapp"
-  namespace = kubernetes_namespace.myapp[0].metadata[0].name
-  
-  depends_on = [kubernetes_namespace.myapp]
-}
-```
-
-### 3. Add Variable
-
-```hcl
-variable "enable_myapp" {
-  description = "Enable my application"
-  type        = bool
-  default     = false
-}
-```
-
-### 4. Deploy
-
-```bash
+terraform plan -var="enable_myapp=true"
 terraform apply -var="enable_myapp=true"
 ```
 
 ---
 
-## Migration from Manual kubectl
+## Known Limitations
 
-If you deployed manually with `kubectl apply`, migrate to Terraform:
+| Item | Status | Notes |
+|---|---|---|
+| cert-manager | Unmanaged | Installed via kubectl; no Helm release secret. Module exists (`modules/cert-manager/`) but is disabled (`enable_cert_manager = false`) pending safe migration. |
+| Portfolio workload | Argo CD-owned | `manage_portfolio_workload = false` — Terraform owns the namespace and its labels; Argo CD owns the Deployment, Service, and Ingress. |
+| Grafana admin password | Requires change | Default placeholder in `secrets.auto.tfvars` must be replaced before `terraform apply`. |
 
-```bash
-# 1. Import existing resources
-terraform import kubernetes_deployment.portfolio \
-  portfolio/portfolio-web
+---
 
-# 2. Update module code to match
-terraform plan
-
-# 3. Apply Terraform
-terraform apply
-```
-
-## Monitoring Changes
+## Troubleshooting
 
 ```bash
-# Watch Terraform apply
-terraform apply | tee apply.log
+# Provider or plugin issues
+terraform init -upgrade
+rm -rf .terraform && terraform init
 
-# Track Kubernetes changes
-kubectl get events -A --watch
+# Kubeconfig problems
+kubectl config view
+kubectl config get-contexts
+kubectl config use-context kubernetes-admin@kubernetes
 
-# Monitor pod rollouts
-kubectl rollout status deployment/portfolio-web -n portfolio
+# State drift — refresh without applying
+terraform plan -refresh-only
+
+# Manually reconcile an existing resource
+terraform import <resource_address> <resource_id>
+terraform plan   # verify no unexpected changes
 ```
 
 ---
 
 **See Also:**
-- [README.md](../README.md) - Cluster overview
-- [IMPROVEMENTS.md](../IMPROVEMENTS.md) - Improvement roadmap
-- [Terraform Docs](https://registry.terraform.io/providers/hashicorp/kubernetes)
+- [Terraform Registry — kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes)
+- [Terraform Registry — helm provider](https://registry.terraform.io/providers/hashicorp/helm)
+- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
+- [ingress-nginx](https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx)

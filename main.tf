@@ -3,6 +3,51 @@
 # Manages all cluster and application deployments
 ################################################################################
 
+# ---------------------------------------------------------------------------
+# Infrastructure: cert-manager, ingress-nginx, kube-prometheus-stack
+# ---------------------------------------------------------------------------
+
+module "cert_manager" {
+  count  = var.enable_cert_manager ? 1 : 0
+  source = "./modules/cert-manager"
+
+  release_name             = "cert-manager"
+  chart_version            = var.cert_manager_chart_version
+  create_selfsigned_issuer = true
+  create_local_ca_issuer   = true
+
+  tags = var.tags
+}
+
+module "ingress_nginx" {
+  count  = var.enable_ingress_nginx ? 1 : 0
+  source = "./modules/ingress-nginx"
+
+  release_name   = "ingress-nginx"
+  chart_version  = var.ingress_nginx_chart_version
+  service_type   = var.ingress_nginx_service_type
+  replica_count  = var.ingress_nginx_replicas
+  enable_metrics = var.enable_monitoring
+
+  tags = var.tags
+}
+
+module "kube_prometheus_stack" {
+  count  = var.enable_kube_prometheus_stack ? 1 : 0
+  source = "./modules/kube-prometheus-stack"
+
+  release_name             = "monitor"
+  chart_version            = var.kube_prometheus_stack_chart_version
+  grafana_admin_password   = var.grafana_admin_password
+  prometheus_retention     = var.prometheus_retention
+  prometheus_storage_size  = var.prometheus_storage_size
+  prometheus_storage_class = var.prometheus_storage_class
+  grafana_storage_size     = var.grafana_storage_size
+  grafana_storage_class    = var.grafana_storage_class
+
+  tags = var.tags
+}
+
 # Namespaces
 resource "kubernetes_namespace" "portfolio" {
   count = var.enable_portfolio ? 1 : 0
@@ -15,6 +60,10 @@ resource "kubernetes_namespace" "portfolio" {
       "pod-security.kubernetes.io/audit"   = "restricted"
       "pod-security.kubernetes.io/warn"    = "restricted"
     }
+  }
+
+  lifecycle {
+    ignore_changes = [metadata[0].annotations]
   }
 }
 
@@ -60,7 +109,7 @@ resource "kubernetes_namespace" "pihole" {
 
 # Modules
 module "portfolio" {
-  count  = var.enable_portfolio ? 1 : 0
+  count  = var.enable_portfolio && var.manage_portfolio_workload ? 1 : 0
   source = "./modules/portfolio"
 
   namespace      = kubernetes_namespace.portfolio[0].metadata[0].name
@@ -126,7 +175,12 @@ module "monitoring" {
   count  = var.enable_monitoring ? 1 : 0
   source = "./modules/monitoring"
 
+  grafana_service_name    = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].grafana_service_name, "monitor-grafana") : "monitor-grafana"
+  prometheus_service_name = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].prometheus_service_name, "monitor-kube-prometheus-st-prometheus") : "monitor-kube-prometheus-st-prometheus"
+
   tags = var.tags
+
+  depends_on = [module.kube_prometheus_stack]
 }
 
 module "metrics_server" {
@@ -138,13 +192,16 @@ module "networking" {
   count  = var.enable_network_policies ? 1 : 0
   source = "./modules/networking"
 
-  namespaces_with_policies = [
+  namespaces_with_policies = compact([
     "default",
-    "portfolio",
-    "jellyfin",
-    "qbittorrent",
-    "pihole"
-  ]
+    var.enable_portfolio ? "portfolio" : "",
+    var.enable_jellyfin ? "jellyfin" : "",
+    var.enable_qbittorrent ? "qbittorrent" : "",
+    var.enable_pihole ? "pihole" : "",
+    # monitoring has its own namespace-specific policies in the monitoring module
+    # ingress-nginx should not receive a blanket default-deny without explicit allow rules
+    var.enable_cert_manager ? "cert-manager" : "",
+  ])
 }
 
 # Resource Quotas
