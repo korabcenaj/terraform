@@ -1,3 +1,49 @@
+# CoreDNS — add stub zone for private domain so in-cluster pods resolve *.local.lan
+resource "kubernetes_config_map_v1" "coredns" {
+  count = var.coredns_local_dns_ip != "" ? 1 : 0
+
+  metadata {
+    name      = "coredns"
+    namespace = "kube-system"
+  }
+
+  data = {
+    Corefile = <<-COREFILE
+      .:53 {
+          errors
+          health {
+             lameduck 5s
+          }
+          ready
+          kubernetes cluster.local in-addr.arpa ip6.arpa {
+             pods insecure
+             fallthrough in-addr.arpa ip6.arpa
+             ttl 30
+          }
+          prometheus :9153
+          forward . 8.8.8.8 1.1.1.1 {
+             max_concurrent 1000
+          }
+          cache 30
+          loop
+          reload
+          loadbalance
+      }
+      ${var.coredns_local_domain}:53 {
+          errors
+          cache 30
+          forward . ${var.coredns_local_dns_ip}
+      }
+    COREFILE
+  }
+
+  lifecycle {
+    prevent_destroy = true
+    # Avoid conflicts with kubeadm / kube-system default management
+    ignore_changes = [metadata[0].annotations, metadata[0].labels]
+  }
+}
+
 # Default deny all ingress traffic for each namespace
 resource "kubernetes_network_policy" "default_deny_ingress" {
   for_each = toset(var.namespaces_with_policies)
@@ -30,6 +76,11 @@ resource "kubernetes_network_policy" "allow_dns" {
       ports {
         port     = "53"
         protocol = "UDP"
+      }
+
+      ports {
+        port     = "53"
+        protocol = "TCP"
       }
 
       to {

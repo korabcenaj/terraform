@@ -58,7 +58,7 @@ variable "oidc_client_secret" {
 variable "oidc_scopes" {
   description = "OIDC scopes requested by Argo CD"
   type        = list(string)
-  default     = ["openid", "profile", "email", "groups"]
+  default     = ["openid", "profile", "email"]
 }
 
 variable "ingress_host" {

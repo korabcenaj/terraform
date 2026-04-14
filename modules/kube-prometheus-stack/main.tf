@@ -67,6 +67,17 @@ resource "helm_release" "kube_prometheus_stack" {
   }
 
   set {
+    name  = "grafana.assertNoLeakedSecrets"
+    value = "false"
+  }
+
+  # Some CSI/NFS backends deny recursive chown; avoid blocking startup.
+  set {
+    name  = "grafana.initChownData.enabled"
+    value = "false"
+  }
+
+  set {
     name  = "grafana.persistence.enabled"
     value = "true"
   }

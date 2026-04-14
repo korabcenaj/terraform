@@ -99,7 +99,7 @@ variable "grafana_oidc_client_secret" {
 variable "grafana_oidc_scopes" {
   description = "OIDC scopes requested by Grafana"
   type        = list(string)
-  default     = ["openid", "profile", "email", "groups"]
+  default     = ["openid", "profile", "email"]
 }
 
 variable "tags" {

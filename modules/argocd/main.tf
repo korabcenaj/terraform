@@ -1,4 +1,12 @@
 locals {
+  base_values = yamlencode({
+    configs = {
+      params = {
+        "server.insecure" = true
+      }
+    }
+  })
+
   oidc_values = var.oidc_enabled ? yamlencode({
     configs = {
       cm = {
@@ -63,11 +71,6 @@ resource "helm_release" "argocd" {
     value = "ClusterIP"
   }
 
-  set {
-    name  = "configs.params.server.insecure"
-    value = "true"
-  }
-
   dynamic "set_sensitive" {
     for_each = trimspace(var.admin_password_bcrypt) != "" ? [1] : []
     content {
@@ -76,7 +79,7 @@ resource "helm_release" "argocd" {
     }
   }
 
-  values = compact([local.oidc_values])
+  values = compact([local.base_values, local.oidc_values])
 
   wait    = true
   timeout = 600

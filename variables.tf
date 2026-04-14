@@ -28,6 +28,20 @@ variable "ingress_base_domain" {
   default     = "local.lan"
 }
 
+variable "private_dns_ip" {
+  description = "Optional override for private DNS upstream (IPv4). Leave empty to use service discovery via pihole.pihole.svc.cluster.local."
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      trimspace(var.private_dns_ip) == "" ||
+      can(regex("^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$", trimspace(var.private_dns_ip)))
+    )
+    error_message = "private_dns_ip must be empty or a valid IPv4 address."
+  }
+}
+
 # Enable/disable modules
 variable "enable_portfolio" {
   description = "Enable portfolio application"
@@ -250,7 +264,7 @@ variable "external_secrets_chart_version" {
 variable "argocd_chart_version" {
   description = "Argo CD Helm chart version"
   type        = string
-  default     = "7.8.5"
+  default     = "9.4.17"
 }
 
 variable "tempo_chart_version" {
