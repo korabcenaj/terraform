@@ -1,3 +1,24 @@
+locals {
+  oidc_values = var.oidc_enabled ? yamlencode({
+    configs = {
+      cm = {
+        url = "https://${var.ingress_host}"
+        "oidc.config" = yamlencode({
+          name                     = var.oidc_name
+          issuer                   = var.oidc_issuer_url
+          clientID                 = var.oidc_client_id
+          clientSecret             = "$argocd-oidc-secret:clientSecret"
+          requestedScopes          = var.oidc_scopes
+          requestedIDTokenClaims   = { groups = { essential = true } }
+          enableUserInfoGroups     = true
+          userInfoPath             = "/protocol/openid-connect/userinfo"
+          enablePKCEAuthentication = true
+        })
+      }
+    }
+  }) : ""
+}
+
 resource "kubernetes_namespace" "argocd" {
   metadata {
     name = var.namespace
@@ -9,6 +30,24 @@ resource "kubernetes_namespace" "argocd" {
 
   lifecycle {
     ignore_changes = [metadata[0].annotations]
+  }
+}
+
+resource "kubernetes_secret_v1" "oidc_client_secret" {
+  count = var.oidc_enabled ? 1 : 0
+
+  metadata {
+    name      = "argocd-oidc-secret"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
+    labels = merge(var.tags, {
+      "app.kubernetes.io/part-of" = "argocd"
+    })
+  }
+
+  type = "Opaque"
+
+  data = {
+    clientSecret = var.oidc_client_secret
   }
 }
 
@@ -37,8 +76,12 @@ resource "helm_release" "argocd" {
     }
   }
 
+  values = compact([local.oidc_values])
+
   wait    = true
   timeout = 600
+
+  depends_on = [kubernetes_secret_v1.oidc_client_secret]
 }
 
 resource "kubernetes_ingress_v1" "argocd_server" {

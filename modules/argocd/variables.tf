@@ -23,6 +23,44 @@ variable "admin_password_bcrypt" {
   default     = ""
 }
 
+variable "oidc_enabled" {
+  description = "Enable native OIDC login for Argo CD"
+  type        = bool
+  default     = false
+}
+
+variable "oidc_name" {
+  description = "Display name for the OIDC provider in the Argo CD login screen"
+  type        = string
+  default     = "Keycloak"
+}
+
+variable "oidc_issuer_url" {
+  description = "OIDC issuer URL used by Argo CD"
+  type        = string
+  default     = ""
+}
+
+variable "oidc_client_id" {
+  description = "OIDC client ID for Argo CD"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "oidc_client_secret" {
+  description = "OIDC client secret for Argo CD"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "oidc_scopes" {
+  description = "OIDC scopes requested by Argo CD"
+  type        = list(string)
+  default     = ["openid", "profile", "email", "groups"]
+}
+
 variable "ingress_host" {
   description = "Hostname for Argo CD server ingress (e.g. argocd.local.lan)"
   type        = string

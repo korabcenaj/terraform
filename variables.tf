@@ -467,6 +467,195 @@ variable "default_memory_limit" {
   default     = "256Mi"
 }
 
+# ---------------------------------------------------------------------------
+# OAuth2 Proxy
+# ---------------------------------------------------------------------------
+
+variable "enable_oauth2_proxy" {
+  description = "Deploy OAuth2 Proxy for SSO/forward authentication in front of all ingresses"
+  type        = bool
+  default     = false
+}
+
+variable "oauth2_proxy_chart_version" {
+  description = "OAuth2 Proxy Helm chart version"
+  type        = string
+  default     = "7.7.1"
+}
+
+variable "oauth2_proxy_provider" {
+  description = "OAuth2 provider type (e.g. github, oidc, google)"
+  type        = string
+  default     = "github"
+}
+
+variable "oauth2_proxy_email_domain" {
+  description = "Allowed email domain for OAuth2 authentication. Use '*' to allow any."
+  type        = string
+  default     = "*"
+}
+
+variable "oauth2_proxy_client_id" {
+  description = "OAuth2 application client ID"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_CLIENT_ID"
+}
+
+variable "oauth2_proxy_client_secret" {
+  description = "OAuth2 application client secret"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_CLIENT_SECRET"
+}
+
+variable "oauth2_proxy_cookie_secret" {
+  description = "Cookie encryption secret (16/24/32 bytes base64). Generate: openssl rand -base64 32 | tr -- '+/' '-_' | tr -d '='"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_COOKIE_SECRET"
+}
+
+# ---------------------------------------------------------------------------
+# Kyverno
+# ---------------------------------------------------------------------------
+
+variable "enable_kyverno" {
+  description = "Deploy Kyverno policy engine for admission-controller-based policy enforcement"
+  type        = bool
+  default     = false
+}
+
+variable "kyverno_chart_version" {
+  description = "Kyverno Helm chart version"
+  type        = string
+  default     = "3.2.6"
+}
+
+variable "kyverno_enforcement_mode" {
+  description = "Kyverno policy action: 'Audit' logs violations, 'Enforce' blocks non-compliant resources"
+  type        = string
+  default     = "Audit"
+}
+
+variable "kyverno_create_policies" {
+  description = "Create Kyverno ClusterPolicy resources. Enable only after Kyverno CRDs are registered in the cluster (i.e. after the Helm chart has been applied)."
+  type        = bool
+  default     = false
+}
+
+# ---------------------------------------------------------------------------
+# Local identity provider and native app OIDC
+# ---------------------------------------------------------------------------
+
+variable "enable_keycloak" {
+  description = "Deploy a local Keycloak identity provider for LAN-only authentication"
+  type        = bool
+  default     = false
+}
+
+variable "keycloak_chart_version" {
+  description = "Keycloak Helm chart version"
+  type        = string
+  default     = "25.2.0"
+}
+
+variable "keycloak_admin_user" {
+  description = "Keycloak admin username"
+  type        = string
+  default     = "admin"
+}
+
+variable "keycloak_admin_password" {
+  description = "Keycloak admin password"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_KEYCLOAK_ADMIN_PASSWORD"
+}
+
+variable "keycloak_realm" {
+  description = "Realm name intended for homelab OIDC clients"
+  type        = string
+  default     = "homelab"
+}
+
+variable "keycloak_postgresql_username" {
+  description = "PostgreSQL username for the bundled Keycloak database"
+  type        = string
+  default     = "keycloak"
+}
+
+variable "keycloak_postgresql_password" {
+  description = "PostgreSQL password for the bundled Keycloak database"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_KEYCLOAK_DB_PASSWORD"
+}
+
+variable "keycloak_postgresql_database" {
+  description = "PostgreSQL database name for Keycloak"
+  type        = string
+  default     = "keycloak"
+}
+
+variable "keycloak_postgresql_storage_class" {
+  description = "Storage class for the bundled Keycloak PostgreSQL volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "keycloak_postgresql_storage_size" {
+  description = "Persistent volume size for the bundled Keycloak PostgreSQL database"
+  type        = string
+  default     = "8Gi"
+}
+
+variable "keycloak_bootstrap_enabled" {
+  description = "Bootstrap the homelab realm and known OIDC clients declaratively inside Keycloak"
+  type        = bool
+  default     = true
+}
+
+variable "enable_argocd_oidc" {
+  description = "Enable native OIDC login in Argo CD using the local identity provider"
+  type        = bool
+  default     = false
+}
+
+variable "argocd_oidc_client_id" {
+  description = "OIDC client ID for Argo CD"
+  type        = string
+  sensitive   = true
+  default     = "argocd"
+}
+
+variable "argocd_oidc_client_secret" {
+  description = "OIDC client secret for Argo CD"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_ARGOCD_OIDC_SECRET"
+}
+
+variable "enable_grafana_oidc" {
+  description = "Enable native OIDC login in Grafana using the local identity provider"
+  type        = bool
+  default     = false
+}
+
+variable "grafana_oidc_client_id" {
+  description = "OIDC client ID for Grafana"
+  type        = string
+  sensitive   = true
+  default     = "grafana"
+}
+
+variable "grafana_oidc_client_secret" {
+  description = "OIDC client secret for Grafana"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_GRAFANA_OIDC_SECRET"
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)

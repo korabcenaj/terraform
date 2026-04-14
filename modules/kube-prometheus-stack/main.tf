@@ -1,3 +1,32 @@
+locals {
+  grafana_oidc_values = var.grafana_oidc_enabled ? yamlencode({
+    grafana = {
+      "grafana.ini" = {
+        server = {
+          root_url = "https://${var.grafana_host}"
+        }
+        auth = {
+          disable_login_form = false
+        }
+        "auth.generic_oauth" = {
+          enabled              = true
+          name                 = var.grafana_oidc_name
+          allow_sign_up        = true
+          client_id            = var.grafana_oidc_client_id
+          client_secret        = var.grafana_oidc_client_secret
+          scopes               = join(" ", var.grafana_oidc_scopes)
+          auth_url             = "${var.grafana_oidc_issuer_url}/protocol/openid-connect/auth"
+          token_url            = "${var.grafana_oidc_issuer_url}/protocol/openid-connect/token"
+          api_url              = "${var.grafana_oidc_issuer_url}/protocol/openid-connect/userinfo"
+          login_attribute_path = "sub"
+          use_pkce             = true
+          use_refresh_token    = true
+        }
+      }
+    }
+  }) : ""
+}
+
 resource "kubernetes_namespace" "monitoring" {
   metadata {
     name = var.namespace
@@ -14,6 +43,7 @@ resource "helm_release" "kube_prometheus_stack" {
   chart      = "kube-prometheus-stack"
   version    = var.chart_version
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
+  values     = compact([local.grafana_oidc_values])
 
   # Increase timeout — this chart installs many CRDs and resources
   wait    = true

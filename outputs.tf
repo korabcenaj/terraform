@@ -61,6 +61,11 @@ output "tempo_namespace" {
   value       = try(module.tempo[0].namespace, null)
 }
 
+output "keycloak_namespace" {
+  description = "Keycloak namespace"
+  value       = try(module.keycloak[0].namespace, null)
+}
+
 
 output "portfolio_service" {
   description = "Portfolio service information"
@@ -85,15 +90,17 @@ output "jellyfin_service" {
 output "ingress_urls" {
   description = "Primary ingress URLs derived from the configured ingress base domain"
   value = {
-    portfolio   = "https://portfolio.${var.ingress_base_domain}"
-    jellyfin    = "https://jellyfin.${var.ingress_base_domain}"
-    qbittorrent = "https://qbittorrent.${var.ingress_base_domain}"
-    pihole      = "https://pihole.${var.ingress_base_domain}"
-    grafana     = "https://grafana.${var.ingress_base_domain}"
-    prometheus  = "https://prometheus.${var.ingress_base_domain}"
-    minio       = "https://minio.${var.ingress_base_domain}"
-    argocd      = "https://argocd.${var.ingress_base_domain}"
-    vault       = "https://vault.${var.ingress_base_domain}"
+    portfolio    = "https://portfolio.${var.ingress_base_domain}"
+    jellyfin     = "https://jellyfin.${var.ingress_base_domain}"
+    qbittorrent  = "https://qbittorrent.${var.ingress_base_domain}"
+    pihole       = "https://pihole.${var.ingress_base_domain}"
+    grafana      = "https://grafana.${var.ingress_base_domain}"
+    prometheus   = "https://prometheus.${var.ingress_base_domain}"
+    minio        = "https://minio.${var.ingress_base_domain}"
+    argocd       = "https://argocd.${var.ingress_base_domain}"
+    vault        = "https://vault.${var.ingress_base_domain}"
+    keycloak     = "https://sso.${var.ingress_base_domain}"
+    oauth2_proxy = "https://auth.${var.ingress_base_domain}"
   }
 }
 
@@ -112,6 +119,9 @@ output "deployed_modules" {
     external_secrets = var.enable_external_secrets
     argocd           = var.enable_argocd
     tempo            = var.enable_tempo
+    keycloak         = var.enable_keycloak
+    oauth2_proxy     = var.enable_oauth2_proxy
+    kyverno          = var.enable_kyverno
     metrics_server   = var.enable_metrics_server
     network_policies = var.enable_network_policies
   }
@@ -155,4 +165,62 @@ output "argocd_release" {
 output "tempo_release" {
   description = "Tempo Helm release name"
   value       = try(module.tempo[0].release_name, null)
+}
+
+output "keycloak_release" {
+  description = "Keycloak Helm release name"
+  value       = try(module.keycloak[0].release_name, null)
+}
+
+output "keycloak_base_url" {
+  description = "Local Keycloak base URL"
+  value       = try(module.keycloak[0].base_url, "https://sso.${var.ingress_base_domain}")
+}
+
+output "keycloak_issuer_url" {
+  description = "Expected OIDC issuer URL for the configured Keycloak realm"
+  value       = try(module.keycloak[0].issuer_url, "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}")
+}
+
+output "native_oidc_apps" {
+  description = "Applications configured to use native OIDC instead of ingress-wide forward-auth"
+  value = {
+    argocd  = var.enable_argocd_oidc
+    grafana = var.enable_grafana_oidc
+  }
+}
+
+output "oauth2_proxy_namespace" {
+  description = "OAuth2 Proxy namespace"
+  value       = try(module.oauth2_proxy[0].namespace, null)
+}
+
+output "oauth2_proxy_release" {
+  description = "OAuth2 Proxy Helm release name"
+  value       = try(module.oauth2_proxy[0].release_name, null)
+}
+
+output "oauth2_proxy_auth_url" {
+  description = "nginx auth-url annotation value for protecting ingresses with OAuth2 Proxy"
+  value       = try(module.oauth2_proxy[0].auth_url, "https://auth.${var.ingress_base_domain}/oauth2/auth")
+}
+
+output "oauth2_proxy_signin_url" {
+  description = "nginx auth-signin annotation value for protected ingresses"
+  value       = try(module.oauth2_proxy[0].signin_url, "https://auth.${var.ingress_base_domain}/oauth2/start?rd=$escaped_request_uri")
+}
+
+output "kyverno_namespace" {
+  description = "Kyverno namespace"
+  value       = try(module.kyverno[0].namespace, null)
+}
+
+output "kyverno_release" {
+  description = "Kyverno Helm release name"
+  value       = try(module.kyverno[0].release_name, null)
+}
+
+output "kyverno_enforcement_mode" {
+  description = "Active Kyverno enforcement mode"
+  value       = try(module.kyverno[0].enforcement_mode, null)
 }

@@ -4,15 +4,18 @@
 ################################################################################
 
 locals {
-  portfolio_host   = "portfolio.${var.ingress_base_domain}"
-  jellyfin_host    = "jellyfin.${var.ingress_base_domain}"
-  qbittorrent_host = "qbittorrent.${var.ingress_base_domain}"
-  pihole_host      = "pihole.${var.ingress_base_domain}"
-  grafana_host     = "grafana.${var.ingress_base_domain}"
-  prometheus_host  = "prometheus.${var.ingress_base_domain}"
-  minio_host       = "minio.${var.ingress_base_domain}"
-  argocd_host      = "argocd.${var.ingress_base_domain}"
-  vault_host       = "vault.${var.ingress_base_domain}"
+  portfolio_host    = "portfolio.${var.ingress_base_domain}"
+  jellyfin_host     = "jellyfin.${var.ingress_base_domain}"
+  qbittorrent_host  = "qbittorrent.${var.ingress_base_domain}"
+  pihole_host       = "pihole.${var.ingress_base_domain}"
+  grafana_host      = "grafana.${var.ingress_base_domain}"
+  prometheus_host   = "prometheus.${var.ingress_base_domain}"
+  minio_host        = "minio.${var.ingress_base_domain}"
+  argocd_host       = "argocd.${var.ingress_base_domain}"
+  vault_host        = "vault.${var.ingress_base_domain}"
+  keycloak_host     = "sso.${var.ingress_base_domain}"
+  keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
+  oauth2_proxy_host = "auth.${var.ingress_base_domain}"
 }
 
 # ---------------------------------------------------------------------------
@@ -48,14 +51,20 @@ module "kube_prometheus_stack" {
   count  = var.enable_kube_prometheus_stack ? 1 : 0
   source = "./modules/kube-prometheus-stack"
 
-  release_name             = "monitor"
-  chart_version            = var.kube_prometheus_stack_chart_version
-  grafana_admin_password   = var.grafana_admin_password
-  prometheus_retention     = var.prometheus_retention
-  prometheus_storage_size  = var.prometheus_storage_size
-  prometheus_storage_class = var.prometheus_storage_class
-  grafana_storage_size     = var.grafana_storage_size
-  grafana_storage_class    = var.grafana_storage_class
+  release_name               = "monitor"
+  chart_version              = var.kube_prometheus_stack_chart_version
+  grafana_admin_password     = var.grafana_admin_password
+  prometheus_retention       = var.prometheus_retention
+  prometheus_storage_size    = var.prometheus_storage_size
+  prometheus_storage_class   = var.prometheus_storage_class
+  grafana_storage_size       = var.grafana_storage_size
+  grafana_storage_class      = var.grafana_storage_class
+  grafana_host               = local.grafana_host
+  grafana_oidc_enabled       = var.enable_grafana_oidc
+  grafana_oidc_name          = "Keycloak"
+  grafana_oidc_issuer_url    = local.keycloak_issuer
+  grafana_oidc_client_id     = var.grafana_oidc_client_id
+  grafana_oidc_client_secret = var.grafana_oidc_client_secret
 
   tags = var.tags
 }
@@ -140,7 +149,40 @@ module "argocd" {
   release_name          = "argocd"
   chart_version         = var.argocd_chart_version
   admin_password_bcrypt = var.argocd_admin_password_bcrypt
+  oidc_enabled          = var.enable_argocd_oidc
+  oidc_name             = "Keycloak"
+  oidc_issuer_url       = local.keycloak_issuer
+  oidc_client_id        = var.argocd_oidc_client_id
+  oidc_client_secret    = var.argocd_oidc_client_secret
   ingress_host          = local.argocd_host
+
+  tags = var.tags
+}
+
+module "keycloak" {
+  count  = var.enable_keycloak ? 1 : 0
+  source = "./modules/keycloak"
+
+  release_name             = "keycloak"
+  chart_version            = var.keycloak_chart_version
+  admin_user               = var.keycloak_admin_user
+  admin_password           = var.keycloak_admin_password
+  postgresql_username      = var.keycloak_postgresql_username
+  postgresql_password      = var.keycloak_postgresql_password
+  postgresql_database      = var.keycloak_postgresql_database
+  postgresql_storage_class = var.keycloak_postgresql_storage_class
+  postgresql_storage_size  = var.keycloak_postgresql_storage_size
+  ingress_host             = local.keycloak_host
+  realm                    = var.keycloak_realm
+  bootstrap_enabled        = var.keycloak_bootstrap_enabled
+  argocd_client_id         = var.argocd_oidc_client_id
+  argocd_client_secret     = var.argocd_oidc_client_secret
+  argocd_redirect_uris     = ["https://${local.argocd_host}/auth/callback"]
+  argocd_web_origins       = ["https://${local.argocd_host}"]
+  grafana_client_id        = var.grafana_oidc_client_id
+  grafana_client_secret    = var.grafana_oidc_client_secret
+  grafana_redirect_uris    = ["https://${local.grafana_host}/login/generic_oauth"]
+  grafana_web_origins      = ["https://${local.grafana_host}"]
 
   tags = var.tags
 }
@@ -153,6 +195,34 @@ module "tempo" {
   chart_version = var.tempo_chart_version
   storage_size  = var.tempo_storage_size
   storage_class = var.tempo_storage_class
+
+  tags = var.tags
+}
+
+module "oauth2_proxy" {
+  count  = var.enable_oauth2_proxy ? 1 : 0
+  source = "./modules/oauth2-proxy"
+
+  release_name    = "oauth2-proxy"
+  chart_version   = var.oauth2_proxy_chart_version
+  oauth2_provider = var.oauth2_proxy_provider
+  email_domain    = var.oauth2_proxy_email_domain
+  client_id       = var.oauth2_proxy_client_id
+  client_secret   = var.oauth2_proxy_client_secret
+  cookie_secret   = var.oauth2_proxy_cookie_secret
+  ingress_host    = local.oauth2_proxy_host
+
+  tags = var.tags
+}
+
+module "kyverno" {
+  count  = var.enable_kyverno ? 1 : 0
+  source = "./modules/kyverno"
+
+  release_name     = "kyverno"
+  chart_version    = var.kyverno_chart_version
+  enforcement_mode = var.kyverno_enforcement_mode
+  enable_policies  = var.kyverno_create_policies
 
   tags = var.tags
 }

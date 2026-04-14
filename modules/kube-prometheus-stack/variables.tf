@@ -64,6 +64,44 @@ variable "grafana_storage_class" {
   default     = "local-path"
 }
 
+variable "grafana_oidc_enabled" {
+  description = "Enable native OIDC login for Grafana"
+  type        = bool
+  default     = false
+}
+
+variable "grafana_oidc_name" {
+  description = "Display name for the OIDC provider in Grafana"
+  type        = string
+  default     = "Keycloak"
+}
+
+variable "grafana_oidc_issuer_url" {
+  description = "OIDC issuer URL used by Grafana"
+  type        = string
+  default     = ""
+}
+
+variable "grafana_oidc_client_id" {
+  description = "OIDC client ID for Grafana"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "grafana_oidc_client_secret" {
+  description = "OIDC client secret for Grafana"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "grafana_oidc_scopes" {
+  description = "OIDC scopes requested by Grafana"
+  type        = list(string)
+  default     = ["openid", "profile", "email", "groups"]
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)
