@@ -1,0 +1,14 @@
+ai-orchestrator      api-gateway-86c64fbd4-gx2mz                              1/1   Running                  4 (9h ago)     22h     10.244.0.229   k8s-master   <none>   <none>
+ai-orchestrator      build-api-image-cwk66                                    0/1   Completed                0              22h     <none>         k8s3         <none>   <none>
+ai-orchestrator      build-llm-image-plgzz                                    0/1   Completed                0              22h     <none>         k8s3         <none>   <none>
+ai-orchestrator      dispatch-worker-6c9cd4bbdb-sr5wm                         1/1   Running                  1 (9h ago)     26h     10.244.0.222   k8s-master   <none>   <none>
+ai-orchestrator      frontend-885c86d99-xb69d                                 1/1   Running                  2 (9h ago)     23h     10.244.0.228   k8s-master   <none>   <none>
+ai-orchestrator      llm-worker-5b69b5bbb5-9qnln                              1/1   Running                  1 (9h ago)     22h     10.244.0.227   k8s-master   <none>   <none>
+ai-orchestrator      postgres-764dffcc98-qm5kr                                1/1   Running                  1 (9h ago)     27h     10.244.3.8     k8s3         <none>   <none>
+ai-orchestrator      redis-5d59c5c9-266kx                                     1/1   Running                  1 (9h ago)     27h     10.244.1.39    k8s          <none>   <none>
+ai-orchestrator      vision-image-build-fmsrf                                 0/1   Error                    0              21h     <none>         k8s3         <none>   <none>
+ai-orchestrator      vision-worker-66d5df8b78-h47d8                           1/1   Running                  1 (9h ago)     21h     10.244.0.225   k8s-master   <none>   <none>
+ai-orchestrator      vision-worker-698594dbc4-52n4m                           0/1   ImagePullBackOff         0              21h     10.244.0.224   k8s-master   <none>   <none>
+cert-manager         cert-manager-cainjector-57cd76c845-mlm8g                 1/1   Running                  1 (9h ago)     28h     10.244.3.6     k8s3         <none>   <none>
+local-path-storage   local-path-provisioner-cc8847cc-cfc46                    1/1   Running                  2 (9h ago)     5d7h    10.244.2.89    k8s2         <none>   <none>
+portfolio            portfolio-web-54cf46bdb5-9dg2r                           0/1   ContainerStatusUnknown   0              28h     <none>         k8s3         <none>   <none>

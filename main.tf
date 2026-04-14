@@ -378,6 +378,22 @@ module "metrics_server" {
   source = "./modules/metrics-server"
 }
 
+module "gpu_device_plugins" {
+  count  = var.enable_gpu_device_plugins ? 1 : 0
+  source = "./modules/gpu-device-plugins"
+
+  namespace                = "kube-system"
+  enable_intel_gpu_plugin  = var.enable_intel_gpu_plugin
+  enable_amd_gpu_plugin    = var.enable_amd_gpu_plugin
+  enable_nvidia_gpu_plugin = var.enable_nvidia_gpu_plugin
+  intel_gpu_plugin_image   = var.intel_gpu_plugin_image
+  amd_gpu_plugin_image     = var.amd_gpu_plugin_image
+  nvidia_gpu_plugin_image  = var.nvidia_gpu_plugin_image
+  nvidia_node_selector     = var.nvidia_node_selector
+
+  tags = var.tags
+}
+
 module "networking" {
   count  = var.enable_network_policies ? 1 : 0
   source = "./modules/networking"

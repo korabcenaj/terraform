@@ -1,0 +1,4 @@
+k8s          <none>   <none>
+k8s-master   <none>   <none>
+k8s2         <none>   <none>
+k8s3         <none>   1

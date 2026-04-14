@@ -1,0 +1,5 @@
+NAME         STATUS   ROLES           AGE   VERSION    INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                           KERNEL-VERSION            CONTAINER-RUNTIME
+k8s          Ready    <none>          9d    v1.29.15   192.168.1.10   <none>        Ubuntu 24.04.4 LTS                 6.8.0-107-generic         containerd://1.7.28
+k8s-master   Ready    control-plane   9d    v1.29.15   192.168.1.13   <none>        Ubuntu 24.04.4 LTS                 6.8.0-107-generic         containerd://2.2.1
+k8s2         Ready    <none>          9d    v1.29.15   192.168.1.29   <none>        Ubuntu 24.04.4 LTS                 6.8.0-107-generic         containerd://1.7.28
+k8s3         Ready    <none>          8d    v1.29.15   192.168.1.32   <none>        Fedora Linux 43 (Server Edition)   6.19.10-200.fc43.x86_64   containerd://2.1.6

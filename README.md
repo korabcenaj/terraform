@@ -111,6 +111,7 @@ terraform/
 │
 ├── scripts/
 │   ├── backup.sh                    # Snapshot state + cert-manager CA + Pi-hole config
+│   ├── audit-ai-gpu.sh              # Inventory AI workloads + GPU capacity/requests from live cluster
 │   ├── restore.sh                   # Restore from snapshot with dry-run mode
 │   ├── setup-github-runner.sh       # Register/manage self-hosted GitHub Actions runner
 │   ├── set-github-secret.sh         # Push KUBECONFIG_B64 secret via gh CLI
@@ -120,6 +121,7 @@ terraform/
     ├── cert-manager/                # Helm release + selfsigned-bootstrap + local-lan-ca issuers
     ├── argocd/                      # Helm release for Argo CD (staged for import)
     ├── external-secrets/            # Helm release + optional Vault ClusterSecretStore bootstrap
+    ├── gpu-device-plugins/          # Intel/AMD/NVIDIA device plugins for GPU resource advertisement
     ├── ingress-nginx/               # Helm release, default IngressClass, metrics integration
     ├── kube-prometheus-stack/       # Helm release, Prometheus + Grafana + Alertmanager
     ├── loki/                        # Helm release for Loki + Promtail log aggregation
@@ -217,6 +219,16 @@ kubectl port-forward -n jellyfin svc/jellyfin 8096:8096
 # open http://localhost:8096
 ```
 
+### 6. Audit AI workloads and GPU nodes
+
+```bash
+# Produces reports/ai-gpu-audit-<timestamp>/ with summary + raw evidence files
+scripts/audit-ai-gpu.sh
+
+# Read the summary
+cat reports/ai-gpu-audit-*/summary.md | tail -n 40
+```
+
 ---
 
 ## Configuration
@@ -230,6 +242,7 @@ manage_portfolio_workload     = false  # Argo CD owns the workload; Terraform ow
 enable_jellyfin               = true
 enable_ingress_nginx          = true
 enable_kube_prometheus_stack  = true
+enable_gpu_device_plugins     = true
 enable_network_policies       = true
 enable_resource_quotas        = true
 enable_pod_disruption_budgets = true

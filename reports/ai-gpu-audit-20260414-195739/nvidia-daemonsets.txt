@@ -1,0 +1,1 @@
+kube-system      nvidia-device-plugin-daemonset     1     1     1     1     1     kubernetes.io/hostname=k8s3   7d22h

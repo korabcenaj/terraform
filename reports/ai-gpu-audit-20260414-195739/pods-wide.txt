@@ -1,0 +1,66 @@
+ai-orchestrator      api-gateway-86c64fbd4-gx2mz                              1/1   Running                  4 (9h ago)     22h     10.244.0.229   k8s-master   <none>   <none>
+ai-orchestrator      build-api-image-cwk66                                    0/1   Completed                0              22h     <none>         k8s3         <none>   <none>
+ai-orchestrator      build-llm-image-plgzz                                    0/1   Completed                0              22h     <none>         k8s3         <none>   <none>
+ai-orchestrator      dispatch-worker-6c9cd4bbdb-sr5wm                         1/1   Running                  1 (9h ago)     26h     10.244.0.222   k8s-master   <none>   <none>
+ai-orchestrator      frontend-885c86d99-xb69d                                 1/1   Running                  2 (9h ago)     23h     10.244.0.228   k8s-master   <none>   <none>
+ai-orchestrator      llm-worker-5b69b5bbb5-9qnln                              1/1   Running                  1 (9h ago)     22h     10.244.0.227   k8s-master   <none>   <none>
+ai-orchestrator      postgres-764dffcc98-qm5kr                                1/1   Running                  1 (9h ago)     27h     10.244.3.8     k8s3         <none>   <none>
+ai-orchestrator      redis-5d59c5c9-266kx                                     1/1   Running                  1 (9h ago)     27h     10.244.1.39    k8s          <none>   <none>
+ai-orchestrator      vision-image-build-fmsrf                                 0/1   Error                    0              21h     <none>         k8s3         <none>   <none>
+ai-orchestrator      vision-worker-66d5df8b78-h47d8                           1/1   Running                  1 (9h ago)     21h     10.244.0.225   k8s-master   <none>   <none>
+ai-orchestrator      vision-worker-698594dbc4-52n4m                           0/1   ImagePullBackOff         0              21h     10.244.0.224   k8s-master   <none>   <none>
+argocd               argocd-application-controller-0                          1/1   Running                  0              41m     10.244.2.119   k8s2         <none>   <none>
+argocd               argocd-applicationset-controller-666595d995-nm6jz        1/1   Running                  0              41m     10.244.1.48    k8s          <none>   <none>
+argocd               argocd-dex-server-55dc4bcc67-4z2x5                       1/1   Running                  0              41m     10.244.2.118   k8s2         <none>   <none>
+argocd               argocd-notifications-controller-5dc4fd545-sbj2g          1/1   Running                  0              41m     10.244.2.120   k8s2         <none>   <none>
+argocd               argocd-redis-5649576cc9-lphmq                            1/1   Running                  0              45m     10.244.2.114   k8s2         <none>   <none>
+argocd               argocd-repo-server-8666d86f5f-w2s92                      1/1   Running                  0              41m     10.244.3.20    k8s3         <none>   <none>
+argocd               argocd-server-75fd85cc6d-92cjx                           1/1   Running                  0              41m     10.244.3.21    k8s3         <none>   <none>
+cert-manager         cert-manager-7ddd8cdb9f-tghg4                            1/1   Running                  1 (9h ago)     28h     10.244.1.38    k8s          <none>   <none>
+cert-manager         cert-manager-cainjector-57cd76c845-mlm8g                 1/1   Running                  1 (9h ago)     28h     10.244.3.6     k8s3         <none>   <none>
+cert-manager         cert-manager-webhook-cf8f9f895-rpmwt                     1/1   Running                  1 (9h ago)     28h     10.244.3.4     k8s3         <none>   <none>
+default              cluster-browser-5466fc684-4tmzl                          1/1   Running                  2 (9h ago)     6d23h   10.244.2.93    k8s2         <none>   <none>
+default              cluster-browser-5466fc684-8t4q8                          1/1   Running                  2 (9h ago)     6d23h   10.244.2.86    k8s2         <none>   <none>
+default              guestbook-helm-guestbook-774886bf59-gd6qh                1/1   Running                  2 (9h ago)     5d7h    10.244.2.92    k8s2         <none>   <none>
+ingress-nginx        ingress-nginx-controller-5fbb7956c-2nzw8                 1/1   Running                  2 (9h ago)     4d1h    192.168.1.29   k8s2         <none>   <none>
+ingress-nginx        ingress-nginx-controller-5fbb7956c-8hr9x                 1/1   Running                  4 (9h ago)     4d1h    192.168.1.32   k8s3         <none>   <none>
+jellyfin             jellyfin-5ff8d5c9d9-vrs8j                                1/1   Running                  2 (9h ago)     3d3h    10.244.0.220   k8s-master   <none>   <none>
+keycloak             keycloak-0                                               1/1   Running                  0              117m    10.244.3.13    k8s3         <none>   <none>
+keycloak             keycloak-postgresql-0                                    1/1   Running                  0              117m    10.244.1.44    k8s          <none>   <none>
+kube-flannel         kube-flannel-ds-86cmq                                    1/1   Running                  2 (9h ago)     3d23h   192.168.1.29   k8s2         <none>   <none>
+kube-flannel         kube-flannel-ds-g8vdh                                    1/1   Running                  2 (9h ago)     3d23h   192.168.1.10   k8s          <none>   <none>
+kube-flannel         kube-flannel-ds-hmbmm                                    1/1   Running                  2 (9h ago)     3d23h   192.168.1.13   k8s-master   <none>   <none>
+kube-flannel         kube-flannel-ds-m2dz5                                    1/1   Running                  2 (9h ago)     3d23h   192.168.1.32   k8s3         <none>   <none>
+kube-system          coredns-7dd9859bf5-c4t4n                                 1/1   Running                  0              36m     10.244.1.49    k8s          <none>   <none>
+kube-system          coredns-7dd9859bf5-pt74l                                 1/1   Running                  0              36m     10.244.2.122   k8s2         <none>   <none>
+kube-system          etcd-k8s-master                                          1/1   Running                  1 (9h ago)     29h     192.168.1.13   k8s-master   <none>   <none>
+kube-system          kube-apiserver-k8s-master                                1/1   Running                  10 (9h ago)    2d22h   192.168.1.13   k8s-master   <none>   <none>
+kube-system          kube-controller-manager-k8s-master                       1/1   Running                  3 (9h ago)     2d22h   192.168.1.13   k8s-master   <none>   <none>
+kube-system          kube-proxy-8jrg7                                         1/1   Running                  1 (9h ago)     28h     192.168.1.10   k8s          <none>   <none>
+kube-system          kube-proxy-hv4gz                                         1/1   Running                  1 (9h ago)     28h     192.168.1.32   k8s3         <none>   <none>
+kube-system          kube-proxy-mm977                                         1/1   Running                  1 (9h ago)     28h     192.168.1.29   k8s2         <none>   <none>
+kube-system          kube-proxy-ndkd9                                         1/1   Running                  2 (9h ago)     2d22h   192.168.1.13   k8s-master   <none>   <none>
+kube-system          kube-scheduler-k8s-master                                1/1   Running                  3 (9h ago)     2d22h   192.168.1.13   k8s-master   <none>   <none>
+kube-system          metrics-server-56d47d49b7-wsd2f                          1/1   Running                  1 (9h ago)     28h     10.244.3.9     k8s3         <none>   <none>
+kube-system          nvidia-device-plugin-daemonset-bd6l4                     1/1   Running                  1 (9h ago)     28h     10.244.3.5     k8s3         <none>   <none>
+local-path-storage   local-path-provisioner-cc8847cc-cfc46                    1/1   Running                  2 (9h ago)     5d7h    10.244.2.89    k8s2         <none>   <none>
+metallb-system       metallb-controller-66867ddf87-rpd8s                      1/1   Running                  2 (9h ago)     5d7h    10.244.2.97    k8s2         <none>   <none>
+metallb-system       metallb-speaker-7mx8n                                    4/4   Running                  4 (9h ago)     2d22h   192.168.1.29   k8s2         <none>   <none>
+metallb-system       metallb-speaker-gzdwl                                    4/4   Running                  4 (9h ago)     28h     192.168.1.32   k8s3         <none>   <none>
+metallb-system       metallb-speaker-mr886                                    4/4   Running                  4 (9h ago)     28h     192.168.1.10   k8s          <none>   <none>
+metallb-system       metallb-speaker-wq6l2                                    4/4   Running                  8 (9h ago)     2d22h   192.168.1.13   k8s-master   <none>   <none>
+monitoring           alertmanager-monitor-kube-prometheus-st-alertmanager-0   2/2   Running                  6 (9h ago)     8d      10.244.2.90    k8s2         <none>   <none>
+monitoring           monitor-grafana-788d64bc5c-9fwt8                         3/3   Running                  0              91m     10.244.2.104   k8s2         <none>   <none>
+monitoring           monitor-kube-prometheus-st-operator-67bc886df7-mw2km     1/1   Running                  1 (9h ago)     29h     10.244.0.219   k8s-master   <none>   <none>
+monitoring           monitor-kube-state-metrics-5c56769557-5dfwx              1/1   Running                  1 (9h ago)     29h     10.244.0.217   k8s-master   <none>   <none>
+monitoring           monitor-prometheus-node-exporter-5j62n                   1/1   Running                  4 (9h ago)     8d      192.168.1.32   k8s3         <none>   <none>
+monitoring           monitor-prometheus-node-exporter-7h9vv                   1/1   Running                  6 (9h ago)     9d      192.168.1.10   k8s          <none>   <none>
+monitoring           monitor-prometheus-node-exporter-cl5jm                   1/1   Running                  126 (9h ago)   9d      192.168.1.13   k8s-master   <none>   <none>
+monitoring           monitor-prometheus-node-exporter-l824s                   1/1   Running                  4 (9h ago)     9d      192.168.1.29   k8s2         <none>   <none>
+monitoring           prometheus-monitor-kube-prometheus-st-prometheus-0       2/2   Running                  0              111m    10.244.3.16    k8s3         <none>   <none>
+pihole               pihole-b7c9d86-59ppw                                     1/1   Running                  3 (9h ago)     3d8h    192.168.1.13   k8s-master   <none>   <none>
+portfolio            portfolio-web-54cf46bdb5-9dg2r                           0/1   ContainerStatusUnknown   0              28h     <none>         k8s3         <none>   <none>
+portfolio            portfolio-web-54cf46bdb5-c8bsg                           0/1   ImagePullBackOff         0              22h     10.244.1.36    k8s          <none>   <none>
+portfolio            portfolio-web-86c5d7879d-xxnms                           1/1   Running                  1 (9h ago)     28h     10.244.3.7     k8s3         <none>   <none>
+qbittorrent          qbittorrent-6f5474d585-sclfq                             1/1   Running                  1 (9h ago)     29h     10.244.1.37    k8s          <none>   <none>
+registry             registry-5948fcf6d8-rcsnk                                1/1   Running                  1 (9h ago)     29h     10.244.0.226   k8s-master   <none>   <none>
