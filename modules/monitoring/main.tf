@@ -41,12 +41,12 @@ resource "kubernetes_ingress_v1" "grafana" {
     ingress_class_name = "nginx"
 
     tls {
-      hosts       = ["grafana.local.lan"]
+      hosts       = [var.grafana_host]
       secret_name = "grafana-tls"
     }
 
     rule {
-      host = "grafana.local.lan"
+      host = var.grafana_host
       http {
         path {
           path      = "/"
@@ -80,12 +80,12 @@ resource "kubernetes_ingress_v1" "prometheus" {
     ingress_class_name = "nginx"
 
     tls {
-      hosts       = ["prometheus.local.lan"]
+      hosts       = [var.prometheus_host]
       secret_name = "prometheus-tls"
     }
 
     rule {
-      host = "prometheus.local.lan"
+      host = var.prometheus_host
       http {
         path {
           path      = "/"

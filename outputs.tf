@@ -82,6 +82,18 @@ output "jellyfin_service" {
   }, null)
 }
 
+output "ingress_urls" {
+  description = "Primary ingress URLs derived from the configured ingress base domain"
+  value = {
+    portfolio   = "https://portfolio.${var.ingress_base_domain}"
+    jellyfin    = "https://jellyfin.${var.ingress_base_domain}"
+    qbittorrent = "https://qbittorrent.${var.ingress_base_domain}"
+    pihole      = "https://pihole.${var.ingress_base_domain}"
+    grafana     = "https://grafana.${var.ingress_base_domain}"
+    prometheus  = "https://prometheus.${var.ingress_base_domain}"
+  }
+}
+
 output "deployed_modules" {
   description = "Deployed modules summary"
   value = {

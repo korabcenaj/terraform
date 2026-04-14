@@ -88,3 +88,14 @@ variable "local_dns_records" {
   type        = map(string)
   default     = {}
 }
+
+variable "ingress_host" {
+  description = "Hostname used by the Pi-hole ingress and web UI"
+  type        = string
+}
+
+variable "dns_wildcard_domain" {
+  description = "Base domain served as a wildcard DNS entry by Pi-hole"
+  type        = string
+  default     = "local.lan"
+}

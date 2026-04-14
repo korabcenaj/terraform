@@ -202,12 +202,12 @@ resource "kubernetes_ingress_v1" "portfolio" {
     ingress_class_name = "nginx"
 
     tls {
-      hosts       = ["portfolio.local.lan"]
+      hosts       = [var.ingress_host]
       secret_name = "portfolio-tls"
     }
 
     rule {
-      host = "portfolio.local.lan"
+      host = var.ingress_host
       http {
         path {
           path      = "/"

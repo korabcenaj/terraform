@@ -20,7 +20,7 @@ output "dns_server" {
 
 output "web_ui_url" {
   description = "Pi-hole web UI URL"
-  value       = "http://pihole.local.lan/admin"
+  value       = "http://${var.ingress_host}/admin"
 }
 
 output "ingress_host" {

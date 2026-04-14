@@ -16,6 +16,12 @@ variable "grafana_service_port" {
   default     = 80
 }
 
+variable "grafana_host" {
+  description = "Hostname for the Grafana ingress"
+  type        = string
+  default     = "grafana.local.lan"
+}
+
 variable "prometheus_service_name" {
   description = "Name of the existing Prometheus service"
   type        = string
@@ -26,4 +32,10 @@ variable "prometheus_service_port" {
   description = "Port of the Prometheus service"
   type        = number
   default     = 9090
+}
+
+variable "prometheus_host" {
+  description = "Hostname for the Prometheus ingress"
+  type        = string
+  default     = "prometheus.local.lan"
 }

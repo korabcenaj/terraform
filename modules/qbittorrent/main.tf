@@ -203,12 +203,12 @@ resource "kubernetes_ingress_v1" "qbittorrent" {
     ingress_class_name = "nginx"
 
     tls {
-      hosts       = ["qbittorrent.local.lan"]
+      hosts       = [var.ingress_host]
       secret_name = "qbittorrent-tls"
     }
 
     rule {
-      host = "qbittorrent.local.lan"
+      host = var.ingress_host
       http {
         path {
           path      = "/"

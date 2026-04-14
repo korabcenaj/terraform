@@ -234,6 +234,9 @@ enable_network_policies       = true
 enable_resource_quotas        = true
 enable_pod_disruption_budgets = true
 
+# All ingress FQDNs are derived from this base domain
+ingress_base_domain           = "local.lan"
+
 # Pin Helm chart versions to running cluster versions
 ingress_nginx_chart_version         = "4.15.1"
 kube_prometheus_stack_chart_version = "82.18.0"

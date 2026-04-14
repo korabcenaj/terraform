@@ -33,6 +33,11 @@ variable "memory_limit" {
   default     = "256Mi"
 }
 
+variable "ingress_host" {
+  description = "Hostname used by the portfolio ingress"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags for resources"
   type        = map(string)

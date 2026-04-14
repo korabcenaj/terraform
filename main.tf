@@ -3,6 +3,15 @@
 # Manages all cluster and application deployments
 ################################################################################
 
+locals {
+  portfolio_host   = "portfolio.${var.ingress_base_domain}"
+  jellyfin_host    = "jellyfin.${var.ingress_base_domain}"
+  qbittorrent_host = "qbittorrent.${var.ingress_base_domain}"
+  pihole_host      = "pihole.${var.ingress_base_domain}"
+  grafana_host     = "grafana.${var.ingress_base_domain}"
+  prometheus_host  = "prometheus.${var.ingress_base_domain}"
+}
+
 # ---------------------------------------------------------------------------
 # Infrastructure: cert-manager, ingress-nginx, kube-prometheus-stack
 # ---------------------------------------------------------------------------
@@ -212,6 +221,7 @@ module "portfolio" {
   memory_request = var.default_memory_request
   cpu_limit      = var.default_cpu_limit
   memory_limit   = var.default_memory_limit
+  ingress_host   = local.portfolio_host
 
   tags = var.tags
 }
@@ -231,6 +241,7 @@ module "jellyfin" {
   memory_request = "512Mi"
   cpu_limit      = "1000m"
   memory_limit   = "1Gi"
+  ingress_host   = local.jellyfin_host
 
   tags = var.tags
 }
@@ -245,6 +256,7 @@ module "qbittorrent" {
   memory_request = "256Mi"
   cpu_limit      = "500m"
   memory_limit   = "1Gi"
+  ingress_host   = local.qbittorrent_host
 
   tags = var.tags
 }
@@ -253,14 +265,16 @@ module "pihole" {
   count  = var.enable_pihole ? 1 : 0
   source = "./modules/pihole"
 
-  namespace      = kubernetes_namespace.pihole[0].metadata[0].name
-  replicas       = 1
-  web_password   = var.pihole_web_password
-  timezone       = "UTC"
-  cpu_request    = "100m"
-  memory_request = "128Mi"
-  cpu_limit      = "250m"
-  memory_limit   = "512Mi"
+  namespace           = kubernetes_namespace.pihole[0].metadata[0].name
+  replicas            = 1
+  web_password        = var.pihole_web_password
+  timezone            = "UTC"
+  cpu_request         = "100m"
+  memory_request      = "128Mi"
+  cpu_limit           = "250m"
+  memory_limit        = "512Mi"
+  ingress_host        = local.pihole_host
+  dns_wildcard_domain = var.ingress_base_domain
 
   tags = var.tags
 }
@@ -271,6 +285,8 @@ module "monitoring" {
 
   grafana_service_name    = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].grafana_service_name, "monitor-grafana") : "monitor-grafana"
   prometheus_service_name = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].prometheus_service_name, "monitor-kube-prometheus-st-prometheus") : "monitor-kube-prometheus-st-prometheus"
+  grafana_host            = local.grafana_host
+  prometheus_host         = local.prometheus_host
 
   tags = var.tags
 

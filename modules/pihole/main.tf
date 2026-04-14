@@ -14,7 +14,7 @@ resource "kubernetes_secret" "pihole_web_password" {
 }
 
 # Custom DNS records for local LAN resolution
-# Wildcard *.local.lan → ingress IP + any additional records
+# Wildcard *.<domain> -> ingress IP plus any additional explicit records
 resource "kubernetes_config_map" "pihole_custom_dns" {
   metadata {
     name      = "pihole-custom-dns"
@@ -24,8 +24,8 @@ resource "kubernetes_config_map" "pihole_custom_dns" {
 
   data = {
     "02-local-dns.conf" = join("\n", concat(
-      ["# Wildcard DNS for local.lan → ingress controller"],
-      ["address=/local.lan/${var.ingress_ip}"],
+      ["# Wildcard DNS for ${var.dns_wildcard_domain} -> ingress controller"],
+      ["address=/${var.dns_wildcard_domain}/${var.ingress_ip}"],
       [""],
       ["# Additional custom DNS records"],
       [for hostname, ip in var.local_dns_records : "host-record=${hostname},${ip}"],
@@ -189,7 +189,7 @@ resource "kubernetes_deployment" "pihole" {
 
           env {
             name  = "VIRTUAL_HOST"
-            value = "pihole.local.lan"
+            value = var.ingress_host
           }
 
           resources {
@@ -317,12 +317,12 @@ resource "kubernetes_ingress_v1" "pihole" {
     ingress_class_name = "nginx"
 
     tls {
-      hosts       = ["pihole.local.lan"]
+      hosts       = [var.ingress_host]
       secret_name = "pihole-tls"
     }
 
     rule {
-      host = "pihole.local.lan"
+      host = var.ingress_host
       http {
         path {
           path      = "/"

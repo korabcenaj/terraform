@@ -22,6 +22,12 @@ variable "environment" {
   default     = "production"
 }
 
+variable "ingress_base_domain" {
+  description = "Base domain used for ingress hostnames, e.g. local.lan"
+  type        = string
+  default     = "local.lan"
+}
+
 # Enable/disable modules
 variable "enable_portfolio" {
   description = "Enable portfolio application"

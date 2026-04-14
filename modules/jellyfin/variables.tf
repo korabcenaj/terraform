@@ -66,3 +66,8 @@ variable "media_path" {
   description = "Host path for media files, mounted read-only at /media"
   type        = string
 }
+
+variable "ingress_host" {
+  description = "Hostname used by the Jellyfin ingress"
+  type        = string
+}
