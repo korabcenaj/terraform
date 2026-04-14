@@ -23,6 +23,11 @@ variable "admin_password_bcrypt" {
   default     = ""
 }
 
+variable "ingress_host" {
+  description = "Hostname for Argo CD server ingress (e.g. argocd.local.lan)"
+  type        = string
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)

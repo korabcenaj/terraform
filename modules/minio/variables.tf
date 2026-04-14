@@ -39,6 +39,11 @@ variable "storage_class" {
   default     = "local-path"
 }
 
+variable "ingress_host" {
+  description = "Hostname for MinIO console ingress (e.g. minio.local.lan)"
+  type        = string
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)

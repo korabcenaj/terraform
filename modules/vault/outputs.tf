@@ -17,3 +17,8 @@ output "service_name" {
   description = "Vault service name"
   value       = helm_release.vault.name
 }
+
+output "ingress_host" {
+  description = "Vault UI ingress hostname"
+  value       = var.ingress_host
+}

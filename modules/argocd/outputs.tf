@@ -17,3 +17,8 @@ output "server_service_name" {
   description = "Argo CD API server service name"
   value       = "${helm_release.argocd.name}-server"
 }
+
+output "ingress_host" {
+  description = "Argo CD server ingress hostname"
+  value       = var.ingress_host
+}

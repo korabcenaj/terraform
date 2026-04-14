@@ -10,6 +10,9 @@ locals {
   pihole_host      = "pihole.${var.ingress_base_domain}"
   grafana_host     = "grafana.${var.ingress_base_domain}"
   prometheus_host  = "prometheus.${var.ingress_base_domain}"
+  minio_host       = "minio.${var.ingress_base_domain}"
+  argocd_host      = "argocd.${var.ingress_base_domain}"
+  vault_host       = "vault.${var.ingress_base_domain}"
 }
 
 # ---------------------------------------------------------------------------
@@ -79,6 +82,7 @@ module "minio" {
   root_password = var.minio_root_password
   storage_size  = var.minio_storage_size
   storage_class = var.minio_storage_class
+  ingress_host  = local.minio_host
 
   tags = var.tags
 }
@@ -107,6 +111,7 @@ module "vault" {
   chart_version = var.vault_chart_version
   storage_size  = var.vault_storage_size
   storage_class = var.vault_storage_class
+  ingress_host  = local.vault_host
 
   tags = var.tags
 }
@@ -135,6 +140,7 @@ module "argocd" {
   release_name          = "argocd"
   chart_version         = var.argocd_chart_version
   admin_password_bcrypt = var.argocd_admin_password_bcrypt
+  ingress_host          = local.argocd_host
 
   tags = var.tags
 }

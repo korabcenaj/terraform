@@ -28,6 +28,11 @@ variable "storage_class" {
   default     = "local-path"
 }
 
+variable "ingress_host" {
+  description = "Hostname for Vault UI ingress (e.g. vault.local.lan)"
+  type        = string
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)

@@ -17,3 +17,8 @@ output "service_name" {
   description = "MinIO service name"
   value       = helm_release.minio.name
 }
+
+output "ingress_host" {
+  description = "MinIO console ingress hostname"
+  value       = var.ingress_host
+}

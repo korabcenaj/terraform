@@ -91,6 +91,9 @@ output "ingress_urls" {
     pihole      = "https://pihole.${var.ingress_base_domain}"
     grafana     = "https://grafana.${var.ingress_base_domain}"
     prometheus  = "https://prometheus.${var.ingress_base_domain}"
+    minio       = "https://minio.${var.ingress_base_domain}"
+    argocd      = "https://argocd.${var.ingress_base_domain}"
+    vault       = "https://vault.${var.ingress_base_domain}"
   }
 }
 

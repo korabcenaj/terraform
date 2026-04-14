@@ -53,3 +53,43 @@ resource "helm_release" "vault" {
   wait    = true
   timeout = 600
 }
+
+resource "kubernetes_ingress_v1" "vault_ui" {
+  metadata {
+    name      = "vault-ui"
+    namespace = kubernetes_namespace.vault.metadata[0].name
+    labels    = var.tags
+    annotations = {
+      "cert-manager.io/cluster-issuer" = "local-lan-ca"
+    }
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+
+    tls {
+      hosts       = [var.ingress_host]
+      secret_name = "vault-tls"
+    }
+
+    rule {
+      host = var.ingress_host
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = var.release_name
+              port {
+                number = 8200
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.vault]
+}

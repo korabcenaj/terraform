@@ -40,3 +40,45 @@ resource "helm_release" "argocd" {
   wait    = true
   timeout = 600
 }
+
+resource "kubernetes_ingress_v1" "argocd_server" {
+  metadata {
+    name      = "argocd-server"
+    namespace = kubernetes_namespace.argocd.metadata[0].name
+    labels    = var.tags
+    annotations = {
+      "cert-manager.io/cluster-issuer"               = "local-lan-ca"
+      "nginx.ingress.kubernetes.io/ssl-passthrough"  = "false"
+      "nginx.ingress.kubernetes.io/backend-protocol" = "HTTP"
+    }
+  }
+
+  spec {
+    ingress_class_name = "nginx"
+
+    tls {
+      hosts       = [var.ingress_host]
+      secret_name = "argocd-tls"
+    }
+
+    rule {
+      host = var.ingress_host
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "${var.release_name}-server"
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.argocd]
+}
