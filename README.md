@@ -63,10 +63,11 @@ version-controlled codebase.
 | Resource | Owned by | Rationale |
 |---|---|---|
 | Namespaces, RBAC, Network Policies | Terraform | Platform concerns — stable, long-lived |
-| ingress-nginx, kube-prometheus-stack, metrics-server | Terraform (Helm) | Infrastructure — needs version pinning and drift detection |
+| ingress-nginx, kube-prometheus-stack, Loki, Tempo, MinIO, Velero, Vault, External Secrets, metrics-server | Terraform | Infrastructure — needs version pinning and drift detection |
 | Jellyfin, qBittorrent, Pi-hole | Terraform | No GitOps controller managing these |
 | Portfolio workload (Deployment, Service, Ingress) | Argo CD | Argo CD tracks image updates; Terraform owns the namespace only |
 | cert-manager | Unmanaged (manual) | Installed via kubectl with no Helm release secret; migration pending |
+| Argo CD control-plane | Staged for Terraform | Module exists but disabled by default until live release import is completed |
 
 ---
 
@@ -78,8 +79,12 @@ version-controlled codebase.
 | Container Orchestration | Kubernetes 1.29 (bare-metal, kubeadm) |
 | Ingress | ingress-nginx 4.15.1 (Helm-managed) |
 | Monitoring | kube-prometheus-stack 82.18.0 — Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
+| Logging | Loki + Promtail (Helm module available, staged disabled by default) |
+| Tracing | Grafana Tempo (Helm module available, staged disabled by default) |
+| Backup/DR | MinIO (S3-compatible) + Velero (Helm modules available, staged disabled by default) |
+| Secrets | HashiCorp Vault + External Secrets Operator (Helm modules available, staged disabled by default) |
 | TLS | cert-manager v1.14.5 with self-signed CA chain (selfsigned-bootstrap → local-lan-ca) |
-| GitOps | Argo CD (manages portfolio application) |
+| GitOps | Argo CD (manages portfolio application; Terraform module staged for import) |
 | CI/CD | GitHub Actions — tfsec, TFLint, kubeconform, self-hosted plan runner |
 | DNS | Pi-hole (network-wide ad-blocking DNS) |
 | Media | Jellyfin (self-hosted media server) |
@@ -113,18 +118,25 @@ terraform/
 │
 └── modules/
     ├── cert-manager/                # Helm release + selfsigned-bootstrap + local-lan-ca issuers
+    ├── argocd/                      # Helm release for Argo CD (staged for import)
+    ├── external-secrets/            # Helm release + optional Vault ClusterSecretStore bootstrap
     ├── ingress-nginx/               # Helm release, default IngressClass, metrics integration
     ├── kube-prometheus-stack/       # Helm release, Prometheus + Grafana + Alertmanager
-    ├── metrics-server/              # Helm release for kubectl top / HPA
+    ├── loki/                        # Helm release for Loki + Promtail log aggregation
+    ├── metrics-server/              # Kubernetes-native metrics-server resources
+    ├── minio/                       # Helm release for in-cluster S3-compatible object storage
     ├── monitoring/                  # Ingress + network-allow rules for Grafana/Prometheus
     ├── networking/                  # Default-deny NetworkPolicy per namespace
     ├── network-policies/            # Per-app allow rules (ingress, DNS, metrics scrape)
     ├── resource-quotas/             # CPU/memory quotas per namespace
+    ├── tempo/                       # Helm release for distributed trace storage (OTLP/Jaeger receivers)
     ├── pod-disruption-budgets/      # minAvailable PDBs for HA
     ├── portfolio/                   # Namespace-only (workload owned by Argo CD)
     ├── jellyfin/                    # Deployment, PVC, Service, Ingress, security hardening
     ├── qbittorrent/                 # Deployment, PVC, Service, Ingress
-    └── pihole/                      # Deployment, Service (DNS UDP/TCP + Web UI)
+    ├── pihole/                      # Deployment, Service (DNS UDP/TCP + Web UI)
+    ├── vault/                       # Helm release for Vault with persistent storage
+    └── velero/                      # Helm release for backup/restore to S3-compatible backend
 ```
 
 ---
@@ -374,6 +386,9 @@ terraform apply -var="enable_myapp=true"
 | cert-manager | Unmanaged | Installed via kubectl; no Helm release secret. Module exists (`modules/cert-manager/`) but is disabled (`enable_cert_manager = false`) pending safe migration. |
 | Portfolio workload | Argo CD-owned | `manage_portfolio_workload = false` — Terraform owns the namespace and its labels; Argo CD owns the Deployment, Service, and Ingress. |
 | Grafana admin password | Requires change | Default placeholder in `secrets.auto.tfvars` must be replaced before `terraform apply`. |
+| Vault + External Secrets | Staged disabled | Modules are implemented but disabled until Vault is initialized/unsealed and a real `vault_token` is configured. |
+| Argo CD module | Import pending | Module is implemented but should remain disabled until the existing Argo CD release is imported into Terraform state. |
+| Tempo tracing | Staged disabled | Module is implemented but disabled until a trace emitter (OpenTelemetry SDK/Collector) is configured in workloads. |
 
 ---
 

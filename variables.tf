@@ -151,10 +151,205 @@ variable "enable_kube_prometheus_stack" {
   default     = true
 }
 
+variable "enable_loki" {
+  description = "Deploy Loki + Promtail via Helm for centralized cluster log aggregation"
+  type        = bool
+  default     = false
+}
+
+variable "enable_minio" {
+  description = "Deploy MinIO via Helm as in-cluster object storage"
+  type        = bool
+  default     = false
+}
+
+variable "enable_velero" {
+  description = "Deploy Velero via Helm for cluster backup and restore"
+  type        = bool
+  default     = false
+}
+
+variable "enable_vault" {
+  description = "Deploy HashiCorp Vault via Helm for secret management"
+  type        = bool
+  default     = false
+}
+
+variable "enable_external_secrets" {
+  description = "Deploy External Secrets Operator via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "enable_argocd" {
+  description = "Deploy Argo CD via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "enable_tempo" {
+  description = "Deploy Grafana Tempo via Helm for distributed tracing"
+  type        = bool
+  default     = false
+}
+
 variable "kube_prometheus_stack_chart_version" {
   description = "kube-prometheus-stack Helm chart version"
   type        = string
   default     = "70.4.0"
+}
+
+variable "loki_chart_version" {
+  description = "loki-stack Helm chart version"
+  type        = string
+  default     = "2.10.2"
+}
+
+variable "loki_storage_size" {
+  description = "Loki persistent volume size"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "loki_storage_class" {
+  description = "Storage class for Loki persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "minio_chart_version" {
+  description = "MinIO Helm chart version"
+  type        = string
+  default     = "5.4.0"
+}
+
+variable "velero_chart_version" {
+  description = "Velero Helm chart version"
+  type        = string
+  default     = "8.5.0"
+}
+
+variable "vault_chart_version" {
+  description = "Vault Helm chart version"
+  type        = string
+  default     = "0.28.1"
+}
+
+variable "external_secrets_chart_version" {
+  description = "External Secrets Helm chart version"
+  type        = string
+  default     = "0.14.1"
+}
+
+variable "argocd_chart_version" {
+  description = "Argo CD Helm chart version"
+  type        = string
+  default     = "7.8.5"
+}
+
+variable "tempo_chart_version" {
+  description = "Tempo Helm chart version"
+  type        = string
+  default     = "1.17.2"
+}
+
+variable "minio_storage_size" {
+  description = "MinIO persistent volume size"
+  type        = string
+  default     = "50Gi"
+}
+
+variable "minio_storage_class" {
+  description = "Storage class for MinIO persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "velero_bucket_name" {
+  description = "Bucket name used by Velero for backups"
+  type        = string
+  default     = "velero"
+}
+
+variable "velero_s3_url" {
+  description = "S3-compatible URL used by Velero (e.g. MinIO service URL)"
+  type        = string
+  default     = "http://minio.minio.svc.cluster.local:9000"
+}
+
+variable "vault_storage_size" {
+  description = "Vault persistent volume size"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "vault_storage_class" {
+  description = "Storage class for Vault persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "tempo_storage_size" {
+  description = "Tempo persistent volume size"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "tempo_storage_class" {
+  description = "Storage class for Tempo persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "create_vault_cluster_secret_store" {
+  description = "Create a Vault-backed ClusterSecretStore in External Secrets"
+  type        = bool
+  default     = false
+}
+
+variable "external_secrets_cluster_secret_store_name" {
+  description = "ClusterSecretStore name used for Vault integration"
+  type        = string
+  default     = "vault-backend"
+}
+
+variable "external_secrets_vault_server" {
+  description = "Vault URL used by External Secrets"
+  type        = string
+  default     = "http://vault.vault.svc.cluster.local:8200"
+}
+
+variable "external_secrets_vault_kv_path" {
+  description = "Vault KV mount path used by External Secrets"
+  type        = string
+  default     = "kv"
+}
+
+variable "minio_root_user" {
+  description = "MinIO root username"
+  type        = string
+  default     = "minioadmin"
+}
+
+variable "minio_root_password" {
+  description = "MinIO root password"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_MINIO_PASSWORD"
+}
+
+variable "vault_token" {
+  description = "Vault token used for External Secrets bootstrap"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_VAULT_TOKEN"
+}
+
+variable "argocd_admin_password_bcrypt" {
+  description = "Optional bcrypt hash for Argo CD admin password"
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 variable "grafana_admin_password" {

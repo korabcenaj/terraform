@@ -48,6 +48,100 @@ module "kube_prometheus_stack" {
   tags = var.tags
 }
 
+module "loki" {
+  count  = var.enable_loki ? 1 : 0
+  source = "./modules/loki"
+
+  release_name       = "loki"
+  chart_version      = var.loki_chart_version
+  loki_storage_size  = var.loki_storage_size
+  loki_storage_class = var.loki_storage_class
+
+  tags = var.tags
+}
+
+module "minio" {
+  count  = var.enable_minio ? 1 : 0
+  source = "./modules/minio"
+
+  release_name  = "minio"
+  chart_version = var.minio_chart_version
+  root_user     = var.minio_root_user
+  root_password = var.minio_root_password
+  storage_size  = var.minio_storage_size
+  storage_class = var.minio_storage_class
+
+  tags = var.tags
+}
+
+module "velero" {
+  count  = var.enable_velero ? 1 : 0
+  source = "./modules/velero"
+
+  release_name  = "velero"
+  chart_version = var.velero_chart_version
+  bucket_name   = var.velero_bucket_name
+  s3_url        = var.velero_s3_url
+  access_key    = var.minio_root_user
+  secret_key    = var.minio_root_password
+
+  tags = var.tags
+
+  depends_on = [module.minio]
+}
+
+module "vault" {
+  count  = var.enable_vault ? 1 : 0
+  source = "./modules/vault"
+
+  release_name  = "vault"
+  chart_version = var.vault_chart_version
+  storage_size  = var.vault_storage_size
+  storage_class = var.vault_storage_class
+
+  tags = var.tags
+}
+
+module "external_secrets" {
+  count  = var.enable_external_secrets ? 1 : 0
+  source = "./modules/external-secrets"
+
+  release_name                      = "external-secrets"
+  chart_version                     = var.external_secrets_chart_version
+  create_vault_cluster_secret_store = var.create_vault_cluster_secret_store
+  cluster_secret_store_name         = var.external_secrets_cluster_secret_store_name
+  vault_server                      = var.external_secrets_vault_server
+  vault_kv_path                     = var.external_secrets_vault_kv_path
+  vault_token                       = var.vault_token
+
+  tags = var.tags
+
+  depends_on = [module.vault]
+}
+
+module "argocd" {
+  count  = var.enable_argocd ? 1 : 0
+  source = "./modules/argocd"
+
+  release_name          = "argocd"
+  chart_version         = var.argocd_chart_version
+  admin_password_bcrypt = var.argocd_admin_password_bcrypt
+
+  tags = var.tags
+}
+
+module "tempo" {
+  count  = var.enable_tempo ? 1 : 0
+  source = "./modules/tempo"
+
+  release_name  = "tempo"
+  chart_version = var.tempo_chart_version
+  storage_size  = var.tempo_storage_size
+  storage_class = var.tempo_storage_class
+
+  tags = var.tags
+}
+
 # Namespaces
 resource "kubernetes_namespace" "portfolio" {
   count = var.enable_portfolio ? 1 : 0
@@ -198,6 +292,13 @@ module "networking" {
     var.enable_jellyfin ? "jellyfin" : "",
     var.enable_qbittorrent ? "qbittorrent" : "",
     var.enable_pihole ? "pihole" : "",
+    var.enable_loki ? "logging" : "",
+    var.enable_minio ? "minio" : "",
+    var.enable_velero ? "velero" : "",
+    var.enable_vault ? "vault" : "",
+    var.enable_external_secrets ? "external-secrets" : "",
+    var.enable_argocd ? "argocd" : "",
+    var.enable_tempo ? "tracing" : "",
     # monitoring has its own namespace-specific policies in the monitoring module
     # ingress-nginx should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
