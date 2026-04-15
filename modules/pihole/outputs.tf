@@ -8,6 +8,11 @@ output "service_name" {
   value       = kubernetes_service.pihole.metadata[0].name
 }
 
+output "cluster_ip" {
+  description = "Pi-hole service ClusterIP for in-cluster DNS forwarding"
+  value       = kubernetes_service.pihole.spec[0].cluster_ip
+}
+
 output "service_ip" {
   description = "Pi-hole external LoadBalancer IP"
   value       = try(kubernetes_service.pihole.status[0].load_balancer[0].ingress[0].ip, null)

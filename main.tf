@@ -16,9 +16,10 @@ locals {
   keycloak_host     = "sso.${var.ingress_base_domain}"
   keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
   oauth2_proxy_host = "auth.${var.ingress_base_domain}"
-  # Prefer explicit override, otherwise discover private DNS via Pi-hole service DNS.
+  # Prefer explicit override, otherwise use the Pi-hole Service ClusterIP directly
+  # so CoreDNS does not need to resolve its own upstream target.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
-    var.enable_pihole ? "pihole.pihole.svc.cluster.local" : ""
+    var.enable_pihole ? try(module.pihole[0].cluster_ip, "") : ""
   )
 }
 
