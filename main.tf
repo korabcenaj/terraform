@@ -33,10 +33,22 @@ module "cert_manager" {
 
   release_name             = "cert-manager"
   chart_version            = var.cert_manager_chart_version
+  manage_controller_install = var.manage_cert_manager_controller
   create_selfsigned_issuer = true
   create_local_ca_issuer   = true
 
   tags = var.tags
+}
+
+data "kubernetes_secret_v1" "local_lan_ca" {
+  count = var.enable_argocd && var.enable_argocd_oidc && var.enable_cert_manager ? 1 : 0
+
+  metadata {
+    name      = "local-lan-ca-secret"
+    namespace = "cert-manager"
+  }
+
+  depends_on = [module.cert_manager]
 }
 
 module "ingress_nginx" {
@@ -159,9 +171,12 @@ module "argocd" {
   oidc_issuer_url       = local.keycloak_issuer
   oidc_client_id        = var.argocd_oidc_client_id
   oidc_client_secret    = var.argocd_oidc_client_secret
+  oidc_root_ca_pem      = try(data.kubernetes_secret_v1.local_lan_ca[0].data["tls.crt"], "")
   ingress_host          = local.argocd_host
 
   tags = var.tags
+
+  depends_on = [module.cert_manager]
 }
 
 module "keycloak" {

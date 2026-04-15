@@ -16,6 +16,12 @@ variable "chart_version" {
   default     = "v1.17.1"
 }
 
+variable "manage_controller_install" {
+  description = "Whether Terraform should manage the cert-manager controller installation via Helm, or only manage the namespace and issuer bootstrap objects"
+  type        = bool
+  default     = true
+}
+
 variable "replicas" {
   description = "Number of cert-manager controller replicas"
   type        = number

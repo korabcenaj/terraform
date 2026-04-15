@@ -5,10 +5,10 @@ output "namespace" {
 
 output "release_name" {
   description = "Helm release name"
-  value       = helm_release.cert_manager.name
+  value       = try(helm_release.cert_manager[0].name, null)
 }
 
 output "chart_version" {
   description = "Deployed cert-manager chart version"
-  value       = helm_release.cert_manager.version
+  value       = try(helm_release.cert_manager[0].version, null)
 }

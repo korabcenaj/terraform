@@ -80,7 +80,6 @@ resource "kubernetes_deployment" "jellyfin" {
           security_context {
             allow_privilege_escalation = false
             read_only_root_filesystem  = true
-            run_as_non_root            = true
             capabilities {
               drop = ["ALL"]
             }

@@ -5,6 +5,18 @@ locals {
         "server.insecure" = true
       }
     }
+    repoServer = {
+      livenessProbe = {
+        initialDelaySeconds = 20
+        timeoutSeconds      = 5
+        periodSeconds       = 15
+      }
+      readinessProbe = {
+        initialDelaySeconds = 15
+        timeoutSeconds      = 5
+        periodSeconds       = 10
+      }
+    }
   })
 
   oidc_values = var.oidc_enabled ? yamlencode({
@@ -21,6 +33,7 @@ locals {
           enableUserInfoGroups     = true
           userInfoPath             = "/protocol/openid-connect/userinfo"
           enablePKCEAuthentication = true
+          rootCA                   = trimspace(var.oidc_root_ca_pem) != "" ? var.oidc_root_ca_pem : null
         })
       }
     }

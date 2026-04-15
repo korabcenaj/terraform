@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: node-maintenance
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: configure-local-registry
+  namespace: node-maintenance
+spec:
+  selector:
+    matchLabels:
+      app: configure-local-registry
+  template:
+    metadata:
+      labels:
+        app: configure-local-registry
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+      - operator: Exists
+      containers:
+      - name: configure
+        image: alpine:3.20
+        securityContext:
+          privileged: true
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          apk add --no-cache util-linux
+          if [ -f /host/etc/containerd/config.toml ]; then
+            sed -i '/\[plugins\."io.containerd.grpc.v1.cri"\.registry\]/,/^\[/ s#config_path = ""#config_path = "/etc/containerd/certs.d"#' /host/etc/containerd/config.toml
+            sed -i '/\[plugins\."io.containerd.cri.v1.images"\.registry\]/,/^\[/ s#config_path = ""#config_path = "/etc/containerd/certs.d"#' /host/etc/containerd/config.toml
+          fi
+          mkdir -p /host/etc/containerd/certs.d/192.168.1.10:30500
+          cat > /host/etc/containerd/certs.d/192.168.1.10:30500/hosts.toml <<'EOF'
+          server = "http://192.168.1.10:30500"
+
+          [host."http://192.168.1.10:30500"]
+            capabilities = ["pull", "resolve", "push"]
+            skip_verify = true
+          EOF
+          nsenter --target 1 --mount --uts --ipc --net --pid sh -c 'systemctl restart containerd || systemctl restart snap.containerd.containerd || true'
+          sleep 5
+          nsenter --target 1 --mount --uts --ipc --net --pid sh -c 'systemctl is-active containerd || systemctl is-active snap.containerd.containerd || true'
+          grep -n 'config_path = "/etc/containerd/certs.d"' /host/etc/containerd/config.toml || true
+          sleep 3600
+        volumeMounts:
+        - name: host-etc-containerd
+          mountPath: /host/etc/containerd
+      volumes:
+      - name: host-etc-containerd
+        hostPath:
+          path: /etc/containerd
+          type: DirectoryOrCreate

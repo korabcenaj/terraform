@@ -219,6 +219,53 @@ kubectl port-forward -n jellyfin svc/jellyfin 8096:8096
 # open http://localhost:8096
 ```
 
+## Portfolio Image Build To The Live Registry
+
+The current live cluster has:
+
+- a Docker distribution registry running in namespace `registry`
+- a NodePort service on `30500`
+- an Argo CD application (`portfoliosite`) syncing from `https://github.com/korabcenaj/portfolio-container.git`
+
+The failing portfolio deployment is currently using an unqualified image reference:
+
+```yaml
+image: portfolio-web:latest
+```
+
+That resolves to Docker Hub, not the in-cluster registry, so pods stay in `ErrImagePull`.
+
+Build and push the image from this repo with:
+
+```bash
+./scripts/build-portfolio-image.sh 192.168.1.10
+```
+
+If the machine driving the build does not have Docker, use the in-cluster Kaniko job instead:
+
+```bash
+./scripts/build-portfolio-image-kaniko.sh
+```
+
+That job builds from `https://github.com/korabcenaj/portfolio-container.git` inside Kubernetes and pushes to the live registry service at `registry.registry.svc.cluster.local:5000`. Workloads should still reference the external pull address such as `192.168.1.10:30500/portfolio-web:latest`.
+
+If you omit the host, the script will derive the first node InternalIP via `kubectl` and push to:
+
+```text
+<node-internal-ip>:30500/portfolio-web:latest
+```
+
+For CI/CD, use the self-hosted GitHub Actions workflow in `.github/workflows/build-portfolio-image.yml`.
+Set repository variable `PORTFOLIO_REGISTRY_HOST` to one of the node IPs that exposes the registry NodePort, or provide `KUBECONFIG_B64` so the workflow can derive it dynamically.
+
+The Argo-managed manifest in the `korabcenaj/portfolio-container` repository must be updated to the fully qualified image reference emitted by the script or workflow, for example:
+
+```yaml
+image: 192.168.1.10:30500/portfolio-web:latest
+```
+
+Important: the current registry deployment has no PVC, so pushed images are ephemeral and will be lost if the registry pod is recreated.
+
 ### 6. Audit AI workloads and GPU nodes
 
 ```bash

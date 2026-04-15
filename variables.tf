@@ -188,7 +188,13 @@ variable "enable_cert_manager" {
 variable "cert_manager_chart_version" {
   description = "cert-manager Helm chart version"
   type        = string
-  default     = "v1.17.1"
+  default     = "v1.14.5"
+}
+
+variable "manage_cert_manager_controller" {
+  description = "Whether Terraform should manage the cert-manager controller installation via Helm, or only the namespace and issuer bootstrap objects"
+  type        = bool
+  default     = true
 }
 
 variable "enable_ingress_nginx" {
@@ -200,7 +206,7 @@ variable "enable_ingress_nginx" {
 variable "ingress_nginx_chart_version" {
   description = "ingress-nginx Helm chart version"
   type        = string
-  default     = "4.12.1"
+  default     = "4.15.1"
 }
 
 variable "ingress_nginx_service_type" {
@@ -212,7 +218,7 @@ variable "ingress_nginx_service_type" {
 variable "ingress_nginx_replicas" {
   description = "Number of ingress-nginx controller replicas"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "enable_kube_prometheus_stack" {
@@ -266,7 +272,7 @@ variable "enable_tempo" {
 variable "kube_prometheus_stack_chart_version" {
   description = "kube-prometheus-stack Helm chart version"
   type        = string
-  default     = "70.4.0"
+  default     = "82.18.0"
 }
 
 variable "loki_chart_version" {

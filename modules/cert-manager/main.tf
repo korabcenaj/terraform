@@ -10,6 +10,8 @@ resource "kubernetes_namespace" "cert_manager" {
 }
 
 resource "helm_release" "cert_manager" {
+  count = var.manage_controller_install ? 1 : 0
+
   name       = var.release_name
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"

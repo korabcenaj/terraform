@@ -1,0 +1,94 @@
+name: Build Portfolio Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - portfolio-container/**
+      - .github/workflows/build-portfolio-image.yml
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to push
+        required: false
+        default: latest
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on:
+      - self-hosted
+      - linux
+    env:
+      REGISTRY_PORT: 30500
+      IMAGE_NAME: portfolio-web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        if: ${{ vars.PORTFOLIO_REGISTRY_HOST == '' && secrets.KUBECONFIG_B64 != '' }}
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+
+      - name: Write kubeconfig
+        if: ${{ vars.PORTFOLIO_REGISTRY_HOST == '' && secrets.KUBECONFIG_B64 != '' }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Resolve registry target
+        id: registry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          registry_host="${{ vars.PORTFOLIO_REGISTRY_HOST }}"
+          image_tag="${{ github.event.inputs.image_tag || 'latest' }}"
+
+          if [[ -z "${registry_host}" ]]; then
+            if [[ ! -f "$HOME/.kube/config" ]]; then
+              echo "Set repository variable PORTFOLIO_REGISTRY_HOST or provide KUBECONFIG_B64." >&2
+              exit 1
+            fi
+
+            registry_host="$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')"
+          fi
+
+          if [[ -z "${registry_host}" ]]; then
+            echo "Unable to determine a registry host." >&2
+            exit 1
+          fi
+
+          image_ref="${registry_host}:${REGISTRY_PORT}/${IMAGE_NAME}:${image_tag}"
+
+          echo "registry_host=${registry_host}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          echo "image_ref=${image_ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify registry reachability
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "http://${{ steps.registry.outputs.registry_host }}:${REGISTRY_PORT}/v2/" >/dev/null
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push portfolio image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./portfolio-container
+          file: ./portfolio-container/Dockerfile
+          push: true
+          outputs: type=image,name=${{ steps.registry.outputs.image_ref }},push=true,registry.insecure=true
+
+      - name: Emit manifest image reference
+        run: |
+          echo "Push complete. Update the Argo-managed manifest to:"
+          echo "image: ${{ steps.registry.outputs.image_ref }}"

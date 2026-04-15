@@ -55,6 +55,12 @@ variable "oidc_client_secret" {
   default     = ""
 }
 
+variable "oidc_root_ca_pem" {
+  description = "Optional PEM-encoded root CA used to verify the OIDC provider TLS certificate"
+  type        = string
+  default     = ""
+}
+
 variable "oidc_scopes" {
   description = "OIDC scopes requested by Argo CD"
   type        = list(string)
