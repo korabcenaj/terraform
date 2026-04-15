@@ -322,6 +322,7 @@ Runs on every pull request and push to `main`:
 | Validate | `terraform validate` | Catch HCL syntax and type errors |
 | Lint | `tflint --recursive` | Enforce Terraform best-practices |
 | Security scan | `tfsec` | SAST for misconfigurations |
+| Policy scan (report-only) | `checkov` | Policy-as-code visibility without blocking existing pipelines |
 | Schema validation | `kubeconform` | Validate Kubernetes manifests against API schemas |
 
 ### Terraform Plan ([.github/workflows/terraform-plan.yml](.github/workflows/terraform-plan.yml))
@@ -389,12 +390,15 @@ S3 + DynamoDB locking is available via `backend.s3.hcl.example` for cloud-backed
 
 ## Backup and Restore
 
-The backup script snapshots Terraform state, the cert-manager root CA secret, and Pi-hole config.
+The backup script snapshots Terraform state (local and/or remote backend state when available), the cert-manager root CA secret, and Pi-hole config.
 
 ```bash
 # Create snapshot
 ./scripts/backup.sh
 # Output: backups/20260414-120000/
+
+# Inspect backup metadata (includes terraform_state_source)
+cat backups/latest/metadata.txt
 
 # Dry-run restore (no writes)
 ./scripts/restore.sh --dry-run backups/20260414-120000

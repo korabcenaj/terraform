@@ -221,6 +221,40 @@ variable "ingress_nginx_replicas" {
   default     = 2
 }
 
+variable "ingress_nginx_limit_rps" {
+  description = "Global ingress-nginx request rate limit per client IP (0 disables)"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.ingress_nginx_limit_rps >= 0
+    error_message = "ingress_nginx_limit_rps must be >= 0."
+  }
+}
+
+variable "ingress_nginx_limit_connections" {
+  description = "Global ingress-nginx concurrent connection limit per client IP (0 disables)"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.ingress_nginx_limit_connections >= 0
+    error_message = "ingress_nginx_limit_connections must be >= 0."
+  }
+}
+
+variable "ingress_nginx_enable_modsecurity" {
+  description = "Enable ModSecurity in ingress-nginx"
+  type        = bool
+  default     = false
+}
+
+variable "ingress_nginx_enable_owasp_crs" {
+  description = "Enable OWASP CRS rules when ModSecurity is enabled"
+  type        = bool
+  default     = false
+}
+
 variable "enable_kube_prometheus_stack" {
   description = "Deploy kube-prometheus-stack via Helm (Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics)"
   type        = bool

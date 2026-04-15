@@ -17,6 +17,12 @@ enable_pod_security_standards = true
 enable_resource_quotas     = true
 enable_pod_disruption_budgets = true
 
+# ingress-nginx hardening defaults (set >0 to enable global limits)
+ingress_nginx_limit_rps         = 10
+ingress_nginx_limit_connections = 20
+ingress_nginx_enable_modsecurity = false
+ingress_nginx_enable_owasp_crs   = false
+
 # Pi-hole configuration
 pihole_web_password = "changeme"  # Change this to a secure password!
 

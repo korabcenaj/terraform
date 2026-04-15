@@ -55,11 +55,15 @@ module "ingress_nginx" {
   count  = var.enable_ingress_nginx ? 1 : 0
   source = "./modules/ingress-nginx"
 
-  release_name   = "ingress-nginx"
-  chart_version  = var.ingress_nginx_chart_version
-  service_type   = var.ingress_nginx_service_type
-  replica_count  = var.ingress_nginx_replicas
-  enable_metrics = var.enable_monitoring
+  release_name            = "ingress-nginx"
+  chart_version           = var.ingress_nginx_chart_version
+  service_type            = var.ingress_nginx_service_type
+  replica_count           = var.ingress_nginx_replicas
+  enable_metrics          = var.enable_monitoring
+  limit_rps               = var.ingress_nginx_limit_rps
+  limit_connections       = var.ingress_nginx_limit_connections
+  enable_modsecurity      = var.ingress_nginx_enable_modsecurity
+  enable_owasp_crs        = var.ingress_nginx_enable_owasp_crs
 
   tags = var.tags
 }

@@ -47,6 +47,26 @@ resource "helm_release" "ingress_nginx" {
     value = tostring(var.enable_metrics)
   }
 
+  set {
+    name  = "controller.config.limit-rps"
+    value = tostring(var.limit_rps)
+  }
+
+  set {
+    name  = "controller.config.limit-connections"
+    value = tostring(var.limit_connections)
+  }
+
+  set {
+    name  = "controller.config.enable-modsecurity"
+    value = tostring(var.enable_modsecurity)
+  }
+
+  set {
+    name  = "controller.config.enable-owasp-modsecurity-crs"
+    value = tostring(var.enable_owasp_crs)
+  }
+
   # Keep existing pods running during upgrades
   set {
     name  = "controller.updateStrategy.type"

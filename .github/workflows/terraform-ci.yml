@@ -50,6 +50,17 @@ jobs:
         with:
           working_directory: .
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Checkov (report-only)
+        run: |
+          python -m pip install --upgrade pip
+          pip install checkov
+          checkov -d . --framework terraform --soft-fail
+
       - name: Setup kubeconform
         run: |
           set -euo pipefail

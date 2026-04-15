@@ -2,6 +2,8 @@ name: Terraform Plan
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
 
 permissions:
   contents: read
@@ -9,11 +11,17 @@ permissions:
 env:
   TF_IN_AUTOMATION: true
 
+concurrency:
+  group: terraform-plan-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   terraform-plan:
     runs-on:
       - self-hosted
       - linux
+    env:
+      IS_DRIFT_RUN: ${{ github.event_name == 'schedule' }}
     defaults:
       run:
         working-directory: .
@@ -78,5 +86,41 @@ jobs:
       - name: Terraform Init
         run: terraform init -input=false
 
-      - name: Terraform Plan
-        run: terraform plan -input=false -lock=false -no-color
+      - name: Terraform Plan (with drift detection)
+        run: |
+          set +e
+          terraform plan -input=false -lock-timeout=5m -detailed-exitcode -no-color -out=tfplan
+          plan_exit_code=$?
+          set -e
+
+          case "${plan_exit_code}" in
+            0)
+              echo "No Terraform changes detected."
+              ;;
+            1)
+              echo "Terraform plan failed."
+              exit 1
+              ;;
+            2)
+              if [[ "${IS_DRIFT_RUN}" == "true" ]]; then
+                echo "Drift detected during scheduled run."
+                exit 1
+              fi
+              echo "Terraform plan contains changes."
+              ;;
+            *)
+              echo "Unexpected terraform plan exit code: ${plan_exit_code}"
+              exit 1
+              ;;
+          esac
+
+      - name: Terraform Plan Summary
+        if: always()
+        run: |
+          if [[ -f tfplan ]]; then
+            terraform show -no-color tfplan > tfplan.txt
+            echo "Terraform plan summary:"
+            grep -E "^Plan:" tfplan.txt || true
+          else
+            echo "No tfplan output generated."
+          fi

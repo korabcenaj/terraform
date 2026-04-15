@@ -39,6 +39,30 @@ variable "enable_metrics" {
   default     = true
 }
 
+variable "limit_rps" {
+  description = "Global request rate limit per client IP (0 disables)"
+  type        = number
+  default     = 0
+}
+
+variable "limit_connections" {
+  description = "Global concurrent connection limit per client IP (0 disables)"
+  type        = number
+  default     = 0
+}
+
+variable "enable_modsecurity" {
+  description = "Enable ModSecurity support in ingress-nginx"
+  type        = bool
+  default     = false
+}
+
+variable "enable_owasp_crs" {
+  description = "Enable OWASP CRS with ModSecurity"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)
