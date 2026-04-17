@@ -87,4 +87,19 @@ run_cmd "kubectl rollout status deployment/pihole -n pihole --timeout=120s"
 
 echo "Restore completed."
 echo "Note: Terraform state restore is manual by design."
-echo "To restore state, copy backup files from ${SRC_DIR}/terraform into repo root if required."
+
+if [[ -f "${SRC_DIR}/terraform/terraform.remote.tfstate" ]]; then
+  echo "Remote backend state snapshot found: ${SRC_DIR}/terraform/terraform.remote.tfstate"
+  echo "Suggested recovery sequence (review before running):"
+  echo "  1) terraform state pull > terraform.state.pre-restore.$(date +%Y%m%d-%H%M%S).bak"
+  echo "  2) terraform state push '${SRC_DIR}/terraform/terraform.remote.tfstate'"
+  echo "  3) terraform state list"
+elif [[ -f "${SRC_DIR}/terraform/terraform.tfstate" ]]; then
+  echo "Local state snapshot found: ${SRC_DIR}/terraform/terraform.tfstate"
+  echo "Suggested local-state recovery sequence (review before running):"
+  echo "  1) cp terraform.tfstate terraform.state.pre-restore.$(date +%Y%m%d-%H%M%S).bak 2>/dev/null || true"
+  echo "  2) cp '${SRC_DIR}/terraform/terraform.tfstate' ./terraform.tfstate"
+  echo "  3) terraform state list"
+else
+  echo "No Terraform state snapshot found in backup at ${SRC_DIR}/terraform"
+fi

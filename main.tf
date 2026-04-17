@@ -21,6 +21,39 @@ locals {
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
     var.enable_pihole ? try(module.pihole[0].cluster_ip, "") : ""
   )
+
+  app_namespace_config = {
+    portfolio = {
+      enabled                   = var.enable_portfolio
+      pod_security_enforce      = "baseline"
+      include_restricted_labels = true
+    }
+    jellyfin = {
+      enabled                   = var.enable_jellyfin
+      pod_security_enforce      = "privileged"
+      include_restricted_labels = true
+    }
+    qbittorrent = {
+      enabled                   = var.enable_qbittorrent
+      pod_security_enforce      = "baseline"
+      include_restricted_labels = true
+    }
+    pihole = {
+      enabled                   = var.enable_pihole
+      pod_security_enforce      = "privileged"
+      include_restricted_labels = false
+    }
+  }
+  sonarr = {
+    enabled                   = var.enable_sonarr
+    pod_security_enforce      = "baseline"
+    include_restricted_labels = true
+  }
+  radarr = {
+    enabled                   = var.enable_radarr
+    pod_security_enforce      = "baseline"
+    include_restricted_labels = true
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -31,11 +64,11 @@ module "cert_manager" {
   count  = var.enable_cert_manager ? 1 : 0
   source = "./modules/cert-manager"
 
-  release_name             = "cert-manager"
-  chart_version            = var.cert_manager_chart_version
+  release_name              = "cert-manager"
+  chart_version             = var.cert_manager_chart_version
   manage_controller_install = var.manage_cert_manager_controller
-  create_selfsigned_issuer = true
-  create_local_ca_issuer   = true
+  create_selfsigned_issuer  = true
+  create_local_ca_issuer    = true
 
   tags = var.tags
 }
@@ -55,15 +88,15 @@ module "ingress_nginx" {
   count  = var.enable_ingress_nginx ? 1 : 0
   source = "./modules/ingress-nginx"
 
-  release_name            = "ingress-nginx"
-  chart_version           = var.ingress_nginx_chart_version
-  service_type            = var.ingress_nginx_service_type
-  replica_count           = var.ingress_nginx_replicas
-  enable_metrics          = var.enable_monitoring
-  limit_rps               = var.ingress_nginx_limit_rps
-  limit_connections       = var.ingress_nginx_limit_connections
-  enable_modsecurity      = var.ingress_nginx_enable_modsecurity
-  enable_owasp_crs        = var.ingress_nginx_enable_owasp_crs
+  release_name       = "ingress-nginx"
+  chart_version      = var.ingress_nginx_chart_version
+  service_type       = var.ingress_nginx_service_type
+  replica_count      = var.ingress_nginx_replicas
+  enable_metrics     = var.enable_monitoring
+  limit_rps          = var.ingress_nginx_limit_rps
+  limit_connections  = var.ingress_nginx_limit_connections
+  enable_modsecurity = var.ingress_nginx_enable_modsecurity
+  enable_owasp_crs   = var.ingress_nginx_enable_owasp_crs
 
   tags = var.tags
 }
@@ -72,20 +105,23 @@ module "kube_prometheus_stack" {
   count  = var.enable_kube_prometheus_stack ? 1 : 0
   source = "./modules/kube-prometheus-stack"
 
-  release_name               = "monitor"
-  chart_version              = var.kube_prometheus_stack_chart_version
-  grafana_admin_password     = var.grafana_admin_password
-  prometheus_retention       = var.prometheus_retention
-  prometheus_storage_size    = var.prometheus_storage_size
-  prometheus_storage_class   = var.prometheus_storage_class
-  grafana_storage_size       = var.grafana_storage_size
-  grafana_storage_class      = var.grafana_storage_class
-  grafana_host               = local.grafana_host
-  grafana_oidc_enabled       = var.enable_grafana_oidc
-  grafana_oidc_name          = "Keycloak"
-  grafana_oidc_issuer_url    = local.keycloak_issuer
-  grafana_oidc_client_id     = var.grafana_oidc_client_id
-  grafana_oidc_client_secret = var.grafana_oidc_client_secret
+  release_name                           = "monitor"
+  chart_version                          = var.kube_prometheus_stack_chart_version
+  grafana_admin_password                 = var.grafana_admin_password
+  prometheus_retention                   = var.prometheus_retention
+  prometheus_storage_size                = var.prometheus_storage_size
+  prometheus_storage_class               = var.prometheus_storage_class
+  grafana_storage_size                   = var.grafana_storage_size
+  grafana_storage_class                  = var.grafana_storage_class
+  grafana_host                           = local.grafana_host
+  grafana_oidc_enabled                   = var.enable_grafana_oidc
+  grafana_oidc_name                      = "Keycloak"
+  grafana_oidc_issuer_url                = local.keycloak_issuer
+  grafana_oidc_client_id                 = var.grafana_oidc_client_id
+  grafana_oidc_client_secret             = var.grafana_oidc_client_secret
+  alertmanager_incident_webhook_url      = var.alertmanager_incident_webhook_url
+  alertmanager_incident_minimum_severity = var.alertmanager_incident_minimum_severity
+  alertmanager_incident_send_resolved    = var.alertmanager_incident_send_resolved
 
   tags = var.tags
 }
@@ -183,6 +219,33 @@ module "argocd" {
   depends_on = [module.cert_manager]
 }
 
+module "argo_rollouts" {
+  count  = var.enable_argo_rollouts ? 1 : 0
+  source = "./modules/argo-rollouts"
+
+  release_name      = "argo-rollouts"
+  chart_version     = var.argo_rollouts_chart_version
+  dashboard_enabled = var.argo_rollouts_dashboard_enabled
+
+  tags = var.tags
+}
+
+module "argo_rollout_analysis" {
+  count  = var.enable_argo_rollouts && var.enable_portfolio_rollout_metric_gates && var.enable_portfolio ? 1 : 0
+  source = "./modules/argo-rollout-analysis"
+
+  namespace                     = kubernetes_namespace.app["portfolio"].metadata[0].name
+  template_name                 = "portfolio-rollout-metrics"
+  portfolio_host                = local.portfolio_host
+  prometheus_address            = var.portfolio_rollout_metrics_prometheus_address
+  success_rate_minimum_percent  = var.portfolio_rollout_success_rate_minimum_percent
+  latency_p95_threshold_seconds = var.portfolio_rollout_latency_p95_threshold_seconds
+
+  tags = var.tags
+
+  depends_on = [module.argo_rollouts, module.kube_prometheus_stack]
+}
+
 module "keycloak" {
   count  = var.enable_keycloak ? 1 : 0
   source = "./modules/keycloak"
@@ -252,61 +315,42 @@ module "kyverno" {
 }
 
 # Namespaces
-resource "kubernetes_namespace" "portfolio" {
-  count = var.enable_portfolio ? 1 : 0
+moved {
+  from = kubernetes_namespace.portfolio[0]
+  to   = kubernetes_namespace.app["portfolio"]
+}
+
+moved {
+  from = kubernetes_namespace.jellyfin[0]
+  to   = kubernetes_namespace.app["jellyfin"]
+}
+
+moved {
+  from = kubernetes_namespace.qbittorrent[0]
+  to   = kubernetes_namespace.app["qbittorrent"]
+}
+
+moved {
+  from = kubernetes_namespace.pihole[0]
+  to   = kubernetes_namespace.app["pihole"]
+}
+
+resource "kubernetes_namespace" "app" {
+  for_each = { for name, cfg in local.app_namespace_config : name => cfg if cfg.enabled }
 
   metadata {
-    name = "portfolio"
-    labels = {
-      name                                 = "portfolio"
-      "pod-security.kubernetes.io/enforce" = "baseline"
-      "pod-security.kubernetes.io/audit"   = "restricted"
-      "pod-security.kubernetes.io/warn"    = "restricted"
-    }
+    name = each.key
+    labels = merge({
+      name                                 = each.key
+      "pod-security.kubernetes.io/enforce" = each.value.pod_security_enforce
+      }, each.value.include_restricted_labels ? {
+      "pod-security.kubernetes.io/audit" = "restricted"
+      "pod-security.kubernetes.io/warn"  = "restricted"
+    } : {})
   }
 
   lifecycle {
     ignore_changes = [metadata[0].annotations]
-  }
-}
-
-resource "kubernetes_namespace" "jellyfin" {
-  count = var.enable_jellyfin ? 1 : 0
-
-  metadata {
-    name = "jellyfin"
-    labels = {
-      name                                 = "jellyfin"
-      "pod-security.kubernetes.io/enforce" = "privileged"
-      "pod-security.kubernetes.io/audit"   = "restricted"
-      "pod-security.kubernetes.io/warn"    = "restricted"
-    }
-  }
-}
-
-resource "kubernetes_namespace" "qbittorrent" {
-  count = var.enable_qbittorrent ? 1 : 0
-
-  metadata {
-    name = "qbittorrent"
-    labels = {
-      name                                 = "qbittorrent"
-      "pod-security.kubernetes.io/enforce" = "baseline"
-      "pod-security.kubernetes.io/audit"   = "restricted"
-      "pod-security.kubernetes.io/warn"    = "restricted"
-    }
-  }
-}
-
-resource "kubernetes_namespace" "pihole" {
-  count = var.enable_pihole ? 1 : 0
-
-  metadata {
-    name = "pihole"
-    labels = {
-      name                                 = "pihole"
-      "pod-security.kubernetes.io/enforce" = "privileged"
-    }
   }
 }
 
@@ -315,7 +359,7 @@ module "portfolio" {
   count  = var.enable_portfolio && var.manage_portfolio_workload ? 1 : 0
   source = "./modules/portfolio"
 
-  namespace      = kubernetes_namespace.portfolio[0].metadata[0].name
+  namespace      = kubernetes_namespace.app["portfolio"].metadata[0].name
   replicas       = var.portfolio_replicas
   cpu_request    = var.default_cpu_request
   memory_request = var.default_memory_request
@@ -330,7 +374,7 @@ module "jellyfin" {
   count  = var.enable_jellyfin ? 1 : 0
   source = "./modules/jellyfin"
 
-  namespace      = kubernetes_namespace.jellyfin[0].metadata[0].name
+  namespace      = kubernetes_namespace.app["jellyfin"].metadata[0].name
   replicas       = var.jellyfin_replicas
   storage_class  = var.jellyfin_storage_class
   config_size    = var.jellyfin_config_size
@@ -350,7 +394,7 @@ module "qbittorrent" {
   count  = var.enable_qbittorrent ? 1 : 0
   source = "./modules/qbittorrent"
 
-  namespace      = kubernetes_namespace.qbittorrent[0].metadata[0].name
+  namespace      = kubernetes_namespace.app["qbittorrent"].metadata[0].name
   replicas       = var.qbittorrent_replicas
   cpu_request    = "250m"
   memory_request = "256Mi"
@@ -365,7 +409,7 @@ module "pihole" {
   count  = var.enable_pihole ? 1 : 0
   source = "./modules/pihole"
 
-  namespace           = kubernetes_namespace.pihole[0].metadata[0].name
+  namespace           = kubernetes_namespace.app["pihole"].metadata[0].name
   replicas            = 1
   web_password        = var.pihole_web_password
   timezone            = "UTC"
@@ -376,6 +420,30 @@ module "pihole" {
   ingress_host        = local.pihole_host
   dns_wildcard_domain = var.ingress_base_domain
 
+  tags = var.tags
+}
+
+# Sonarr
+module "sonarr" {
+  count                        = var.enable_sonarr ? 1 : 0
+  source                       = "./modules/sonarr"
+  namespace                    = kubernetes_namespace.app["sonarr"].metadata[0].name
+  chart_version                = var.sonarr_chart_version
+  jellyfin_service_endpoint    = try(module.jellyfin[0].service_endpoint, "")
+  qbittorrent_service_endpoint = try(module.qbittorrent[0].service_endpoint, "")
+  # Optionally add persistence, env, ingress, resources as needed
+  tags = var.tags
+}
+
+# Radarr
+module "radarr" {
+  count                        = var.enable_radarr ? 1 : 0
+  source                       = "./modules/radarr"
+  namespace                    = kubernetes_namespace.app["radarr"].metadata[0].name
+  chart_version                = var.radarr_chart_version
+  jellyfin_service_endpoint    = try(module.jellyfin[0].service_endpoint, "")
+  qbittorrent_service_endpoint = try(module.qbittorrent[0].service_endpoint, "")
+  # Optionally add persistence, env, ingress, resources as needed
   tags = var.tags
 }
 
@@ -414,6 +482,56 @@ module "gpu_device_plugins" {
   tags = var.tags
 }
 
+module "gpu_priority_classes" {
+  count  = var.enable_gpu_priority_classes ? 1 : 0
+  source = "./modules/gpu-priority-classes"
+
+  interactive_priority_name  = var.gpu_interactive_priority_name
+  interactive_priority_value = var.gpu_interactive_priority_value
+  batch_priority_name        = var.gpu_batch_priority_name
+  batch_priority_value       = var.gpu_batch_priority_value
+
+  tags = var.tags
+}
+
+module "namespace_bootstrap" {
+  for_each = var.bootstrap_namespaces
+  source   = "./modules/namespace-bootstrap"
+
+  name                   = each.key
+  pod_security_enforce   = try(each.value.pod_security_enforce, "baseline")
+  pod_security_audit     = try(each.value.pod_security_audit, "restricted")
+  pod_security_warn      = try(each.value.pod_security_warn, "restricted")
+  pod_limit              = try(each.value.pod_limit, "10")
+  cpu_request_quota      = try(each.value.cpu_request_quota, "500m")
+  memory_request_quota   = try(each.value.memory_request_quota, "512Mi")
+  cpu_limit_quota        = try(each.value.cpu_limit_quota, "1000m")
+  memory_limit_quota     = try(each.value.memory_limit_quota, "1Gi")
+  default_cpu_request    = try(each.value.default_cpu_request, var.default_cpu_request)
+  default_memory_request = try(each.value.default_memory_request, var.default_memory_request)
+  default_cpu_limit      = try(each.value.default_cpu_limit, var.default_cpu_limit)
+  default_memory_limit   = try(each.value.default_memory_limit, var.default_memory_limit)
+  create_default_deny    = try(each.value.create_default_deny, true)
+
+  tags = var.tags
+}
+
+module "slo_alerts" {
+  count  = var.enable_slo_alerts ? 1 : 0
+  source = "./modules/slo-alerts"
+
+  namespace                   = "monitoring"
+  rule_name                   = "portfolio-slo-alerts"
+  portfolio_host              = local.portfolio_host
+  availability_target_percent = var.slo_portfolio_availability_target_percent
+  latency_p95_seconds         = var.slo_portfolio_latency_p95_seconds
+  prometheus_release_label    = var.slo_prometheus_release_label
+
+  tags = var.tags
+
+  depends_on = [module.kube_prometheus_stack]
+}
+
 module "networking" {
   count  = var.enable_network_policies ? 1 : 0
   source = "./modules/networking"
@@ -450,10 +568,10 @@ module "resource_quotas" {
   enable_jellyfin_quota    = var.enable_jellyfin
   enable_pihole_quota      = var.enable_pihole
 
-  portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
-  jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  portfolio_namespace   = try(kubernetes_namespace.app["portfolio"].metadata[0].name, "portfolio")
+  qbittorrent_namespace = try(kubernetes_namespace.app["qbittorrent"].metadata[0].name, "qbittorrent")
+  jellyfin_namespace    = try(kubernetes_namespace.app["jellyfin"].metadata[0].name, "jellyfin")
+  pihole_namespace      = try(kubernetes_namespace.app["pihole"].metadata[0].name, "pihole")
 
   tags = var.tags
 }
@@ -468,10 +586,10 @@ module "network_policies" {
   enable_jellyfin_netpol    = var.enable_jellyfin
   enable_pihole_netpol      = var.enable_pihole
 
-  portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
-  jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  portfolio_namespace   = try(kubernetes_namespace.app["portfolio"].metadata[0].name, "portfolio")
+  qbittorrent_namespace = try(kubernetes_namespace.app["qbittorrent"].metadata[0].name, "qbittorrent")
+  jellyfin_namespace    = try(kubernetes_namespace.app["jellyfin"].metadata[0].name, "jellyfin")
+  pihole_namespace      = try(kubernetes_namespace.app["pihole"].metadata[0].name, "pihole")
 
   tags = var.tags
 }
@@ -486,10 +604,10 @@ module "pod_disruption_budgets" {
   enable_jellyfin_pdb    = var.enable_jellyfin
   enable_pihole_pdb      = var.enable_pihole
 
-  portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
-  jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  portfolio_namespace   = try(kubernetes_namespace.app["portfolio"].metadata[0].name, "portfolio")
+  qbittorrent_namespace = try(kubernetes_namespace.app["qbittorrent"].metadata[0].name, "qbittorrent")
+  jellyfin_namespace    = try(kubernetes_namespace.app["jellyfin"].metadata[0].name, "jellyfin")
+  pihole_namespace      = try(kubernetes_namespace.app["pihole"].metadata[0].name, "pihole")
 
   tags = var.tags
 }

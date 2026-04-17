@@ -1,3 +1,28 @@
+# Sonarr
+variable "enable_sonarr" {
+  description = "Enable Sonarr application"
+  type        = bool
+  default     = false
+}
+
+variable "sonarr_chart_version" {
+  description = "Sonarr Helm chart version"
+  type        = string
+  default     = "16.2.2"
+}
+
+# Radarr
+variable "enable_radarr" {
+  description = "Enable Radarr application"
+  type        = bool
+  default     = false
+}
+
+variable "radarr_chart_version" {
+  description = "Radarr Helm chart version"
+  type        = string
+  default     = "16.2.2"
+}
 variable "kubeconfig_path" {
   description = "Path to kubeconfig file"
   type        = string
@@ -127,6 +152,36 @@ variable "enable_nvidia_gpu_plugin" {
   description = "Enable NVIDIA GPU device plugin daemonset"
   type        = bool
   default     = true
+}
+
+variable "enable_gpu_priority_classes" {
+  description = "Create PriorityClass resources for interactive and batch GPU workloads"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_interactive_priority_name" {
+  description = "PriorityClass name for interactive GPU workloads"
+  type        = string
+  default     = "gpu-interactive-high"
+}
+
+variable "gpu_interactive_priority_value" {
+  description = "PriorityClass value for interactive GPU workloads"
+  type        = number
+  default     = 100000
+}
+
+variable "gpu_batch_priority_name" {
+  description = "PriorityClass name for batch GPU workloads"
+  type        = string
+  default     = "gpu-batch-low"
+}
+
+variable "gpu_batch_priority_value" {
+  description = "PriorityClass value for batch GPU workloads"
+  type        = number
+  default     = 10000
 }
 
 variable "intel_gpu_plugin_image" {
@@ -261,6 +316,79 @@ variable "enable_kube_prometheus_stack" {
   default     = true
 }
 
+variable "enable_slo_alerts" {
+  description = "Create PrometheusRule alerts for portfolio SLO burn-rate and latency"
+  type        = bool
+  default     = false
+}
+
+variable "alertmanager_incident_webhook_url" {
+  description = "Optional webhook URL for Alertmanager incident routing (Slack/Discord relay, bot, or webhook service)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "alertmanager_incident_minimum_severity" {
+  description = "Alert severity matcher routed to the incident webhook"
+  type        = string
+  default     = "critical"
+}
+
+variable "alertmanager_incident_send_resolved" {
+  description = "Whether Alertmanager sends resolved notifications to the incident webhook"
+  type        = bool
+  default     = true
+}
+
+variable "slo_portfolio_availability_target_percent" {
+  description = "Portfolio availability SLO target percentage"
+  type        = number
+  default     = 99
+
+  validation {
+    condition     = var.slo_portfolio_availability_target_percent > 0 && var.slo_portfolio_availability_target_percent < 100
+    error_message = "slo_portfolio_availability_target_percent must be > 0 and < 100."
+  }
+}
+
+variable "slo_portfolio_latency_p95_seconds" {
+  description = "Portfolio p95 latency SLO threshold in seconds"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.slo_portfolio_latency_p95_seconds > 0
+    error_message = "slo_portfolio_latency_p95_seconds must be > 0."
+  }
+}
+
+variable "slo_prometheus_release_label" {
+  description = "Prometheus release selector label value used by kube-prometheus-stack"
+  type        = string
+  default     = "monitor"
+}
+
+variable "bootstrap_namespaces" {
+  description = "Generic namespace bootstrap definitions for future apps with baseline security and quotas"
+  type = map(object({
+    pod_security_enforce   = optional(string)
+    pod_security_audit     = optional(string)
+    pod_security_warn      = optional(string)
+    pod_limit              = optional(string)
+    cpu_request_quota      = optional(string)
+    memory_request_quota   = optional(string)
+    cpu_limit_quota        = optional(string)
+    memory_limit_quota     = optional(string)
+    default_cpu_request    = optional(string)
+    default_memory_request = optional(string)
+    default_cpu_limit      = optional(string)
+    default_memory_limit   = optional(string)
+    create_default_deny    = optional(bool)
+  }))
+  default = {}
+}
+
 variable "enable_loki" {
   description = "Deploy Loki + Promtail via Helm for centralized cluster log aggregation"
   type        = bool
@@ -297,6 +425,24 @@ variable "enable_argocd" {
   default     = false
 }
 
+variable "enable_argo_rollouts" {
+  description = "Deploy Argo Rollouts controller for progressive delivery"
+  type        = bool
+  default     = false
+}
+
+variable "argo_rollouts_chart_version" {
+  description = "Argo Rollouts Helm chart version"
+  type        = string
+  default     = "2.39.5"
+}
+
+variable "argo_rollouts_dashboard_enabled" {
+  description = "Enable Argo Rollouts dashboard service"
+  type        = bool
+  default     = false
+}
+
 variable "enable_tempo" {
   description = "Deploy Grafana Tempo via Helm for distributed tracing"
   type        = bool
@@ -313,6 +459,40 @@ variable "loki_chart_version" {
   description = "loki-stack Helm chart version"
   type        = string
   default     = "2.10.2"
+}
+
+variable "enable_portfolio_rollout_metric_gates" {
+  description = "Create an AnalysisTemplate for portfolio rollout promotion/rollback checks"
+  type        = bool
+  default     = false
+}
+
+variable "portfolio_rollout_metrics_prometheus_address" {
+  description = "Prometheus address used by Argo Rollouts AnalysisTemplate"
+  type        = string
+  default     = "http://monitor-kube-prometheus-st-prometheus.monitoring.svc.cluster.local:9090"
+}
+
+variable "portfolio_rollout_success_rate_minimum_percent" {
+  description = "Minimum success rate percentage required by rollout analysis"
+  type        = number
+  default     = 99
+
+  validation {
+    condition     = var.portfolio_rollout_success_rate_minimum_percent > 0 && var.portfolio_rollout_success_rate_minimum_percent <= 100
+    error_message = "portfolio_rollout_success_rate_minimum_percent must be > 0 and <= 100."
+  }
+}
+
+variable "portfolio_rollout_latency_p95_threshold_seconds" {
+  description = "Maximum p95 latency in seconds allowed during rollout analysis"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.portfolio_rollout_latency_p95_threshold_seconds > 0
+    error_message = "portfolio_rollout_latency_p95_threshold_seconds must be > 0."
+  }
 }
 
 variable "loki_storage_size" {
@@ -640,6 +820,11 @@ variable "kyverno_enforcement_mode" {
   description = "Kyverno policy action: 'Audit' logs violations, 'Enforce' blocks non-compliant resources"
   type        = string
   default     = "Audit"
+
+  validation {
+    condition     = contains(["Audit", "Enforce"], var.kyverno_enforcement_mode)
+    error_message = "kyverno_enforcement_mode must be either 'Audit' or 'Enforce'."
+  }
 }
 
 variable "kyverno_create_policies" {

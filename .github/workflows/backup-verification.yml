@@ -1,0 +1,73 @@
+name: Backup Verification
+
+"on":
+  workflow_dispatch:
+    inputs:
+      check_velero:
+        description: "Check latest Velero backup health"
+        required: false
+        type: boolean
+        default: true
+  schedule:
+    - cron: "15 3 * * *"
+
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: true
+
+jobs:
+  backup-verify:
+    runs-on:
+      - self-hosted
+      - linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require kubeconfig secret
+        run: |
+          if [[ -z "${{ secrets.KUBECONFIG_B64 }}" ]]; then
+            echo "KUBECONFIG_B64 is required for backup verification workflow."
+            exit 1
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Generate backup snapshot
+        run: bash ./scripts/backup.sh
+
+      - name: Verify backup snapshot
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.check_velero }}" == "true" ]]; then
+            bash ./scripts/verify-backups.sh --backup-dir backups/latest --check-velero
+          else
+            bash ./scripts/verify-backups.sh --backup-dir backups/latest
+          fi
+
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-verification-${{ github.run_id }}
+          path: |
+            backups/latest/metadata.txt
+            backups/latest/terraform/
+          if-no-files-found: ignore
+          retention-days: 14

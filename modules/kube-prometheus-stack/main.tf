@@ -25,6 +25,43 @@ locals {
       }
     }
   }) : ""
+
+  alertmanager_webhook_values = trimspace(var.alertmanager_incident_webhook_url) != "" ? yamlencode({
+    alertmanager = {
+      config = {
+        global = {
+          resolve_timeout = "5m"
+        }
+        route = {
+          receiver        = "default-null"
+          group_by        = ["alertname", "namespace", "service"]
+          group_wait      = "30s"
+          group_interval  = "5m"
+          repeat_interval = "3h"
+          routes = [
+            {
+              receiver = "incident-webhook"
+              matchers = ["severity = \"${var.alertmanager_incident_minimum_severity}\""]
+            }
+          ]
+        }
+        receivers = [
+          {
+            name = "default-null"
+          },
+          {
+            name = "incident-webhook"
+            webhook_configs = [
+              {
+                url           = var.alertmanager_incident_webhook_url
+                send_resolved = var.alertmanager_incident_send_resolved
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }) : ""
 }
 
 resource "kubernetes_namespace" "monitoring" {
@@ -43,7 +80,7 @@ resource "helm_release" "kube_prometheus_stack" {
   chart      = "kube-prometheus-stack"
   version    = var.chart_version
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
-  values     = compact([local.grafana_oidc_values])
+  values     = compact([local.grafana_oidc_values, local.alertmanager_webhook_values])
 
   # Increase timeout — this chart installs many CRDs and resources
   wait    = true

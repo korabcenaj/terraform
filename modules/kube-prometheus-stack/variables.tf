@@ -102,6 +102,25 @@ variable "grafana_oidc_scopes" {
   default     = ["openid", "profile", "email"]
 }
 
+variable "alertmanager_incident_webhook_url" {
+  description = "Optional webhook URL for routing selected Alertmanager notifications"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "alertmanager_incident_minimum_severity" {
+  description = "Alert severity matcher routed to incident webhook"
+  type        = string
+  default     = "critical"
+}
+
+variable "alertmanager_incident_send_resolved" {
+  description = "Whether to send resolved notifications to the incident webhook"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)

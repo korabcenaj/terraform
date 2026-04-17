@@ -2,11 +2,17 @@ name: Terraform Plan
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Optional pull request number to comment plan summary on"
+        required: false
+        type: string
   schedule:
     - cron: "0 2 * * *"
 
 permissions:
   contents: read
+  pull-requests: write
 
 env:
   TF_IN_AUTOMATION: true
@@ -115,12 +121,79 @@ jobs:
           esac
 
       - name: Terraform Plan Summary
+        id: plan_summary
         if: always()
         run: |
           if [[ -f tfplan ]]; then
             terraform show -no-color tfplan > tfplan.txt
             echo "Terraform plan summary:"
+            plan_line=$(grep -E "^Plan:" tfplan.txt | head -n1 || true)
             grep -E "^Plan:" tfplan.txt || true
+            echo "plan_line=${plan_line}" >> "$GITHUB_OUTPUT"
+
+            {
+              echo "## Terraform Plan"
+              echo
+              if [[ -n "${plan_line}" ]]; then
+                echo "${plan_line}"
+              else
+                echo "Plan line not found in terraform show output."
+              fi
+              echo
+              if [[ "${IS_DRIFT_RUN}" == "true" ]]; then
+                echo "Run type: scheduled drift detection"
+              else
+                echo "Run type: manual"
+              fi
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No tfplan output generated."
+            echo "plan_line=No tfplan output generated." >> "$GITHUB_OUTPUT"
+
+            {
+              echo "## Terraform Plan"
+              echo
+              echo "No tfplan output generated."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Upload plan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.run_id }}
+          path: |
+            tfplan
+            tfplan.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Comment plan summary on PR
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = Number('${{ github.event.inputs.pr_number }}');
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed('Invalid pr_number input. Provide a positive integer.');
+              return;
+            }
+
+            const planLine = `${{ steps.plan_summary.outputs.plan_line }}` || 'Plan summary not available.';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              'Terraform plan summary from manual workflow run:',
+              '',
+              `- ${planLine}`,
+              `- Workflow run: ${runUrl}`,
+              '',
+              'Artifacts include `tfplan` and `tfplan.txt` when generated.'
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body,
+            });

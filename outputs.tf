@@ -1,3 +1,26 @@
+# Sonarr
+output "sonarr_namespace" {
+  description = "Sonarr namespace"
+  value       = try(kubernetes_namespace.app["sonarr"].metadata[0].name, null)
+  depends_on  = [module.sonarr]
+}
+
+output "sonarr_release" {
+  description = "Sonarr Helm release name"
+  value       = try(module.sonarr[0].sonarr_name, null)
+}
+
+# Radarr
+output "radarr_namespace" {
+  description = "Radarr namespace"
+  value       = try(kubernetes_namespace.app["radarr"].metadata[0].name, null)
+  depends_on  = [module.radarr]
+}
+
+output "radarr_release" {
+  description = "Radarr Helm release name"
+  value       = try(module.radarr[0].radarr_name, null)
+}
 output "cluster_name" {
   description = "Kubernetes cluster name"
   value       = var.cluster_name
@@ -10,19 +33,19 @@ output "environment" {
 
 output "portfolio_namespace" {
   description = "Portfolio application namespace"
-  value       = try(kubernetes_namespace.portfolio[0].metadata[0].name, null)
+  value       = try(kubernetes_namespace.app["portfolio"].metadata[0].name, null)
   depends_on  = [module.portfolio]
 }
 
 output "jellyfin_namespace" {
   description = "Jellyfin media server namespace"
-  value       = try(kubernetes_namespace.jellyfin[0].metadata[0].name, null)
+  value       = try(kubernetes_namespace.app["jellyfin"].metadata[0].name, null)
   depends_on  = [module.jellyfin]
 }
 
 output "qbittorrent_namespace" {
   description = "qBittorrent torrent client namespace"
-  value       = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, null)
+  value       = try(kubernetes_namespace.app["qbittorrent"].metadata[0].name, null)
   depends_on  = [module.qbittorrent]
 }
 
@@ -56,6 +79,16 @@ output "argocd_namespace" {
   value       = try(module.argocd[0].namespace, null)
 }
 
+output "argo_rollouts_namespace" {
+  description = "Argo Rollouts namespace"
+  value       = try(module.argo_rollouts[0].namespace, null)
+}
+
+output "portfolio_rollout_analysis_template" {
+  description = "AnalysisTemplate name used for portfolio rollout metric gates"
+  value       = try(module.argo_rollout_analysis[0].template_name, null)
+}
+
 output "tempo_namespace" {
   description = "Tempo tracing namespace"
   value       = try(module.tempo[0].namespace, null)
@@ -66,22 +99,31 @@ output "keycloak_namespace" {
   value       = try(module.keycloak[0].namespace, null)
 }
 
+output "incident_webhook_routing_enabled" {
+  description = "Whether Alertmanager incident webhook routing is configured"
+  value       = nonsensitive(trimspace(var.alertmanager_incident_webhook_url) != "")
+}
 
 output "portfolio_service" {
   description = "Portfolio service information"
   value = try({
     name      = "portfolio-web"
-    namespace = kubernetes_namespace.portfolio[0].metadata[0].name
+    namespace = kubernetes_namespace.app["portfolio"].metadata[0].name
     type      = "ClusterIP"
     port      = 80
   }, null)
+}
+
+output "bootstrapped_namespaces" {
+  description = "Namespaces created through the generic namespace bootstrap module"
+  value       = { for name, module_instance in module.namespace_bootstrap : name => module_instance.namespace }
 }
 
 output "jellyfin_service" {
   description = "Jellyfin service information"
   value = try({
     name      = "jellyfin"
-    namespace = kubernetes_namespace.jellyfin[0].metadata[0].name
+    namespace = kubernetes_namespace.app["jellyfin"].metadata[0].name
     type      = "ClusterIP"
     port      = 8096
   }, null)
@@ -118,11 +160,14 @@ output "deployed_modules" {
     vault            = var.enable_vault
     external_secrets = var.enable_external_secrets
     argocd           = var.enable_argocd
+    argo_rollouts    = var.enable_argo_rollouts
     tempo            = var.enable_tempo
     keycloak         = var.enable_keycloak
     oauth2_proxy     = var.enable_oauth2_proxy
     kyverno          = var.enable_kyverno
     metrics_server   = var.enable_metrics_server
+    slo_alerts       = var.enable_slo_alerts
+    gpu_priorities   = var.enable_gpu_priority_classes
     network_policies = var.enable_network_policies
   }
 }
@@ -130,6 +175,19 @@ output "deployed_modules" {
 output "metrics_server_release" {
   description = "Metrics-server deployment name"
   value       = try(module.metrics_server[0].release_name, null)
+}
+
+output "slo_alert_rule_name" {
+  description = "PrometheusRule name for portfolio SLO alerts"
+  value       = try(module.slo_alerts[0].rule_name, null)
+}
+
+output "gpu_priority_classes" {
+  description = "GPU PriorityClass names for interactive and batch workloads"
+  value = {
+    interactive = try(module.gpu_priority_classes[0].interactive_priority_class, null)
+    batch       = try(module.gpu_priority_classes[0].batch_priority_class, null)
+  }
 }
 
 output "loki_release" {
@@ -160,6 +218,11 @@ output "external_secrets_release" {
 output "argocd_release" {
   description = "Argo CD Helm release name"
   value       = try(module.argocd[0].release_name, null)
+}
+
+output "argo_rollouts_release" {
+  description = "Argo Rollouts Helm release name"
+  value       = try(module.argo_rollouts[0].release_name, null)
 }
 
 output "tempo_release" {

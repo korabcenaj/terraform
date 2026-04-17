@@ -1,12 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="IT portfolio showcasing Kubernetes, Terraform, DevOps automation, and production-style platform engineering projects.">
+  <title>IT Projects Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script defer src="/app.js"></script>
 </head>
 <body>
-    <h1>Portfolio</h1>
-    <p>Welcome to my portfolio</p>
+  <main class="shell">
+    <header class="top">
+      <p class="brand">Project<span>Portfolio</span></p>
+      <p class="pill">Platform Engineer • DevOps • Kubernetes</p>
+    </header>
+
+    <section class="hero">
+      <h1>Building production-style IT platforms from a homelab.</h1>
+      <p class="lead">
+        I design and operate infrastructure with Terraform, Kubernetes, GitOps, and strong security defaults.
+        This portfolio highlights projects focused on reliability, automation, and measurable operational outcomes.
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#projects">View Projects</a>
+        <a class="btn secondary" href="#contact">Contact Links</a>
+      </div>
+      <div class="stats">
+        <article class="stat">
+          <strong>4-node</strong>
+          <span>Self-hosted Kubernetes cluster</span>
+        </article>
+        <article class="stat">
+          <strong>20+</strong>
+          <span>Terraform modules for platform services</span>
+        </article>
+        <article class="stat">
+          <strong>CI/CD</strong>
+          <span>Plan, drift detection, security scans, backup checks</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="projects">
+      <h2>Featured Projects</h2>
+      <div class="projects" id="projects-grid" aria-live="polite"></div>
+      <noscript>
+        <p class="empty-state">Enable JavaScript to render projects from projects.json.</p>
+      </noscript>
+    </section>
+
+    <section class="section" id="case-study">
+      <h2>Case Study: Kubernetes + Terraform Delivery Platform</h2>
+      <div class="case-study">
+        <div class="case-grid">
+          <div>
+            <p>
+              I built a modular Terraform stack to deploy and operate a full Kubernetes platform including GitOps,
+              progressive delivery, policy enforcement, observability, and backup verification.
+            </p>
+            <ul class="case-points">
+              <li><strong>Problem:</strong> Manual changes and mixed tooling caused risk and inconsistent releases.</li>
+              <li><strong>Approach:</strong> Reusable Terraform modules, GitHub Actions validation, Argo CD sync, and Argo Rollouts metric gates.</li>
+              <li><strong>Result:</strong> Repeatable deployments, reduced drift, and measurable release confidence through SLO-based analysis.</li>
+            </ul>
+            <div class="links-row">
+              <a class="project-link" href="https://github.com/korabcenaj/terraform" target="_blank" rel="noopener noreferrer">Terraform Repo</a>
+              <a class="project-link" href="https://github.com/korabcenaj/portfolio-container" target="_blank" rel="noopener noreferrer">Portfolio App Repo</a>
+            </div>
+          </div>
+          <div class="diagram" aria-label="Architecture diagram">
+            <svg viewBox="0 0 520 360" role="img" aria-labelledby="diagram-title">
+              <title id="diagram-title">Platform architecture diagram</title>
+              <defs>
+                <style>
+                  .box { fill: #fff; stroke: #d9d1c3; stroke-width: 2; rx: 12; }
+                  .title { fill: #17212b; font: 700 15px 'IBM Plex Mono', monospace; }
+                  .txt { fill: #465260; font: 500 13px 'Space Grotesk', sans-serif; }
+                  .arrow { stroke: #0b8a78; stroke-width: 2.4; marker-end: url(#arr); }
+                </style>
+                <marker id="arr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="#0b8a78"></path>
+                </marker>
+              </defs>
+
+              <rect class="box" x="20" y="20" width="160" height="70"></rect>
+              <text class="title" x="34" y="46">GitHub</text>
+              <text class="txt" x="34" y="67">Terraform + App Repos</text>
+
+              <rect class="box" x="200" y="20" width="160" height="70"></rect>
+              <text class="title" x="214" y="46">CI/CD</text>
+              <text class="txt" x="214" y="67">Plan, Scan, Build</text>
+
+              <rect class="box" x="380" y="20" width="120" height="70"></rect>
+              <text class="title" x="394" y="46">Registry</text>
+              <text class="txt" x="394" y="67">Image Push</text>
+
+              <rect class="box" x="80" y="140" width="180" height="72"></rect>
+              <text class="title" x="96" y="167">Argo CD</text>
+              <text class="txt" x="96" y="188">GitOps Sync + Drift</text>
+
+              <rect class="box" x="280" y="140" width="180" height="72"></rect>
+              <text class="title" x="296" y="167">Argo Rollouts</text>
+              <text class="txt" x="296" y="188">Blue/Green + Gates</text>
+
+              <rect class="box" x="80" y="254" width="180" height="72"></rect>
+              <text class="title" x="96" y="281">Kubernetes</text>
+              <text class="txt" x="96" y="302">Apps + Policies</text>
+
+              <rect class="box" x="280" y="254" width="180" height="72"></rect>
+              <text class="title" x="296" y="281">Observability</text>
+              <text class="txt" x="296" y="302">Prometheus + Alerts</text>
+
+              <line class="arrow" x1="180" y1="55" x2="200" y2="55"></line>
+              <line class="arrow" x1="360" y1="55" x2="380" y2="55"></line>
+              <line class="arrow" x1="230" y1="90" x2="170" y2="140"></line>
+              <line class="arrow" x1="330" y1="90" x2="370" y2="140"></line>
+              <line class="arrow" x1="170" y1="212" x2="170" y2="254"></line>
+              <line class="arrow" x1="370" y1="212" x2="370" y2="254"></line>
+              <line class="arrow" x1="260" y1="290" x2="280" y2="290"></line>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="skills">
+      <h2>Core Skill Areas</h2>
+      <div class="skills">
+        <article class="skill-box">
+          <h4>Cloud Native & Platform</h4>
+          <ul>
+            <li>Kubernetes cluster operations</li>
+            <li>Ingress, DNS, observability, storage integrations</li>
+            <li>Production-style release patterns</li>
+          </ul>
+        </article>
+        <article class="skill-box">
+          <h4>Infrastructure as Code</h4>
+          <ul>
+            <li>Terraform module design and state hygiene</li>
+            <li>Reusable infrastructure abstractions</li>
+            <li>Drift detection and controlled rollouts</li>
+          </ul>
+        </article>
+        <article class="skill-box">
+          <h4>DevOps & Reliability</h4>
+          <ul>
+            <li>CI pipelines with validation, lint, and security scans</li>
+            <li>SLO-driven alerting and incident routing</li>
+            <li>Backup verification and restore workflows</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="contact" id="contact">
+      <div>
+        <h2>Contact + Social Profiles</h2>
+        <p>
+          Open to Platform / DevOps Engineering roles. I enjoy building reliable internal platforms,
+          reducing deployment risk, and improving developer delivery speed.
+        </p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn primary" href="mailto:korabcenaj@gmail.com">Email: korabcenaj@gmail.com</a>
+        <a class="btn secondary" href="https://github.com/korabcenaj" target="_blank" rel="noopener noreferrer">GitHub Profile</a>
+      </div>
+      <div class="socials">
+        <a class="social-link" href="https://github.com/korabcenaj" target="_blank" rel="noopener noreferrer">GitHub /korabcenaj</a>
+        <a class="social-link" href="https://github.com/korabcenaj/terraform" target="_blank" rel="noopener noreferrer">Project Feed: terraform</a>
+        <a class="social-link" href="https://github.com/korabcenaj/portfolio-container" target="_blank" rel="noopener noreferrer">Project Feed: portfolio-container</a>
+      </div>
+    </section>
+
+    <footer>
+      Built with Kubernetes + Terraform mindset: automated, observable, and production-oriented.
+    </footer>
+  </main>
 </body>
 </html>

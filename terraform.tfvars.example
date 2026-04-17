@@ -16,12 +16,49 @@ enable_network_policies    = true
 enable_pod_security_standards = true
 enable_resource_quotas     = true
 enable_pod_disruption_budgets = true
+enable_argo_rollouts       = false
+enable_slo_alerts          = false
+enable_gpu_priority_classes = false
+enable_portfolio_rollout_metric_gates = false
 
 # ingress-nginx hardening defaults (set >0 to enable global limits)
 ingress_nginx_limit_rps         = 10
 ingress_nginx_limit_connections = 20
 ingress_nginx_enable_modsecurity = false
 ingress_nginx_enable_owasp_crs   = false
+
+# Portfolio SLO targets
+slo_portfolio_availability_target_percent = 99
+slo_portfolio_latency_p95_seconds         = 1
+portfolio_rollout_success_rate_minimum_percent  = 99
+portfolio_rollout_latency_p95_threshold_seconds = 1
+
+# Kyverno staged rollout (recommended):
+# 1) enable_kyverno=true with Audit mode and no policies
+# 2) after first successful apply and CRD registration, set kyverno_create_policies=true
+enable_kyverno          = false
+kyverno_enforcement_mode = "Audit"
+kyverno_create_policies  = false
+
+# Argo Rollouts dashboard (controller-only feature toggle)
+argo_rollouts_dashboard_enabled = false
+
+# Optional incident webhook routing for critical alerts
+alertmanager_incident_webhook_url      = ""
+alertmanager_incident_minimum_severity = "critical"
+
+# Example future app namespace bootstrap
+bootstrap_namespaces = {
+  ai-lab = {
+    pod_security_enforce = "baseline"
+    pod_limit            = "20"
+    cpu_request_quota    = "4000m"
+    memory_request_quota = "8Gi"
+    cpu_limit_quota      = "8000m"
+    memory_limit_quota   = "16Gi"
+    create_default_deny  = true
+  }
+}
 
 # Pi-hole configuration
 pihole_web_password = "changeme"  # Change this to a secure password!

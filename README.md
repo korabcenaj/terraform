@@ -85,10 +85,14 @@ version-controlled codebase.
 | Secrets | HashiCorp Vault + External Secrets Operator (Helm modules available, staged disabled by default) |
 | TLS | cert-manager v1.14.5 with self-signed CA chain (selfsigned-bootstrap → local-lan-ca) |
 | GitOps | Argo CD (manages portfolio application; Terraform module staged for import) |
+| Progressive Delivery | Argo Rollouts (Terraform module available, staged disabled by default) |
 | CI/CD | GitHub Actions — tfsec, TFLint, kubeconform, self-hosted plan runner |
+| Reliability | Portfolio SLO PrometheusRule alerts (optional Terraform module) |
+| Incident Routing | Optional Alertmanager webhook route for critical alerts |
 | DNS | Pi-hole (network-wide ad-blocking DNS) |
 | Media | Jellyfin (self-hosted media server) |
 | Node Metrics | metrics-server (enables `kubectl top`, HPA signals) |
+| AI/GPU Scheduling | GPU PriorityClasses for interactive vs batch jobs (optional Terraform module) |
 
 ---
 
@@ -107,30 +111,40 @@ terraform/
 │
 ├── .github/workflows/
 │   ├── terraform-ci.yml             # PR/push: fmt, validate, tflint, tfsec, kubeconform
-│   └── terraform-plan.yml           # Manual: full plan against live cluster (self-hosted runner)
+│   ├── terraform-plan.yml           # Manual: full plan against live cluster (self-hosted runner)
+│   └── backup-verification.yml      # Scheduled backup generation + verification
 │
 ├── scripts/
 │   ├── backup.sh                    # Snapshot state + cert-manager CA + Pi-hole config
+│   ├── verify-backups.sh            # Validate backup completeness + optional Velero health
 │   ├── audit-ai-gpu.sh              # Inventory AI workloads + GPU capacity/requests from live cluster
 │   ├── restore.sh                   # Restore from snapshot with dry-run mode
 │   ├── setup-github-runner.sh       # Register/manage self-hosted GitHub Actions runner
 │   ├── set-github-secret.sh         # Push KUBECONFIG_B64 secret via gh CLI
 │   └── print-kubeconfig-b64.sh      # Encode kubeconfig for GitHub secret
+├── portfolio-container/
+│   ├── Dockerfile
+│   ├── portfolio.html
+│   └── k8s/portfolio-rollout-bluegreen.yaml  # Argo Rollouts manifest for the portfolio app repo
 │
 └── modules/
     ├── cert-manager/                # Helm release + selfsigned-bootstrap + local-lan-ca issuers
     ├── argocd/                      # Helm release for Argo CD (staged for import)
+    ├── argo-rollouts/               # Helm release for progressive delivery controller
     ├── external-secrets/            # Helm release + optional Vault ClusterSecretStore bootstrap
     ├── gpu-device-plugins/          # Intel/AMD/NVIDIA device plugins for GPU resource advertisement
+    ├── gpu-priority-classes/        # PriorityClass resources for GPU queueing semantics
     ├── ingress-nginx/               # Helm release, default IngressClass, metrics integration
     ├── kube-prometheus-stack/       # Helm release, Prometheus + Grafana + Alertmanager
     ├── loki/                        # Helm release for Loki + Promtail log aggregation
     ├── metrics-server/              # Kubernetes-native metrics-server resources
     ├── minio/                       # Helm release for in-cluster S3-compatible object storage
     ├── monitoring/                  # Ingress + network-allow rules for Grafana/Prometheus
+    ├── namespace-bootstrap/         # Generic namespace bootstrap with quotas, limits, and default-deny
     ├── networking/                  # Default-deny NetworkPolicy per namespace
     ├── network-policies/            # Per-app allow rules (ingress, DNS, metrics scrape)
     ├── resource-quotas/             # CPU/memory quotas per namespace
+    ├── slo-alerts/                  # PrometheusRule-based SLO and error budget alerts
     ├── tempo/                       # Helm release for distributed trace storage (OTLP/Jaeger receivers)
     ├── pod-disruption-budgets/      # minAvailable PDBs for HA
     ├── portfolio/                   # Namespace-only (workload owned by Argo CD)
@@ -300,7 +314,65 @@ ingress_base_domain           = "local.lan"
 # Pin Helm chart versions to running cluster versions
 ingress_nginx_chart_version         = "4.15.1"
 kube_prometheus_stack_chart_version = "82.18.0"
+
+# Kyverno staged rollout (safe default)
+enable_kyverno           = false
+kyverno_enforcement_mode = "Audit"
+kyverno_create_policies  = false
+
+# Argo progressive delivery (controller only; app Rollout manifest remains Argo-managed)
+enable_argo_rollouts              = false
+argo_rollouts_dashboard_enabled   = false
+enable_portfolio_rollout_metric_gates = false
+portfolio_rollout_success_rate_minimum_percent  = 99
+portfolio_rollout_latency_p95_threshold_seconds = 1
+
+# Optional SLO alerting and GPU scheduling priorities
+enable_slo_alerts                  = false
+slo_portfolio_availability_target_percent = 99
+slo_portfolio_latency_p95_seconds = 1
+enable_gpu_priority_classes        = false
+
+# Optional incident webhook for critical alerts
+alertmanager_incident_webhook_url      = ""
+alertmanager_incident_minimum_severity = "critical"
+
+# Generic namespace bootstrap for future apps
+bootstrap_namespaces = {
+  ai-lab = {
+    pod_limit           = "20"
+    cpu_request_quota   = "4000m"
+    memory_request_quota = "8Gi"
+    cpu_limit_quota     = "8000m"
+    memory_limit_quota  = "16Gi"
+  }
+}
 ```
+
+Kyverno rollout sequence:
+1. Set `enable_kyverno = true` while keeping `kyverno_create_policies = false` and apply once.
+2. Confirm Kyverno CRDs/controllers are healthy.
+3. Set `kyverno_create_policies = true` (still in `Audit`) and apply.
+4. Switch to `kyverno_enforcement_mode = "Enforce"` only after reviewing violations.
+
+Argo progressive rollout sequence (portfolio):
+1. Set `enable_argo_rollouts = true` and apply Terraform.
+2. Set `enable_portfolio_rollout_metric_gates = true` and apply Terraform.
+3. Use `portfolio-container/k8s/portfolio-rollout-bluegreen.yaml` as the Argo-managed rollout manifest.
+4. Keep the `prePromotionAnalysis` reference to `portfolio-rollout-metrics`.
+5. Replace the current portfolio `Deployment` and Service with the Rollout and active/preview Services.
+6. Keep Ingress pointing to `portfolio-web-active`.
+7. Promote after preview checks pass: `kubectl argo rollouts promote portfolio-web -n portfolio`.
+
+Incident routing sequence:
+1. Set `alertmanager_incident_webhook_url` to your Slack/Discord relay or incident bot webhook.
+2. Keep `alertmanager_incident_minimum_severity = "critical"` initially.
+3. Apply Terraform and verify Alertmanager route delivery with a test alert.
+
+Namespace bootstrap sequence:
+1. Add a new entry under `bootstrap_namespaces`.
+2. Apply Terraform to create the namespace, quota, LimitRange, and default-deny policy.
+3. Add app-specific allow rules only after the baseline namespace is in place.
 
 Scale an application without editing files:
 
@@ -331,6 +403,17 @@ Manual workflow run on a **self-hosted runner** inside the homelab network:
 - Decodes `KUBECONFIG_B64` from GitHub Secrets and writes `~/.kube/config`
 - Verifies cluster reachability before proceeding
 - Requires either a local `terraform.tfstate` or a configured remote backend — prevents misleading empty-state plans
+- Runs nightly drift detection at `0 2 * * *` with `terraform plan -detailed-exitcode`
+- Uploads `tfplan` and `tfplan.txt` as workflow artifacts for post-run review
+- Accepts an optional `pr_number` input on manual runs to post the plan summary as a PR comment
+
+### Backup Verification ([.github/workflows/backup-verification.yml](.github/workflows/backup-verification.yml))
+
+Scheduled workflow run on a **self-hosted runner** to continuously validate restore readiness:
+- Generates a fresh backup using `./scripts/backup.sh`
+- Verifies backup contents using `./scripts/verify-backups.sh`
+- Optionally checks latest Velero backup phase (`Completed`)
+- Uploads backup verification artifacts for auditability
 
 #### Self-hosted runner setup
 
@@ -405,9 +488,13 @@ cat backups/latest/metadata.txt
 
 # Full restore
 ./scripts/restore.sh --yes backups/20260414-120000
+
+# Verify latest backup integrity (and Velero backup health)
+./scripts/verify-backups.sh --backup-dir backups/latest --check-velero
 ```
 
 Terraform state restore is intentionally manual to prevent accidental state overwrites.
+If a backup includes `terraform/terraform.remote.tfstate`, `./scripts/restore.sh` now prints a reviewed recovery sequence using `terraform state pull` and `terraform state push`.
 
 ---
 
