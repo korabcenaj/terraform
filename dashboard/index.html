@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Homelab Deployment Dashboard</title>
+  <style>
+    :root {
+      --bg: #f7f3eb; --ink: #1f2937; --card: #fffdf8;
+      --ok: #15803d; --warn: #b45309; --off: #6b7280; --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px;
+      font-family: "IBM Plex Sans","Noto Sans",sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(15,118,110,.12), transparent 40%),
+        radial-gradient(circle at 80% 8%, rgba(234,179,8,.10), transparent 35%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .shell { max-width: 1200px; margin: 0 auto; }
+    .hero {
+      background: linear-gradient(120deg,#0f766e,#155e75);
+      color: #f8fafc; border-radius: 16px; padding: 22px 26px;
+      box-shadow: 0 16px 32px rgba(0,0,0,.15);
+    }
+    .hero h1 { margin: 0; font-size: 1.75rem; }
+    .hero p { margin: 6px 0 0; opacity: .9; font-size: .97rem; }
+    .summary-grid {
+      margin: 16px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+      gap: 10px;
+    }
+    .tile {
+      background: var(--card); border: 1px solid #e8dfcf;
+      border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 6px 16px rgba(30,41,59,.05);
+    }
+    .tile .k { color: var(--off); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+    .tile .v { font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
+    .panel {
+      background: var(--card); border-radius: 12px;
+      border: 1px solid #e8dfcf; overflow: hidden;
+      box-shadow: 0 6px 16px rgba(30,41,59,.05);
+    }
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 14px; background: #f5efe2; }
+    .filter-btn {
+      border: 1px solid #d4cbb8; background: #fff; border-radius: 999px;
+      padding: 4px 12px; font-size: .8rem; cursor: pointer; transition: all .15s;
+    }
+    .filter-btn.active, .filter-btn:hover { background: #0f766e; color: #fff; border-color: #0f766e; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #f5efe2; color: #374151; font-size: .78rem;
+      text-align: left; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px;
+    }
+    tbody tr { transition: background .1s; }
+    tbody tr:hover { background: #fdf8f0; }
+    tbody td { border-top: 1px solid #efe7d9; padding: 9px 12px; font-size: .9rem; vertical-align: middle; }
+    .badge {
+      display: inline-flex; align-items: center; border-radius: 999px;
+      padding: 3px 10px; font-weight: 600; font-size: .73rem;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .running     { background: #dcfce7; color: var(--ok); }
+    .planned     { background: #fef3c7; color: var(--warn); }
+    .provisioning { background: #fed7aa; color: #c2410c; }
+    .disabled    { background: #e5e7eb; color: var(--off); }
+    .kind-application { background: #dbeafe; color: #1d4ed8; }
+    .kind-media { background: #ede9fe; color: #6d28d9; }
+    .kind-platform { background: #e0f2fe; color: #0369a1; }
+    .kind-infra { background: #fef9c3; color: #92400e; }
+    .kind-security { background: #fee2e2; color: #b91c1c; }
+    .kind-observability { background: #d1fae5; color: #065f46; }
+    .kind-policy { background: #e5e7eb; color: #374151; }
+    .source-bar { color: var(--off); font-size: .82rem; margin-top: 10px; padding: 0 4px; }
+    .source-bar .ok   { color: var(--ok); font-weight: 600; }
+    .source-bar .fail { color: var(--danger); font-weight: 600; }
+    @keyframes rise { from { opacity:0;transform:translateY(8px)} to {opacity:1;transform:none} }
+    .hero,.tile,.panel { animation: rise .4s ease-out; }
+    @media(max-width:760px){
+      body{padding:12px;} .hero h1{font-size:1.4rem;}
+      tbody td,thead th{padding:7px 9px;}
+    }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <section class="hero">
+    <h1>Homelab Deployment Dashboard</h1>
+    <p>Live snapshot from Terraform state and Kubernetes API.</p>
+  </section>
+  <section class="summary-grid" id="summary-grid"></section>
+  <section class="panel">
+    <div class="filter-bar" id="filter-bar"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Module</th><th>Kind</th><th>Status</th>
+          <th>Configured</th><th>Terraform</th><th>K8s Replicas</th><th>Endpoint</th>
+        </tr>
+      </thead>
+      <tbody id="apps-body"></tbody>
+    </table>
+  </section>
+  <p class="source-bar" id="source-bar"></p>
+</main>
+<script>
+const DATA = {"generated_at": "2026-05-03T15:26:00+00:00", "cluster": "home-lab", "apps": [{"name": "portfolio", "kind": "application", "namespace": "portfolio", "service": "portfolio-web", "port": "80", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "planned"}, {"name": "jellyfin", "kind": "media", "namespace": "jellyfin", "service": "jellyfin", "port": "8096", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "qbittorrent", "kind": "media", "namespace": "qbittorrent", "service": "qbittorrent", "port": "8080", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "pihole", "kind": "application", "namespace": "pihole", "service": "pihole", "port": "80", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "sonarr", "kind": "media", "namespace": "sonarr", "service": "sonarr", "port": "8989", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "radarr", "kind": "media", "namespace": "radarr", "service": "radarr", "port": "7878", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "monitoring", "kind": "observability", "namespace": "monitoring", "service": "grafana", "port": "3000", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 1, "ready_replicas": 1, "desired_replicas": 1}, "health": "running"}, {"name": "metrics_server", "kind": "platform", "namespace": "kube-system", "service": "metrics-server", "port": "443", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 1, "ready_replicas": 1, "desired_replicas": 1}, "health": "running"}, {"name": "cert_manager", "kind": "infra", "namespace": "cert-manager", "service": "cert-manager", "port": "9402", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "ingress_nginx", "kind": "infra", "namespace": "ingress-nginx", "service": "ingress-nginx", "port": "80", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "kube_prometheus_stack", "kind": "observability", "namespace": "monitoring", "service": "prometheus", "port": "9090", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": 1, "ready_replicas": 1, "desired_replicas": 1}, "health": "planned"}, {"name": "loki", "kind": "observability", "namespace": "loki", "service": "loki", "port": "3100", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "minio", "kind": "infra", "namespace": "minio", "service": "minio", "port": "9000", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "velero", "kind": "infra", "namespace": "velero", "service": "velero", "port": "n/a", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "vault", "kind": "security", "namespace": "vault", "service": "vault", "port": "8200", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "external_secrets", "kind": "security", "namespace": "external-secrets", "service": "external-secrets", "port": "n/a", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "argocd", "kind": "platform", "namespace": "argocd", "service": "argocd-server", "port": "443", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 6, "ready_replicas": 12, "desired_replicas": 12}, "health": "running"}, {"name": "argo_rollouts", "kind": "platform", "namespace": "argo-rollouts", "service": "argo-rollouts", "port": "n/a", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "provisioning"}, {"name": "tempo", "kind": "observability", "namespace": "tempo", "service": "tempo", "port": "3200", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "oauth2_proxy", "kind": "security", "namespace": "oauth2-proxy", "service": "oauth2-proxy", "port": "4180", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "kyverno", "kind": "security", "namespace": "kyverno", "service": "kyverno", "port": "n/a", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "keycloak", "kind": "security", "namespace": "keycloak", "service": "keycloak", "port": "8080", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 0, "ready_replicas": 0, "desired_replicas": 0}, "health": "disabled"}, {"name": "gpu_device_plugins", "kind": "platform", "namespace": "kube-system", "service": "n/a", "port": "n/a", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": 1, "ready_replicas": 1, "desired_replicas": 1}, "health": "planned"}, {"name": "gpu_priority_classes", "kind": "policy", "namespace": "all", "service": "n/a", "port": "n/a", "configured": false, "terraform_deployed": null, "kubernetes": {"deployments": null, "ready_replicas": null, "desired_replicas": null}, "health": "disabled"}, {"name": "network_policies", "kind": "policy", "namespace": "all", "service": "n/a", "port": "n/a", "configured": true, "terraform_deployed": true, "kubernetes": {"deployments": null, "ready_replicas": null, "desired_replicas": null}, "health": "provisioning"}, {"name": "resource_quotas", "kind": "policy", "namespace": "all", "service": "n/a", "port": "n/a", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": null, "ready_replicas": null, "desired_replicas": null}, "health": "provisioning"}, {"name": "pod_disruption_budgets", "kind": "policy", "namespace": "all", "service": "n/a", "port": "n/a", "configured": true, "terraform_deployed": null, "kubernetes": {"deployments": null, "ready_replicas": null, "desired_replicas": null}, "health": "provisioning"}, {"name": "slo_alerts", "kind": "observability", "namespace": "monitoring", "service": "n/a", "port": "n/a", "configured": false, "terraform_deployed": false, "kubernetes": {"deployments": 1, "ready_replicas": 1, "desired_replicas": 1}, "health": "disabled"}], "sources": {"terraform": "ok", "kubectl": "ok", "tfvars": "local.auto.tfvars"}};
+
+function badge(cls, label) {
+  return '<span class="badge ' + cls + '">' + label + '</span>';
+}
+
+const apps = DATA.apps || [];
+
+// Summary tiles
+const counts = {running:0, planned:0, provisioning:0, disabled:0};
+apps.forEach(a => counts[a.health] = (counts[a.health]||0)+1);
+const grid = document.getElementById('summary-grid');
+[
+  ['Cluster', DATA.cluster || 'home-lab'],
+  ['Snapshot', (DATA.generated_at||'').replace('T',' ').replace('+00:00',' UTC')],
+  ['Running', counts.running],
+  ['Planned', counts.planned],
+  ['Provisioning', counts.provisioning],
+  ['Disabled', counts.disabled],
+].forEach(([k,v]) => {
+  const t = document.createElement('article');
+  t.className = 'tile';
+  t.innerHTML = '<div class="k">'+k+'</div><div class="v">'+v+'</div>';
+  grid.appendChild(t);
+});
+
+// Filter buttons
+const kinds = [...new Set(apps.map(a=>a.kind))].sort();
+const fb = document.getElementById('filter-bar');
+let activeKind = null;
+function buildFilter() {
+  fb.innerHTML = '';
+  ['all',...kinds].forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (k===activeKind||(!activeKind&&k==='all')?' active':'');
+    btn.textContent = k;
+    btn.onclick = () => { activeKind = k==='all'?null:k; buildFilter(); renderRows(); };
+    fb.appendChild(btn);
+  });
+}
+
+// Table rows
+const tbody = document.getElementById('apps-body');
+function renderRows() {
+  tbody.innerHTML = '';
+  (activeKind ? apps.filter(a=>a.kind===activeKind) : apps).forEach(app => {
+    const k8s = app.kubernetes || {};
+    const rep = (k8s.ready_replicas==null||k8s.desired_replicas==null)
+      ? 'n/a'
+      : k8s.ready_replicas+'/'+k8s.desired_replicas+' pods';
+    const ep = app.service==='n/a' ? 'n/a'
+      : app.namespace+'/'+app.service+':'+app.port;
+    const tfVal = app.terraform_deployed===null||app.terraform_deployed===undefined
+      ? '<span style="color:var(--off)">unknown</span>'
+      : app.terraform_deployed
+        ? '<span style="color:var(--ok)">applied</span>'
+        : '<span style="color:var(--warn)">not applied</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><strong>'+app.name+'</strong></td>'+
+      '<td><span class="badge kind-'+app.kind+'">'+app.kind+'</span></td>'+
+      '<td>'+badge(app.health, app.health)+'</td>'+
+      '<td>'+(app.configured?'<span style="color:var(--ok)">enabled</span>':'<span style="color:var(--off)">disabled</span>')+'</td>'+
+      '<td>'+tfVal+'</td>'+
+      '<td>'+rep+'</td>'+
+      '<td style="font-size:.82rem;color:var(--off)">'+ep+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+buildFilter();
+renderRows();
+
+// Source bar
+const sb = document.getElementById('source-bar');
+function srcSpan(label, status) {
+  const ok = status==='ok';
+  return label+': <span class="'+(ok?'ok':'fail')+'">'+(ok?'ok':status)+'</span>';
+}
+sb.innerHTML = [
+  srcSpan('terraform', DATA.sources.terraform),
+  srcSpan('kubectl', DATA.sources.kubectl),
+  'tfvars: '+DATA.sources.tfvars,
+].join(' &nbsp;|&nbsp; ');
+</script>
+</body>
+</html>

@@ -1,3 +1,46 @@
+# Ingress configuration for Sonarr
+variable "sonarr_ingress" {
+  description = "Ingress configuration for Sonarr"
+  type = object({
+    enabled = bool
+    host    = string
+    path    = string
+    annotations = optional(map(string))
+    tls = optional(object({
+      enabled = bool
+      secretName = optional(string)
+    }))
+  })
+  default = {
+    enabled = false
+    host    = ""
+    path    = "/"
+    annotations = {}
+    tls = null
+  }
+}
+
+# Ingress configuration for Radarr
+variable "radarr_ingress" {
+  description = "Ingress configuration for Radarr"
+  type = object({
+    enabled = bool
+    host    = string
+    path    = string
+    annotations = optional(map(string))
+    tls = optional(object({
+      enabled = bool
+      secretName = optional(string)
+    }))
+  })
+  default = {
+    enabled = false
+    host    = ""
+    path    = "/"
+    annotations = {}
+    tls = null
+  }
+}
 # Sonarr
 variable "enable_sonarr" {
   description = "Enable Sonarr application"
@@ -306,6 +349,77 @@ variable "ingress_nginx_enable_modsecurity" {
 
 variable "ingress_nginx_enable_owasp_crs" {
   description = "Enable OWASP CRS rules when ModSecurity is enabled"
+  type        = bool
+  default     = false
+}
+
+# Caddy Ingress Controller
+variable "enable_caddy" {
+  description = "Deploy the Caddy Ingress Controller via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "caddy_chart_version" {
+  description = "Caddy Ingress Controller Helm chart version"
+  type        = string
+  default     = "1.1.0"
+}
+
+variable "caddy_service_type" {
+  description = "Service type for the Caddy controller (LoadBalancer, NodePort, or ClusterIP)"
+  type        = string
+  default     = "LoadBalancer"
+
+  validation {
+    condition     = contains(["LoadBalancer", "NodePort", "ClusterIP"], var.caddy_service_type)
+    error_message = "caddy_service_type must be LoadBalancer, NodePort, or ClusterIP."
+  }
+}
+
+variable "caddy_replicas" {
+  description = "Number of Caddy Ingress Controller replicas"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.caddy_replicas >= 1
+    error_message = "caddy_replicas must be at least 1."
+  }
+}
+
+variable "caddy_ingress_class_name" {
+  description = "IngressClass name registered by the Caddy controller"
+  type        = string
+  default     = "caddy"
+}
+
+variable "caddy_default_ingress_class" {
+  description = "Set Caddy as the cluster-default IngressClass"
+  type        = bool
+  default     = false
+}
+
+variable "caddy_acme_ca_server" {
+  description = "ACME CA server URL for automatic TLS provisioning. Leave empty to disable."
+  type        = string
+  default     = ""
+}
+
+variable "caddy_acme_email" {
+  description = "Email address for ACME CA registration (required when caddy_acme_ca_server is set)"
+  type        = string
+  default     = ""
+}
+
+variable "caddy_on_demand_tls" {
+  description = "Enable Caddy on-demand TLS (certificates obtained lazily on first request)"
+  type        = bool
+  default     = false
+}
+
+variable "caddy_debug" {
+  description = "Enable Caddy debug logging"
   type        = bool
   default     = false
 }
@@ -678,6 +792,12 @@ variable "grafana_storage_class" {
   default     = "local-path"
 }
 
+variable "immich_postgres_password" {
+  description = "Password for Immich PostgreSQL user."
+  type        = string
+  sensitive   = true
+}
+
 # Application configurations
 variable "portfolio_replicas" {
   description = "Number of portfolio replicas"
@@ -954,3 +1074,124 @@ variable "tags" {
     cluster     = "home-lab"
   }
 }
+
+  # ─── MetalLB ────────────────────────────────────────────────────────────────
+  variable "enable_metallb" {
+    type    = bool
+    default = false
+  }
+
+  variable "metallb_chart_version" {
+    type    = string
+    default = "0.15.3"
+  }
+
+  variable "metallb_ip_pool_name" {
+    type    = string
+    default = "default-pool"
+  }
+
+  variable "metallb_ip_pool_addresses" {
+    type    = string
+    default = ""
+    description = "CIDR or range (e.g. 192.168.1.200-192.168.1.220). Empty = skip CRD creation."
+  }
+
+  # ─── Falco ───────────────────────────────────────────────────────────────────
+  variable "enable_falco" {
+    type    = bool
+    default = false
+  }
+
+  variable "falco_chart_version" {
+    type    = string
+    default = "8.0.2"
+  }
+
+  variable "falco_driver_kind" {
+    type    = string
+    default = "ebpf"
+  }
+
+  variable "falco_enable_falcosidekick" {
+    type    = bool
+    default = false
+  }
+
+  variable "falco_log_level" {
+    type    = string
+    default = "info"
+  }
+
+  # ─── Harbor ──────────────────────────────────────────────────────────────────
+  variable "enable_harbor" {
+    type    = bool
+    default = false
+  }
+
+  variable "harbor_chart_version" {
+    type    = string
+    default = "1.18.3"
+  }
+
+  variable "harbor_external_url" {
+    type    = string
+    default = "https://harbor.local.lan"
+  }
+
+  variable "harbor_admin_password" {
+    type      = string
+    sensitive = true
+    default   = ""
+  }
+
+  variable "harbor_ingress_host" {
+    type    = string
+    default = "harbor.local.lan"
+  }
+
+  variable "harbor_ingress_class_name" {
+    type    = string
+    default = "nginx"
+  }
+
+  variable "harbor_tls_enabled" {
+    type    = bool
+    default = true
+  }
+
+  variable "harbor_storage_class" {
+    type    = string
+    default = ""
+  }
+
+  variable "harbor_registry_storage_size" {
+    type    = string
+    default = "20Gi"
+  }
+
+  variable "harbor_enable_trivy" {
+    type    = bool
+    default = true
+  }
+
+  # ─── Pushgateway ─────────────────────────────────────────────────────────────
+  variable "enable_pushgateway" {
+    type    = bool
+    default = false
+  }
+
+  variable "pushgateway_chart_version" {
+    type    = string
+    default = "3.6.0"
+  }
+
+  variable "pushgateway_enable_service_monitor" {
+    type    = bool
+    default = true
+  }
+
+  variable "pushgateway_persistence_enabled" {
+    type    = bool
+    default = false
+  }

@@ -43,16 +43,16 @@ locals {
       pod_security_enforce      = "privileged"
       include_restricted_labels = false
     }
-  }
-  sonarr = {
-    enabled                   = var.enable_sonarr
-    pod_security_enforce      = "baseline"
-    include_restricted_labels = true
-  }
-  radarr = {
-    enabled                   = var.enable_radarr
-    pod_security_enforce      = "baseline"
-    include_restricted_labels = true
+    sonarr = {
+      enabled                   = var.enable_sonarr
+      pod_security_enforce      = "baseline"
+      include_restricted_labels = true
+    }
+    radarr = {
+      enabled                   = var.enable_radarr
+      pod_security_enforce      = "baseline"
+      include_restricted_labels = true
+    }
   }
 }
 
@@ -97,6 +97,25 @@ module "ingress_nginx" {
   limit_connections  = var.ingress_nginx_limit_connections
   enable_modsecurity = var.ingress_nginx_enable_modsecurity
   enable_owasp_crs   = var.ingress_nginx_enable_owasp_crs
+
+  tags = var.tags
+}
+
+module "caddy" {
+  count  = var.enable_caddy ? 1 : 0
+  source = "./modules/caddy"
+
+  release_name          = "caddy"
+  chart_version         = var.caddy_chart_version
+  service_type          = var.caddy_service_type
+  replica_count         = var.caddy_replicas
+  ingress_class_name    = var.caddy_ingress_class_name
+  default_ingress_class = var.caddy_default_ingress_class
+  acme_ca_server        = var.caddy_acme_ca_server
+  acme_email            = var.caddy_acme_email
+  on_demand_tls         = var.caddy_on_demand_tls
+  enable_metrics        = var.enable_monitoring
+  debug                 = var.caddy_debug
 
   tags = var.tags
 }
@@ -314,6 +333,14 @@ module "kyverno" {
   tags = var.tags
 }
 
+module "immich_postgresql" {
+  source           = "./modules/immich-postgresql"
+  namespace        = "default" # Change if Immich is in a different namespace
+  postgres_user    = "immich"
+  postgres_password = var.immich_postgres_password
+  postgres_db      = "immich"
+}
+
 # Namespaces
 moved {
   from = kubernetes_namespace.portfolio[0]
@@ -431,8 +458,7 @@ module "sonarr" {
   chart_version                = var.sonarr_chart_version
   jellyfin_service_endpoint    = try(module.jellyfin[0].service_endpoint, "")
   qbittorrent_service_endpoint = try(module.qbittorrent[0].service_endpoint, "")
-  # Optionally add persistence, env, ingress, resources as needed
-  tags = var.tags
+  # ingress handled via set blocks in module
 }
 
 # Radarr
@@ -443,8 +469,7 @@ module "radarr" {
   chart_version                = var.radarr_chart_version
   jellyfin_service_endpoint    = try(module.jellyfin[0].service_endpoint, "")
   qbittorrent_service_endpoint = try(module.qbittorrent[0].service_endpoint, "")
-  # Optionally add persistence, env, ingress, resources as needed
-  tags = var.tags
+  # ingress handled via set blocks in module
 }
 
 module "monitoring" {
@@ -611,3 +636,60 @@ module "pod_disruption_budgets" {
 
   tags = var.tags
 }
+
+  # MetalLB Load Balancer
+  module "metallb" {
+    count  = var.enable_metallb ? 1 : 0
+    source = "./modules/metallb"
+
+    chart_version     = var.metallb_chart_version
+    ip_pool_name      = var.metallb_ip_pool_name
+    ip_pool_addresses = var.metallb_ip_pool_addresses
+
+    tags = var.tags
+  }
+
+  # Falco Runtime Security
+  module "falco" {
+    count  = var.enable_falco ? 1 : 0
+    source = "./modules/falco"
+
+    chart_version        = var.falco_chart_version
+    driver_kind          = var.falco_driver_kind
+    enable_falcosidekick = var.falco_enable_falcosidekick
+    enable_metrics       = var.enable_monitoring
+    log_level            = var.falco_log_level
+
+    tags = var.tags
+  }
+
+  # Harbor Container Registry
+  module "harbor" {
+    count  = var.enable_harbor ? 1 : 0
+    source = "./modules/harbor"
+
+    chart_version         = var.harbor_chart_version
+    external_url          = var.harbor_external_url
+    admin_password        = var.harbor_admin_password
+    ingress_host          = var.harbor_ingress_host
+    ingress_class_name    = var.harbor_ingress_class_name
+    tls_enabled           = var.harbor_tls_enabled
+    storage_class         = var.harbor_storage_class
+    registry_storage_size = var.harbor_registry_storage_size
+    enable_trivy          = var.harbor_enable_trivy
+
+    tags = var.tags
+  }
+
+  # Prometheus Pushgateway
+  module "pushgateway" {
+    count  = var.enable_pushgateway ? 1 : 0
+    source = "./modules/pushgateway"
+
+    namespace              = "monitoring"
+    chart_version          = var.pushgateway_chart_version
+    enable_service_monitor = var.pushgateway_enable_service_monitor
+    persistence_enabled    = var.pushgateway_persistence_enabled
+
+    tags = var.tags
+  }

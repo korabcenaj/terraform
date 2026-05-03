@@ -1,0 +1,72 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: radarr-ci-cd-pipeline
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      type: string
+      default: "main"
+    - name: image-tag
+      type: string
+      default: "latest"
+  workspaces:
+    - name: shared-workspace
+  tasks:
+    - name: clone-repo
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      params:
+        - name: url
+          value: "$(params.git-url)"
+        - name: revision
+          value: "$(params.git-revision)"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+    - name: build-and-push
+      runAfter:
+        - clone-repo
+      taskRef:
+        name: kaniko
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: "harbor.local.lan/library/radarr:$(params.image-tag)"
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: update-git-manifest
+      runAfter:
+        - build-and-push
+      taskRef:
+        name: git-cli
+        kind: ClusterTask
+      params:
+        - name: GIT_USER_NAME
+          value: "tekton-bot"
+        - name: GIT_USER_EMAIL
+          value: "tekton-bot@example.com"
+        - name: GIT_SCRIPT
+          value: |
+            sed -i 's|image: harbor.local.lan/library/radarr:.*|image: harbor.local.lan/library/radarr:$(params.image-tag)|' k8s/radarr-deployment.yaml
+            git add k8s/radarr-deployment.yaml
+            git commit -m "Update radarr image to $(params.image-tag)"
+            git push origin $(params.git-revision)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    # Optional: Trigger ArgoCD sync via API
+    # - name: argocd-sync
+    #   runAfter:
+    #     - update-git-manifest
+    #   taskSpec:
+    #     steps:
+    #       - name: curl
+    #         image: curlimages/curl
+    #         script: |
+    #           curl -X POST -k -H "Authorization: Bearer $ARGOCD_TOKEN" https://argocd.local.lan/api/v1/applications/radarr/sync

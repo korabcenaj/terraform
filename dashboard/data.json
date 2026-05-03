@@ -1,0 +1,431 @@
+{
+  "generated_at": "2026-05-03T15:26:00+00:00",
+  "cluster": "home-lab",
+  "apps": [
+    {
+      "name": "portfolio",
+      "kind": "application",
+      "namespace": "portfolio",
+      "service": "portfolio-web",
+      "port": "80",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "planned"
+    },
+    {
+      "name": "jellyfin",
+      "kind": "media",
+      "namespace": "jellyfin",
+      "service": "jellyfin",
+      "port": "8096",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "qbittorrent",
+      "kind": "media",
+      "namespace": "qbittorrent",
+      "service": "qbittorrent",
+      "port": "8080",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "pihole",
+      "kind": "application",
+      "namespace": "pihole",
+      "service": "pihole",
+      "port": "80",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "sonarr",
+      "kind": "media",
+      "namespace": "sonarr",
+      "service": "sonarr",
+      "port": "8989",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "radarr",
+      "kind": "media",
+      "namespace": "radarr",
+      "service": "radarr",
+      "port": "7878",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "monitoring",
+      "kind": "observability",
+      "namespace": "monitoring",
+      "service": "grafana",
+      "port": "3000",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 1,
+        "ready_replicas": 1,
+        "desired_replicas": 1
+      },
+      "health": "running"
+    },
+    {
+      "name": "metrics_server",
+      "kind": "platform",
+      "namespace": "kube-system",
+      "service": "metrics-server",
+      "port": "443",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 1,
+        "ready_replicas": 1,
+        "desired_replicas": 1
+      },
+      "health": "running"
+    },
+    {
+      "name": "cert_manager",
+      "kind": "infra",
+      "namespace": "cert-manager",
+      "service": "cert-manager",
+      "port": "9402",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "ingress_nginx",
+      "kind": "infra",
+      "namespace": "ingress-nginx",
+      "service": "ingress-nginx",
+      "port": "80",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "kube_prometheus_stack",
+      "kind": "observability",
+      "namespace": "monitoring",
+      "service": "prometheus",
+      "port": "9090",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": 1,
+        "ready_replicas": 1,
+        "desired_replicas": 1
+      },
+      "health": "planned"
+    },
+    {
+      "name": "loki",
+      "kind": "observability",
+      "namespace": "loki",
+      "service": "loki",
+      "port": "3100",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "minio",
+      "kind": "infra",
+      "namespace": "minio",
+      "service": "minio",
+      "port": "9000",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "velero",
+      "kind": "infra",
+      "namespace": "velero",
+      "service": "velero",
+      "port": "n/a",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "vault",
+      "kind": "security",
+      "namespace": "vault",
+      "service": "vault",
+      "port": "8200",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "external_secrets",
+      "kind": "security",
+      "namespace": "external-secrets",
+      "service": "external-secrets",
+      "port": "n/a",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "argocd",
+      "kind": "platform",
+      "namespace": "argocd",
+      "service": "argocd-server",
+      "port": "443",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 6,
+        "ready_replicas": 12,
+        "desired_replicas": 12
+      },
+      "health": "running"
+    },
+    {
+      "name": "argo_rollouts",
+      "kind": "platform",
+      "namespace": "argo-rollouts",
+      "service": "argo-rollouts",
+      "port": "n/a",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "tempo",
+      "kind": "observability",
+      "namespace": "tempo",
+      "service": "tempo",
+      "port": "3200",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "oauth2_proxy",
+      "kind": "security",
+      "namespace": "oauth2-proxy",
+      "service": "oauth2-proxy",
+      "port": "4180",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "kyverno",
+      "kind": "security",
+      "namespace": "kyverno",
+      "service": "kyverno",
+      "port": "n/a",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "keycloak",
+      "kind": "security",
+      "namespace": "keycloak",
+      "service": "keycloak",
+      "port": "8080",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 0,
+        "ready_replicas": 0,
+        "desired_replicas": 0
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "gpu_device_plugins",
+      "kind": "platform",
+      "namespace": "kube-system",
+      "service": "n/a",
+      "port": "n/a",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": 1,
+        "ready_replicas": 1,
+        "desired_replicas": 1
+      },
+      "health": "planned"
+    },
+    {
+      "name": "gpu_priority_classes",
+      "kind": "policy",
+      "namespace": "all",
+      "service": "n/a",
+      "port": "n/a",
+      "configured": false,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": null,
+        "ready_replicas": null,
+        "desired_replicas": null
+      },
+      "health": "disabled"
+    },
+    {
+      "name": "network_policies",
+      "kind": "policy",
+      "namespace": "all",
+      "service": "n/a",
+      "port": "n/a",
+      "configured": true,
+      "terraform_deployed": true,
+      "kubernetes": {
+        "deployments": null,
+        "ready_replicas": null,
+        "desired_replicas": null
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "resource_quotas",
+      "kind": "policy",
+      "namespace": "all",
+      "service": "n/a",
+      "port": "n/a",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": null,
+        "ready_replicas": null,
+        "desired_replicas": null
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "pod_disruption_budgets",
+      "kind": "policy",
+      "namespace": "all",
+      "service": "n/a",
+      "port": "n/a",
+      "configured": true,
+      "terraform_deployed": null,
+      "kubernetes": {
+        "deployments": null,
+        "ready_replicas": null,
+        "desired_replicas": null
+      },
+      "health": "provisioning"
+    },
+    {
+      "name": "slo_alerts",
+      "kind": "observability",
+      "namespace": "monitoring",
+      "service": "n/a",
+      "port": "n/a",
+      "configured": false,
+      "terraform_deployed": false,
+      "kubernetes": {
+        "deployments": 1,
+        "ready_replicas": 1,
+        "desired_replicas": 1
+      },
+      "health": "disabled"
+    }
+  ],
+  "sources": {
+    "terraform": "ok",
+    "kubectl": "ok",
+    "tfvars": "local.auto.tfvars"
+  }
+}

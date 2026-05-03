@@ -287,3 +287,54 @@ output "kyverno_enforcement_mode" {
   description = "Active Kyverno enforcement mode"
   value       = try(module.kyverno[0].enforcement_mode, null)
 }
+
+output "caddy_namespace" {
+  description = "Namespace where the Caddy Ingress Controller is deployed"
+  value       = try(module.caddy[0].namespace, null)
+}
+
+output "caddy_release" {
+  description = "Caddy Ingress Controller Helm release name"
+  value       = try(module.caddy[0].release_name, null)
+}
+
+output "caddy_ingress_class" {
+  description = "IngressClass name registered by the Caddy controller"
+  value       = try(module.caddy[0].ingress_class_name, null)
+}
+
+  # ─── MetalLB ────────────────────────────────────────────────────────────────
+  output "metallb_namespace" {
+    value = try(module.metallb[0].namespace, null)
+  }
+
+  output "metallb_ip_pool" {
+    value = try(module.metallb[0].ip_pool_name, null)
+  }
+
+  # ─── Falco ───────────────────────────────────────────────────────────────────
+  output "falco_namespace" {
+    value = try(module.falco[0].namespace, null)
+  }
+
+  output "falco_release" {
+    value = try(module.falco[0].release_name, null)
+  }
+
+  # ─── Harbor ──────────────────────────────────────────────────────────────────
+  output "harbor_namespace" {
+    value = try(module.harbor[0].namespace, null)
+  }
+
+  output "harbor_external_url" {
+    value = try(module.harbor[0].external_url, null)
+  }
+
+  # ─── Pushgateway ─────────────────────────────────────────────────────────────
+  output "pushgateway_namespace" {
+    value = try(module.pushgateway[0].namespace, null)
+  }
+
+  output "pushgateway_release" {
+    value = try(module.pushgateway[0].release_name, null)
+  }
