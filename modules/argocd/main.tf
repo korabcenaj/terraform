@@ -1,5 +1,12 @@
 locals {
   base_values = yamlencode({
+    # Ensure all pods carry the instance label so Helm-generated Service
+    # selectors (which require app.kubernetes.io/instance) always find endpoints.
+    global = {
+      additionalLabels = {
+        "app.kubernetes.io/instance" = var.release_name
+      }
+    }
     configs = {
       params = {
         "server.insecure" = true

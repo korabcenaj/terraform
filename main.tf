@@ -515,3 +515,101 @@ module "pod_disruption_budgets" {
 
   tags = var.tags
 }
+
+# ---------------------------------------------------------------------------
+# CI / Build infrastructure
+# ---------------------------------------------------------------------------
+
+# Dedicated namespace for kaniko image-build jobs.
+resource "kubernetes_namespace" "ci_builds" {
+  metadata {
+    name = "ci-builds"
+    labels = merge(var.tags, {
+      name = "ci-builds"
+    })
+  }
+  lifecycle {
+    ignore_changes = [metadata[0].annotations]
+  }
+}
+
+# Service account used by the GitHub Actions runner (or any CI agent) to
+# submit kaniko Jobs.  It intentionally lives in the default namespace so that
+# existing kubeconfig secrets / runner configs don't need to change.
+resource "kubernetes_service_account_v1" "kaniko_builder" {
+  metadata {
+    name      = "kaniko-builder"
+    namespace = "default"
+    labels    = var.tags
+  }
+  automount_service_account_token = false
+}
+
+# Least-privilege Role: only the operations the build script actually needs.
+resource "kubernetes_role_v1" "kaniko_builder" {
+  metadata {
+    name      = "kaniko-builder"
+    namespace = kubernetes_namespace.ci_builds.metadata[0].name
+    labels    = var.tags
+  }
+
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs"]
+    verbs      = ["create", "get", "delete", "list", "watch"]
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["pods"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["pods/log"]
+    verbs      = ["get"]
+  }
+}
+
+resource "kubernetes_role_binding_v1" "kaniko_builder" {
+  metadata {
+    name      = "kaniko-builder"
+    namespace = kubernetes_namespace.ci_builds.metadata[0].name
+    labels    = var.tags
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role_v1.kaniko_builder.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.kaniko_builder.metadata[0].name
+    namespace = kubernetes_service_account_v1.kaniko_builder.metadata[0].namespace
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Control-plane scheduling
+# ---------------------------------------------------------------------------
+
+# Prevent workload pods from landing on the control-plane node.
+# The taint tolerations required by kube-system DaemonSets are already present
+# in those pods so system components are unaffected.
+resource "kubernetes_node_taint" "control_plane_no_schedule" {
+  count = var.enable_control_plane_taint ? 1 : 0
+
+  metadata {
+    name = var.control_plane_node_name
+  }
+
+  taint {
+    key    = "node-role.kubernetes.io/control-plane"
+    value  = ""
+    effect = "NoSchedule"
+  }
+}
+

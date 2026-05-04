@@ -828,3 +828,19 @@ variable "tags" {
     cluster     = "home-lab"
   }
 }
+
+# ---------------------------------------------------------------------------
+# Control-plane scheduling
+# ---------------------------------------------------------------------------
+
+variable "enable_control_plane_taint" {
+  description = "Add node-role.kubernetes.io/control-plane:NoSchedule taint to the control-plane node to prevent workload scheduling there."
+  type        = bool
+  default     = false
+}
+
+variable "control_plane_node_name" {
+  description = "Name of the control-plane node to taint."
+  type        = string
+  default     = "k8s-master"
+}
