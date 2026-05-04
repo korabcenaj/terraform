@@ -61,12 +61,6 @@ variable "enable_jellyfin" {
   default     = true
 }
 
-variable "enable_qbittorrent" {
-  description = "Enable qBittorrent application"
-  type        = bool
-  default     = true
-}
-
 variable "enable_pihole" {
   description = "Enable Pi-hole DNS"
   type        = bool
@@ -509,24 +503,6 @@ variable "jellyfin_replicas" {
   description = "Number of jellyfin replicas"
   type        = number
   default     = 1
-}
-
-variable "qbittorrent_replicas" {
-  description = "Number of qbittorrent replicas"
-  type        = number
-  default     = 1
-}
-
-variable "qbittorrent_node_name" {
-  description = "Node where qBittorrent data lives (must match the local PV host path)"
-  type        = string
-  default     = "k8s"
-}
-
-variable "qbittorrent_data_path" {
-  description = "Host path on qbittorrent_node_name used for config/data persistence"
-  type        = string
-  default     = "/var/lib/qbittorrent-data"
 }
 
 # Storage

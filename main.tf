@@ -6,7 +6,6 @@
 locals {
   portfolio_host    = "portfolio.${var.ingress_base_domain}"
   jellyfin_host     = "jellyfin.${var.ingress_base_domain}"
-  qbittorrent_host  = "qbittorrent.${var.ingress_base_domain}"
   pihole_host       = "pihole.${var.ingress_base_domain}"
   grafana_host      = "grafana.${var.ingress_base_domain}"
   prometheus_host   = "prometheus.${var.ingress_base_domain}"
@@ -301,20 +300,6 @@ resource "kubernetes_namespace" "jellyfin" {
   }
 }
 
-resource "kubernetes_namespace" "qbittorrent" {
-  count = var.enable_qbittorrent ? 1 : 0
-
-  metadata {
-    name = "qbittorrent"
-    labels = {
-      name                                 = "qbittorrent"
-      "pod-security.kubernetes.io/enforce" = "baseline"
-      "pod-security.kubernetes.io/audit"   = "restricted"
-      "pod-security.kubernetes.io/warn"    = "restricted"
-    }
-  }
-}
-
 resource "kubernetes_namespace" "pihole" {
   count = var.enable_pihole ? 1 : 0
 
@@ -359,23 +344,6 @@ module "jellyfin" {
   cpu_limit      = "1000m"
   memory_limit   = "1Gi"
   ingress_host   = local.jellyfin_host
-
-  tags = var.tags
-}
-
-module "qbittorrent" {
-  count  = var.enable_qbittorrent ? 1 : 0
-  source = "./modules/qbittorrent"
-
-  namespace      = kubernetes_namespace.qbittorrent[0].metadata[0].name
-  replicas       = var.qbittorrent_replicas
-  node_name      = var.qbittorrent_node_name
-  data_path      = var.qbittorrent_data_path
-  cpu_request    = "250m"
-  memory_request = "256Mi"
-  cpu_limit      = "500m"
-  memory_limit   = "1Gi"
-  ingress_host   = local.qbittorrent_host
 
   tags = var.tags
 }
@@ -444,7 +412,6 @@ module "networking" {
     "default",
     var.enable_portfolio ? "portfolio" : "",
     var.enable_jellyfin ? "jellyfin" : "",
-    var.enable_qbittorrent ? "qbittorrent" : "",
     var.enable_pihole ? "pihole" : "",
     var.enable_loki ? "logging" : "",
     var.enable_minio ? "minio" : "",
@@ -466,12 +433,10 @@ module "resource_quotas" {
   source = "./modules/resource-quotas"
 
   enable_portfolio_quota   = var.enable_portfolio
-  enable_qbittorrent_quota = var.enable_qbittorrent
   enable_jellyfin_quota    = var.enable_jellyfin
   enable_pihole_quota      = var.enable_pihole
 
   portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
   jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
   pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
 
@@ -484,13 +449,11 @@ module "network_policies" {
   source = "./modules/network-policies"
 
   enable_portfolio_netpol   = var.enable_portfolio
-  enable_qbittorrent_netpol = var.enable_qbittorrent
   enable_jellyfin_netpol    = var.enable_jellyfin
   enable_pihole_netpol      = var.enable_pihole
   enable_n8n_netpol         = var.enable_n8n
 
   portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
   jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
   pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
   n8n_namespace         = try(module.n8n[0].namespace, "n8n")
@@ -504,12 +467,10 @@ module "pod_disruption_budgets" {
   source = "./modules/pod-disruption-budgets"
 
   enable_portfolio_pdb   = var.enable_portfolio
-  enable_qbittorrent_pdb = var.enable_qbittorrent
   enable_jellyfin_pdb    = var.enable_jellyfin
   enable_pihole_pdb      = var.enable_pihole
 
   portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
   jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
   pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
 

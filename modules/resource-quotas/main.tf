@@ -26,32 +26,6 @@ resource "kubernetes_resource_quota" "portfolio" {
   }
 }
 
-resource "kubernetes_resource_quota" "qbittorrent" {
-  count = var.enable_qbittorrent_quota ? 1 : 0
-
-  metadata {
-    name      = "qbittorrent-quota"
-    namespace = var.qbittorrent_namespace
-    labels = merge(
-      var.tags,
-      {
-        app = "qbittorrent"
-      }
-    )
-  }
-
-  spec {
-    hard = {
-      "pods"                   = var.qbittorrent_pod_limit
-      "requests.cpu"           = var.qbittorrent_cpu_request_quota
-      "requests.memory"        = var.qbittorrent_memory_request_quota
-      "limits.cpu"             = var.qbittorrent_cpu_limit_quota
-      "limits.memory"          = var.qbittorrent_memory_limit_quota
-      "persistentvolumeclaims" = "5"
-    }
-  }
-}
-
 resource "kubernetes_resource_quota" "jellyfin" {
   count = var.enable_jellyfin_quota ? 1 : 0
 

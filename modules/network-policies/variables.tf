@@ -4,12 +4,6 @@ variable "enable_portfolio_netpol" {
   default     = true
 }
 
-variable "enable_qbittorrent_netpol" {
-  description = "Enable NetworkPolicy for qbittorrent"
-  type        = bool
-  default     = true
-}
-
 variable "enable_jellyfin_netpol" {
   description = "Enable NetworkPolicy for jellyfin"
   type        = bool
@@ -30,11 +24,6 @@ variable "enable_n8n_netpol" {
 
 variable "portfolio_namespace" {
   description = "Portfolio namespace name"
-  type        = string
-}
-
-variable "qbittorrent_namespace" {
-  description = "qBittorrent namespace name"
   type        = string
 }
 

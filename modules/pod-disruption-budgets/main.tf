@@ -24,30 +24,6 @@ resource "kubernetes_pod_disruption_budget_v1" "portfolio" {
   }
 }
 
-resource "kubernetes_pod_disruption_budget_v1" "qbittorrent" {
-  count = var.enable_qbittorrent_pdb ? 1 : 0
-
-  metadata {
-    name      = "qbittorrent-pdb"
-    namespace = var.qbittorrent_namespace
-    labels = merge(
-      var.tags,
-      {
-        app = "qbittorrent"
-      }
-    )
-  }
-
-  spec {
-    max_unavailable = var.qbittorrent_max_unavailable
-    selector {
-      match_labels = {
-        app = "qbittorrent"
-      }
-    }
-  }
-}
-
 resource "kubernetes_pod_disruption_budget_v1" "jellyfin" {
   count = var.enable_jellyfin_pdb ? 1 : 0
 

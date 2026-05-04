@@ -4,12 +4,6 @@ variable "enable_portfolio_quota" {
   default     = true
 }
 
-variable "enable_qbittorrent_quota" {
-  description = "Enable ResourceQuota for qbittorrent namespace"
-  type        = bool
-  default     = true
-}
-
 variable "enable_jellyfin_quota" {
   description = "Enable ResourceQuota for jellyfin namespace"
   type        = bool
@@ -24,11 +18,6 @@ variable "enable_pihole_quota" {
 
 variable "portfolio_namespace" {
   description = "Portfolio namespace name"
-  type        = string
-}
-
-variable "qbittorrent_namespace" {
-  description = "qBittorrent namespace name"
   type        = string
 }
 
@@ -69,37 +58,6 @@ variable "portfolio_cpu_limit_quota" {
 
 variable "portfolio_memory_limit_quota" {
   description = "Total memory limits quota for portfolio"
-  type        = string
-  default     = "4Gi"
-}
-
-# qBittorrent quotas
-variable "qbittorrent_pod_limit" {
-  description = "Max pods in qbittorrent namespace"
-  type        = string
-  default     = "10"
-}
-
-variable "qbittorrent_cpu_request_quota" {
-  description = "Total CPU requests quota for qbittorrent"
-  type        = string
-  default     = "2"
-}
-
-variable "qbittorrent_memory_request_quota" {
-  description = "Total memory requests quota for qbittorrent"
-  type        = string
-  default     = "2Gi"
-}
-
-variable "qbittorrent_cpu_limit_quota" {
-  description = "Total CPU limits quota for qbittorrent"
-  type        = string
-  default     = "4"
-}
-
-variable "qbittorrent_memory_limit_quota" {
-  description = "Total memory limits quota for qbittorrent"
   type        = string
   default     = "4Gi"
 }

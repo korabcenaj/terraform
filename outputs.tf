@@ -20,12 +20,6 @@ output "jellyfin_namespace" {
   depends_on  = [module.jellyfin]
 }
 
-output "qbittorrent_namespace" {
-  description = "qBittorrent torrent client namespace"
-  value       = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, null)
-  depends_on  = [module.qbittorrent]
-}
-
 output "loki_namespace" {
   description = "Loki logging namespace"
   value       = try(module.loki[0].namespace, null)
@@ -92,7 +86,6 @@ output "ingress_urls" {
   value = {
     portfolio    = "https://portfolio.${var.ingress_base_domain}"
     jellyfin     = "https://jellyfin.${var.ingress_base_domain}"
-    qbittorrent  = "https://qbittorrent.${var.ingress_base_domain}"
     pihole       = "https://pihole.${var.ingress_base_domain}"
     grafana      = "https://grafana.${var.ingress_base_domain}"
     prometheus   = "https://prometheus.${var.ingress_base_domain}"
@@ -109,7 +102,6 @@ output "deployed_modules" {
   value = {
     portfolio        = var.enable_portfolio
     jellyfin         = var.enable_jellyfin
-    qbittorrent      = var.enable_qbittorrent
     pihole           = var.enable_pihole
     monitoring       = var.enable_monitoring
     loki             = var.enable_loki
