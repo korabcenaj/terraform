@@ -71,7 +71,7 @@ EOT
 
   set {
     name  = "initContainers[0].image"
-    value = "velero/velero-plugin-for-aws:v1.10.1"
+    value = var.aws_plugin_image
   }
 
   set {

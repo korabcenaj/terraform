@@ -5,14 +5,14 @@ resource "kubernetes_persistent_volume" "qbit_config" {
 
   spec {
     capacity = {
-      storage = "5Gi"
+      storage = var.storage_size
     }
 
     access_modes = ["ReadWriteOnce"]
 
     persistent_volume_source {
       local {
-        path = "/home/kub/qbittorrent-data"
+        path = var.data_path
       }
     }
 
@@ -22,7 +22,7 @@ resource "kubernetes_persistent_volume" "qbit_config" {
           match_expressions {
             key      = "kubernetes.io/hostname"
             operator = "In"
-            values   = ["k8s"]
+            values   = [var.node_name]
           }
         }
       }
@@ -41,7 +41,7 @@ resource "kubernetes_persistent_volume_claim" "qbit_config" {
 
     resources {
       requests = {
-        storage = "5Gi"
+        storage = var.storage_size
       }
     }
 
@@ -84,6 +84,8 @@ resource "kubernetes_deployment" "qbittorrent" {
       }
 
       spec {
+        automount_service_account_token = false
+
         container {
           name              = "qbittorrent"
           image             = "linuxserver/qbittorrent:5.1.4"

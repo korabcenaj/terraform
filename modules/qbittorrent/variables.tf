@@ -38,6 +38,23 @@ variable "ingress_host" {
   type        = string
 }
 
+variable "node_name" {
+  description = "Node name where qBittorrent data lives (must match the local PV path)"
+  type        = string
+}
+
+variable "data_path" {
+  description = "Host path on node_name that stores qBittorrent config/data"
+  type        = string
+  default     = "/var/lib/qbittorrent-data"
+}
+
+variable "storage_size" {
+  description = "Persistent volume size for qBittorrent config data"
+  type        = string
+  default     = "5Gi"
+}
+
 variable "tags" {
   description = "Tags for resources"
   type        = map(string)

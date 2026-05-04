@@ -517,6 +517,18 @@ variable "qbittorrent_replicas" {
   default     = 1
 }
 
+variable "qbittorrent_node_name" {
+  description = "Node where qBittorrent data lives (must match the local PV host path)"
+  type        = string
+  default     = "k8s"
+}
+
+variable "qbittorrent_data_path" {
+  description = "Host path on qbittorrent_node_name used for config/data persistence"
+  type        = string
+  default     = "/var/lib/qbittorrent-data"
+}
+
 # Storage
 variable "jellyfin_storage_class" {
   description = "Storage class for Jellyfin data"
@@ -758,6 +770,53 @@ variable "grafana_oidc_client_secret" {
   type        = string
   sensitive   = true
   default     = "CHANGE_ME_GRAFANA_OIDC_SECRET"
+}
+
+# ---------------------------------------------------------------------------
+# n8n
+# ---------------------------------------------------------------------------
+
+variable "enable_n8n" {
+  description = "Deploy n8n workflow automation platform via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "n8n_chart_version" {
+  description = "n8n Helm chart version (8gears community chart)"
+  type        = string
+  default     = "0.25.2"
+}
+
+variable "n8n_encryption_key" {
+  description = "Encryption key for n8n stored credentials. Must be at least 24 characters and stable — changing it invalidates all saved credentials."
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_N8N_ENCRYPTION_KEY_MIN24"
+}
+
+variable "n8n_storage_size" {
+  description = "Persistent volume size for n8n data"
+  type        = string
+  default     = "5Gi"
+}
+
+variable "n8n_storage_class" {
+  description = "Storage class for n8n persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "n8n_timezone" {
+  description = "Timezone for n8n scheduled workflows (e.g. Europe/Berlin)"
+  type        = string
+  default     = "UTC"
+}
+
+variable "n8n_webhook_url" {
+  description = "Optional explicit base URL for n8n webhooks. Defaults to https://n8n.<ingress_base_domain>."
+  type        = string
+  default     = ""
 }
 
 variable "tags" {

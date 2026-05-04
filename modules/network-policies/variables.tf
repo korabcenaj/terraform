@@ -22,6 +22,12 @@ variable "enable_pihole_netpol" {
   default     = true
 }
 
+variable "enable_n8n_netpol" {
+  description = "Enable NetworkPolicy for n8n"
+  type        = bool
+  default     = true
+}
+
 variable "portfolio_namespace" {
   description = "Portfolio namespace name"
   type        = string
@@ -40,6 +46,12 @@ variable "jellyfin_namespace" {
 variable "pihole_namespace" {
   description = "Pi-hole namespace name"
   type        = string
+}
+
+variable "n8n_namespace" {
+  description = "n8n namespace name"
+  type        = string
+  default     = "n8n"
 }
 
 variable "tags" {

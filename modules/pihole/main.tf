@@ -1,5 +1,5 @@
 # Pi-hole web password stored as a Kubernetes Secret
-resource "kubernetes_secret" "pihole_web_password" {
+resource "kubernetes_secret_v1" "pihole_web_password" {
   metadata {
     name      = "pihole-web-password"
     namespace = var.namespace
@@ -15,7 +15,7 @@ resource "kubernetes_secret" "pihole_web_password" {
 
 # Custom DNS records for local LAN resolution
 # Wildcard *.<domain> -> ingress IP plus any additional explicit records
-resource "kubernetes_config_map" "pihole_custom_dns" {
+resource "kubernetes_config_map_v1" "pihole_custom_dns" {
   metadata {
     name      = "pihole-custom-dns"
     namespace = var.namespace
@@ -42,7 +42,7 @@ resource "kubernetes_persistent_volume_claim" "pihole_data" {
   }
   spec {
     access_modes       = ["ReadWriteOnce"]
-    storage_class_name = "local-path"
+    storage_class_name = var.storage_class
     resources {
       requests = {
         storage = var.pihole_storage_size
@@ -110,7 +110,7 @@ resource "kubernetes_deployment" "pihole" {
         volume {
           name = "custom-dns"
           config_map {
-            name = kubernetes_config_map.pihole_custom_dns.metadata[0].name
+            name = kubernetes_config_map_v1.pihole_custom_dns.metadata[0].name
           }
         }
         container {
@@ -151,7 +151,7 @@ resource "kubernetes_deployment" "pihole" {
             name = "WEBPASSWORD"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret.pihole_web_password.metadata[0].name
+                name = kubernetes_secret_v1.pihole_web_password.metadata[0].name
                 key  = "WEBPASSWORD"
               }
             }

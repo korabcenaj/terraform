@@ -1,3 +1,25 @@
+locals {
+  receivers_values = yamlencode({
+    tempo = {
+      receivers = {
+        otlp = {
+          protocols = {
+            grpc = {}
+            http = {}
+          }
+        }
+        jaeger = {
+          protocols = {
+            grpc          = {}
+            thrift_http   = {}
+            thrift_binary = {}
+          }
+        }
+      }
+    }
+  })
+}
+
 resource "kubernetes_namespace" "tracing" {
   metadata {
     name = var.namespace
@@ -14,6 +36,7 @@ resource "helm_release" "tempo" {
   chart      = "tempo"
   version    = var.chart_version
   namespace  = kubernetes_namespace.tracing.metadata[0].name
+  values     = [local.receivers_values]
 
   set {
     name  = "tempo.reportingEnabled"
@@ -33,22 +56,6 @@ resource "helm_release" "tempo" {
   set {
     name  = "persistence.size"
     value = var.storage_size
-  }
-
-  # Enable OTLP and Jaeger receivers so workloads can send traces easily.
-  set {
-    name  = "tempo.receivers.otlp.protocols.grpc"
-    value = "null"
-  }
-
-  set {
-    name  = "tempo.receivers.otlp.protocols.http"
-    value = "null"
-  }
-
-  set {
-    name  = "tempo.receivers.jaeger.protocols.grpc"
-    value = "null"
   }
 
   wait    = true

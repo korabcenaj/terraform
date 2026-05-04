@@ -71,6 +71,12 @@ variable "memory_limit" {
   default     = "512Mi"
 }
 
+variable "storage_class" {
+  description = "Storage class for Pi-hole PVC"
+  type        = string
+  default     = "local-path"
+}
+
 variable "tags" {
   description = "Tags applied to all resources"
   type        = map(string)

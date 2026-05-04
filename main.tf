@@ -16,6 +16,7 @@ locals {
   keycloak_host     = "sso.${var.ingress_base_domain}"
   keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
   oauth2_proxy_host = "auth.${var.ingress_base_domain}"
+  n8n_host          = "n8n.${var.ingress_base_domain}"
   # Prefer explicit override, otherwise use the Pi-hole Service ClusterIP directly
   # so CoreDNS does not need to resolve its own upstream target.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
@@ -223,6 +224,22 @@ module "tempo" {
   tags = var.tags
 }
 
+module "n8n" {
+  count  = var.enable_n8n ? 1 : 0
+  source = "./modules/n8n"
+
+  release_name   = "n8n"
+  chart_version  = var.n8n_chart_version
+  encryption_key = var.n8n_encryption_key
+  storage_size   = var.n8n_storage_size
+  storage_class  = var.n8n_storage_class
+  ingress_host   = local.n8n_host
+  timezone       = var.n8n_timezone
+  webhook_url    = var.n8n_webhook_url
+
+  tags = var.tags
+}
+
 module "oauth2_proxy" {
   count  = var.enable_oauth2_proxy ? 1 : 0
   source = "./modules/oauth2-proxy"
@@ -352,6 +369,8 @@ module "qbittorrent" {
 
   namespace      = kubernetes_namespace.qbittorrent[0].metadata[0].name
   replicas       = var.qbittorrent_replicas
+  node_name      = var.qbittorrent_node_name
+  data_path      = var.qbittorrent_data_path
   cpu_request    = "250m"
   memory_request = "256Mi"
   cpu_limit      = "500m"
@@ -434,6 +453,7 @@ module "networking" {
     var.enable_external_secrets ? "external-secrets" : "",
     var.enable_argocd ? "argocd" : "",
     var.enable_tempo ? "tracing" : "",
+    var.enable_n8n ? "n8n" : "",
     # monitoring has its own namespace-specific policies in the monitoring module
     # ingress-nginx should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
@@ -467,11 +487,13 @@ module "network_policies" {
   enable_qbittorrent_netpol = var.enable_qbittorrent
   enable_jellyfin_netpol    = var.enable_jellyfin
   enable_pihole_netpol      = var.enable_pihole
+  enable_n8n_netpol         = var.enable_n8n
 
   portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
   qbittorrent_namespace = try(kubernetes_namespace.qbittorrent[0].metadata[0].name, "qbittorrent")
   jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
   pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  n8n_namespace         = try(module.n8n[0].namespace, "n8n")
 
   tags = var.tags
 }

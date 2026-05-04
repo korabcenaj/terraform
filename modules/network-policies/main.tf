@@ -354,3 +354,58 @@ resource "kubernetes_network_policy" "pihole" {
     policy_types = ["Ingress", "Egress"]
   }
 }
+
+resource "kubernetes_network_policy" "n8n" {
+  count = var.enable_n8n_netpol ? 1 : 0
+
+  metadata {
+    name      = "n8n-netpol"
+    namespace = var.n8n_namespace
+    labels    = merge(var.tags, { app = "n8n" })
+  }
+
+  spec {
+    pod_selector {}
+
+    # Allow ingress-nginx to reach the n8n HTTP port
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ingress-nginx"
+          }
+        }
+      }
+      ports {
+        port     = "5678"
+        protocol = "TCP"
+      }
+    }
+
+    # Allow DNS resolution
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "kube-system"
+          }
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+    }
+
+    # Allow full external egress — n8n executes arbitrary webhook/API calls
+    egress {
+      to {
+        ip_block {
+          cidr = "0.0.0.0/0"
+        }
+      }
+    }
+
+    policy_types = ["Ingress", "Egress"]
+  }
+}

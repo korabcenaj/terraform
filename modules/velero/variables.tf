@@ -38,6 +38,12 @@ variable "secret_key" {
   sensitive   = true
 }
 
+variable "aws_plugin_image" {
+  description = "Container image for the Velero AWS/S3-compatible plugin init container"
+  type        = string
+  default     = "velero/velero-plugin-for-aws:v1.10.1"
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)
