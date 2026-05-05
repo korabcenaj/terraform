@@ -345,3 +345,223 @@ resource "kubernetes_network_policy" "n8n" {
     policy_types = ["Ingress", "Egress"]
   }
 }
+
+# ---------------------------------------------------------------------------
+# oauth2-proxy — allow ingress from nginx, egress to Keycloak + DNS
+# ---------------------------------------------------------------------------
+resource "kubernetes_network_policy" "oauth2_proxy" {
+  count = var.enable_oauth2_proxy_netpol ? 1 : 0
+
+  metadata {
+    name      = "oauth2-proxy-netpol"
+    namespace = var.oauth2_proxy_namespace
+    labels    = merge(var.tags, { app = "oauth2-proxy" })
+  }
+
+  spec {
+    pod_selector {}
+
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ingress-nginx"
+          }
+        }
+      }
+      ports {
+        port     = "4180"
+        protocol = "TCP"
+      }
+    }
+
+    # Intra-namespace health probes
+    ingress {
+      from {
+        pod_selector {}
+      }
+    }
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "kube-system"
+          }
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+    }
+
+    # Egress to Keycloak
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "keycloak"
+          }
+        }
+      }
+    }
+
+    # Egress via ingress-nginx for OIDC discovery (sso.local.lan resolves via nginx)
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ingress-nginx"
+          }
+        }
+      }
+    }
+
+    policy_types = ["Ingress", "Egress"]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# harbor — allow ingress from nginx + ci-builds, intra-namespace + Keycloak egress
+# ---------------------------------------------------------------------------
+resource "kubernetes_network_policy" "harbor" {
+  count = var.enable_harbor_netpol ? 1 : 0
+
+  metadata {
+    name      = "harbor-netpol"
+    namespace = var.harbor_namespace
+    labels    = merge(var.tags, { app = "harbor" })
+  }
+
+  spec {
+    pod_selector {}
+
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ingress-nginx"
+          }
+        }
+      }
+    }
+
+    ingress {
+      from {
+        pod_selector {}
+      }
+    }
+
+    ingress {
+      from {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ci-builds"
+          }
+        }
+      }
+    }
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "kube-system"
+          }
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+    }
+
+    egress {
+      to {
+        pod_selector {}
+      }
+    }
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "keycloak"
+          }
+        }
+      }
+    }
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ingress-nginx"
+          }
+        }
+      }
+    }
+
+    policy_types = ["Ingress", "Egress"]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# ingress-nginx — accept external HTTP/S, forward to all app namespaces
+# ---------------------------------------------------------------------------
+resource "kubernetes_network_policy" "ingress_nginx" {
+  count = var.enable_ingress_nginx_netpol ? 1 : 0
+
+  metadata {
+    name      = "ingress-nginx-netpol"
+    namespace = var.ingress_nginx_namespace
+    labels    = merge(var.tags, { app = "ingress-nginx" })
+  }
+
+  spec {
+    pod_selector {}
+
+    ingress {
+      ports {
+        port     = "80"
+        protocol = "TCP"
+      }
+      ports {
+        port     = "443"
+        protocol = "TCP"
+      }
+    }
+
+    # Validation webhook from kube-apiserver
+    ingress {
+      ports {
+        port     = "8443"
+        protocol = "TCP"
+      }
+    }
+
+    egress {
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "kube-system"
+          }
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+    }
+
+    # Forward to any backend namespace
+    egress {
+      to {
+        namespace_selector {}
+      }
+    }
+
+    policy_types = ["Ingress", "Egress"]
+  }
+}

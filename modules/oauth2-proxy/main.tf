@@ -1,3 +1,20 @@
+# CA certificate Secret for OIDC provider TLS verification
+resource "kubernetes_secret_v1" "oidc_ca" {
+  count = var.oidc_ca_cert_pem != "" ? 1 : 0
+
+  metadata {
+    name      = "oidc-provider-ca"
+    namespace = kubernetes_namespace.oauth2_proxy.metadata[0].name
+    labels    = var.tags
+  }
+
+  data = {
+    "ca.crt" = var.oidc_ca_cert_pem
+  }
+
+  depends_on = [kubernetes_namespace.oauth2_proxy]
+}
+
 resource "kubernetes_namespace" "oauth2_proxy" {
   metadata {
     name = var.namespace
@@ -55,7 +72,7 @@ resource "helm_release" "oauth2_proxy" {
   }
 
   dynamic "set" {
-    for_each = var.oidc_issuer_url != "" ? [1] : []
+    for_each = var.oidc_issuer_url != "" && var.insecure_skip_oidc_tls_verify ? [1] : []
     content {
       name  = "extraArgs.insecure-oidc-skip-issuer-verification"
       value = "true"
@@ -63,10 +80,51 @@ resource "helm_release" "oauth2_proxy" {
   }
 
   dynamic "set" {
-    for_each = var.oidc_issuer_url != "" ? [1] : []
+    for_each = var.oidc_issuer_url != "" && var.insecure_skip_oidc_tls_verify ? [1] : []
     content {
       name  = "extraArgs.ssl-insecure-skip-verify"
       value = "true"
+    }
+  }
+
+  # Mount CA cert and set provider-ca-file when a PEM is provided
+  dynamic "set" {
+    for_each = var.oidc_ca_cert_pem != "" ? [1] : []
+    content {
+      name  = "extraArgs.provider-ca-file"
+      value = "/etc/ssl/certs/oidc-ca/ca.crt"
+    }
+  }
+
+  values = compact([
+    var.oidc_ca_cert_pem != "" ? yamlencode({
+      extraVolumes = [{
+        name = "oidc-ca"
+        secret = {
+          secretName = "oidc-provider-ca"
+        }
+      }]
+      extraVolumeMounts = [{
+        name      = "oidc-ca"
+        mountPath = "/etc/ssl/certs/oidc-ca"
+        readOnly  = true
+      }]
+    }) : ""
+  ])
+
+  dynamic "set" {
+    for_each = var.allowed_group != "" ? [1] : []
+    content {
+      name  = "extraArgs.allowed-group"
+      value = var.allowed_group
+    }
+  }
+
+  dynamic "set" {
+    for_each = var.oidc_extra_scope != "" ? [1] : []
+    content {
+      name  = "extraArgs.scope"
+      value = "openid email profile ${var.oidc_extra_scope}"
     }
   }
 

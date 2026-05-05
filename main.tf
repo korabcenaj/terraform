@@ -28,6 +28,14 @@ locals {
 # Infrastructure: cert-manager, ingress-nginx, kube-prometheus-stack
 # ---------------------------------------------------------------------------
 
+# Read the cluster CA certificate so oauth2-proxy can verify Keycloak TLS
+data "kubernetes_secret" "local_lan_ca" {
+  metadata {
+    name      = "local-lan-ca-secret"
+    namespace = "cert-manager"
+  }
+}
+
 module "cert_manager" {
   count  = var.enable_cert_manager ? 1 : 0
   source = "./modules/cert-manager"
@@ -274,15 +282,19 @@ module "oauth2_proxy" {
   count  = var.enable_oauth2_proxy ? 1 : 0
   source = "./modules/oauth2-proxy"
 
-  release_name    = "oauth2-proxy"
-  chart_version   = var.oauth2_proxy_chart_version
-  oauth2_provider = var.oauth2_proxy_provider
-  email_domain    = var.oauth2_proxy_email_domain
-  client_id       = var.oauth2_proxy_client_id
-  client_secret   = var.oauth2_proxy_client_secret
-  cookie_secret   = var.oauth2_proxy_cookie_secret
-  ingress_host    = local.oauth2_proxy_host
-  oidc_issuer_url = local.keycloak_issuer
+  release_name                  = "oauth2-proxy"
+  chart_version                 = var.oauth2_proxy_chart_version
+  oauth2_provider               = var.oauth2_proxy_provider
+  email_domain                  = var.oauth2_proxy_email_domain
+  client_id                     = var.oauth2_proxy_client_id
+  client_secret                 = var.oauth2_proxy_client_secret
+  cookie_secret                 = var.oauth2_proxy_cookie_secret
+  ingress_host                  = local.oauth2_proxy_host
+  oidc_issuer_url               = local.keycloak_issuer
+  insecure_skip_oidc_tls_verify = var.oauth2_proxy_insecure_skip_oidc_tls_verify
+  oidc_ca_cert_pem              = data.kubernetes_secret.local_lan_ca.data["tls.crt"]
+  allowed_group                 = "homelab-admins"
+  oidc_extra_scope              = "groups"
 
   tags = var.tags
 }
@@ -557,6 +569,13 @@ module "network_policies" {
   jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
   pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
   n8n_namespace       = try(module.n8n[0].namespace, "n8n")
+
+  enable_oauth2_proxy_netpol = var.enable_oauth2_proxy
+  oauth2_proxy_namespace     = "oauth2-proxy"
+  enable_harbor_netpol       = true
+  harbor_namespace           = "harbor"
+  enable_ingress_nginx_netpol = true
+  ingress_nginx_namespace    = "ingress-nginx"
 
   tags = var.tags
 }

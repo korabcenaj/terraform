@@ -48,3 +48,39 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_oauth2_proxy_netpol" {
+  description = "Enable NetworkPolicy for oauth2-proxy"
+  type        = bool
+  default     = true
+}
+
+variable "oauth2_proxy_namespace" {
+  description = "oauth2-proxy namespace name"
+  type        = string
+  default     = "oauth2-proxy"
+}
+
+variable "enable_harbor_netpol" {
+  description = "Enable NetworkPolicy for harbor"
+  type        = bool
+  default     = true
+}
+
+variable "harbor_namespace" {
+  description = "Harbor namespace name"
+  type        = string
+  default     = "harbor"
+}
+
+variable "enable_ingress_nginx_netpol" {
+  description = "Enable NetworkPolicy for ingress-nginx"
+  type        = bool
+  default     = true
+}
+
+variable "ingress_nginx_namespace" {
+  description = "ingress-nginx namespace name"
+  type        = string
+  default     = "ingress-nginx"
+}

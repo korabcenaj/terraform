@@ -62,3 +62,27 @@ variable "oidc_issuer_url" {
   type        = string
   default     = ""
 }
+
+variable "insecure_skip_oidc_tls_verify" {
+  description = "Allow skipping OIDC issuer and TLS certificate verification (only for trusted internal labs)"
+  type        = bool
+  default     = true
+}
+
+variable "oidc_ca_cert_pem" {
+  description = "PEM-encoded CA certificate to trust for OIDC provider TLS (disables ssl-insecure-skip-verify when set)"
+  type        = string
+  default     = ""
+}
+
+variable "allowed_group" {
+  description = "Keycloak group name that is allowed to authenticate (e.g. homelab-admins). Empty string disables group check."
+  type        = string
+  default     = ""
+}
+
+variable "oidc_extra_scope" {
+  description = "Space-separated extra OIDC scopes to request (e.g. 'groups' for group membership claims)"
+  type        = string
+  default     = ""
+}

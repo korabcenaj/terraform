@@ -737,6 +737,12 @@ variable "oauth2_proxy_cookie_secret" {
   default     = "CHANGE_ME_COOKIE_SECRET"
 }
 
+variable "oauth2_proxy_insecure_skip_oidc_tls_verify" {
+  description = "Allow oauth2-proxy to skip OIDC issuer and TLS certificate verification for internal self-signed IdPs"
+  type        = bool
+  default     = true
+}
+
 # ---------------------------------------------------------------------------
 # Kyverno
 # ---------------------------------------------------------------------------
