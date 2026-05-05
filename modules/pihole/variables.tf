@@ -89,6 +89,12 @@ variable "ingress_ip" {
   default     = "192.168.1.200"
 }
 
+variable "load_balancer_ip" {
+  description = "Static LoadBalancer IP for the Pi-hole service"
+  type        = string
+  default     = "192.168.1.210"
+}
+
 variable "local_dns_records" {
   description = "Additional local DNS records (map of hostname to IP)"
   type        = map(string)

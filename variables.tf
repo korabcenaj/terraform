@@ -67,6 +67,17 @@ variable "enable_pihole" {
   default     = true
 }
 
+variable "pihole_load_balancer_ip" {
+  description = "Pi-hole LoadBalancer IP used by clients/routers for DNS"
+  type        = string
+  default     = "192.168.1.210"
+
+  validation {
+    condition     = can(regex("^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$", trimspace(var.pihole_load_balancer_ip)))
+    error_message = "pihole_load_balancer_ip must be a valid IPv4 address."
+  }
+}
+
 variable "pihole_web_password" {
   description = "Pi-hole web UI password"
   type        = string
@@ -1054,4 +1065,17 @@ variable "velero_backup_ttl" {
   description = "Retention period for backups created by the schedule (Go duration string)"
   type        = string
   default     = "720h0m0s" # 30 days
+}
+
+# Skills Dashboard Configuration
+variable "enable_skills_dashboard" {
+  description = "Enable the Kubernetes infrastructure skills dashboard"
+  type        = bool
+  default     = true
+}
+
+variable "skills_dashboard_host" {
+  description = "Hostname for the skills dashboard"
+  type        = string
+  default     = ""
 }

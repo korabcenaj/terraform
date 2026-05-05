@@ -25,6 +25,11 @@ ingress_nginx_enable_owasp_crs   = false
 
 # Pi-hole configuration
 pihole_web_password = "changeme"  # Change this to a secure password!
+pihole_load_balancer_ip = "192.168.1.210"
+
+# CoreDNS forwarding for private domain resolution from inside the cluster.
+# Set to your Pi-hole/router DNS IP.
+private_dns_ip = "192.168.1.210"
 
 # Application configurations
 portfolio_replicas   = 1

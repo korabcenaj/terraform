@@ -16,10 +16,10 @@ locals {
   keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
   oauth2_proxy_host = "auth.${var.ingress_base_domain}"
   n8n_host          = "n8n.${var.ingress_base_domain}"
-  # Prefer explicit override, otherwise use the Pi-hole Service ClusterIP directly
-  # so CoreDNS does not need to resolve its own upstream target.
+  # Prefer explicit override, otherwise use the stable Pi-hole LoadBalancer IP
+  # (router DNS) so CoreDNS forwarding survives pod/service IP churn.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
-    var.enable_pihole ? try(module.pihole[0].cluster_ip, "") : ""
+    var.enable_pihole ? trimspace(var.pihole_load_balancer_ip) : ""
   )
 }
 
@@ -31,11 +31,11 @@ module "cert_manager" {
   count  = var.enable_cert_manager ? 1 : 0
   source = "./modules/cert-manager"
 
-  release_name             = "cert-manager"
-  chart_version            = var.cert_manager_chart_version
+  release_name              = "cert-manager"
+  chart_version             = var.cert_manager_chart_version
   manage_controller_install = var.manage_cert_manager_controller
-  create_selfsigned_issuer = true
-  create_local_ca_issuer   = true
+  create_selfsigned_issuer  = true
+  create_local_ca_issuer    = true
 
   tags = var.tags
 }
@@ -55,15 +55,15 @@ module "ingress_nginx" {
   count  = var.enable_ingress_nginx ? 1 : 0
   source = "./modules/ingress-nginx"
 
-  release_name            = "ingress-nginx"
-  chart_version           = var.ingress_nginx_chart_version
-  service_type            = var.ingress_nginx_service_type
-  replica_count           = var.ingress_nginx_replicas
-  enable_metrics          = var.enable_monitoring
-  limit_rps               = var.ingress_nginx_limit_rps
-  limit_connections       = var.ingress_nginx_limit_connections
-  enable_modsecurity      = var.ingress_nginx_enable_modsecurity
-  enable_owasp_crs        = var.ingress_nginx_enable_owasp_crs
+  release_name       = "ingress-nginx"
+  chart_version      = var.ingress_nginx_chart_version
+  service_type       = var.ingress_nginx_service_type
+  replica_count      = var.ingress_nginx_replicas
+  enable_metrics     = var.enable_monitoring
+  limit_rps          = var.ingress_nginx_limit_rps
+  limit_connections  = var.ingress_nginx_limit_connections
+  enable_modsecurity = var.ingress_nginx_enable_modsecurity
+  enable_owasp_crs   = var.ingress_nginx_enable_owasp_crs
 
   tags = var.tags
 }
@@ -87,10 +87,10 @@ module "kube_prometheus_stack" {
   grafana_oidc_client_id     = var.grafana_oidc_client_id
   grafana_oidc_client_secret = var.grafana_oidc_client_secret
 
-  alertmanager_enabled     = var.alertmanager_enabled
-  alertmanager_webhook_url = var.alertmanager_webhook_url
+  alertmanager_enabled         = var.alertmanager_enabled
+  alertmanager_webhook_url     = var.alertmanager_webhook_url
   alertmanager_repeat_interval = var.alertmanager_repeat_interval
-  create_alert_rules       = var.create_alert_rules
+  create_alert_rules           = var.create_alert_rules
 
   tags = var.tags
 }
@@ -126,17 +126,17 @@ module "velero" {
   count  = var.enable_velero ? 1 : 0
   source = "./modules/velero"
 
-  release_name            = "velero"
-  chart_version           = var.velero_chart_version
-  bucket_name             = var.velero_bucket_name
-  s3_url                  = var.velero_s3_url
-  access_key              = var.minio_root_user
-  secret_key              = var.minio_root_password
-  create_backup_schedule  = var.velero_create_backup_schedule
-  schedule_name           = var.velero_schedule_name
-  schedule_cron           = var.velero_schedule_cron
-  backup_namespaces       = var.velero_backup_namespaces
-  backup_ttl              = var.velero_backup_ttl
+  release_name           = "velero"
+  chart_version          = var.velero_chart_version
+  bucket_name            = var.velero_bucket_name
+  s3_url                 = var.velero_s3_url
+  access_key             = var.minio_root_user
+  secret_key             = var.minio_root_password
+  create_backup_schedule = var.velero_create_backup_schedule
+  schedule_name          = var.velero_schedule_name
+  schedule_cron          = var.velero_schedule_cron
+  backup_namespaces      = var.velero_backup_namespaces
+  backup_ttl             = var.velero_backup_ttl
 
   tags = var.tags
 
@@ -361,7 +361,7 @@ resource "kubernetes_namespace" "qbittorrent" {
   metadata {
     name = "qbittorrent"
     labels = {
-      name                                 = "qbittorrent"
+      name = "qbittorrent"
       # linuxserver image writes to /config; privileged PSS avoids seccomp conflicts
       "pod-security.kubernetes.io/enforce" = "privileged"
       "pod-security.kubernetes.io/audit"   = "baseline"
@@ -415,6 +415,7 @@ module "pihole" {
   source = "./modules/pihole"
 
   namespace           = kubernetes_namespace.pihole[0].metadata[0].name
+  load_balancer_ip    = var.pihole_load_balancer_ip
   replicas            = 1
   web_password        = var.pihole_web_password
   timezone            = "UTC"
@@ -517,13 +518,13 @@ module "resource_quotas" {
   count  = var.enable_resource_quotas ? 1 : 0
   source = "./modules/resource-quotas"
 
-  enable_portfolio_quota   = var.enable_portfolio
-  enable_jellyfin_quota    = var.enable_jellyfin
-  enable_pihole_quota      = var.enable_pihole
+  enable_portfolio_quota = var.enable_portfolio
+  enable_jellyfin_quota  = var.enable_jellyfin
+  enable_pihole_quota    = var.enable_pihole
 
-  portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  portfolio_namespace = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
+  jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
+  pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
 
   tags = var.tags
 }
@@ -533,15 +534,15 @@ module "network_policies" {
   count  = var.enable_network_policies ? 1 : 0
   source = "./modules/network-policies"
 
-  enable_portfolio_netpol   = var.enable_portfolio
-  enable_jellyfin_netpol    = var.enable_jellyfin
-  enable_pihole_netpol      = var.enable_pihole
-  enable_n8n_netpol         = var.enable_n8n
+  enable_portfolio_netpol = var.enable_portfolio
+  enable_jellyfin_netpol  = var.enable_jellyfin
+  enable_pihole_netpol    = var.enable_pihole
+  enable_n8n_netpol       = var.enable_n8n
 
-  portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
-  n8n_namespace         = try(module.n8n[0].namespace, "n8n")
+  portfolio_namespace = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
+  jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
+  pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  n8n_namespace       = try(module.n8n[0].namespace, "n8n")
 
   tags = var.tags
 }
@@ -551,13 +552,35 @@ module "pod_disruption_budgets" {
   count  = var.enable_pod_disruption_budgets ? 1 : 0
   source = "./modules/pod-disruption-budgets"
 
-  enable_portfolio_pdb   = var.enable_portfolio
-  enable_jellyfin_pdb    = var.enable_jellyfin
-  enable_pihole_pdb      = var.enable_pihole
+  enable_portfolio_pdb = var.enable_portfolio
+  enable_jellyfin_pdb  = var.enable_jellyfin
+  enable_pihole_pdb    = var.enable_pihole
 
-  portfolio_namespace   = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  jellyfin_namespace    = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace      = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  portfolio_namespace = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
+  jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
+  pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+
+  tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Skills Dashboard
+# ---------------------------------------------------------------------------
+
+module "skills_dashboard" {
+  count  = var.enable_skills_dashboard ? 1 : 0
+  source = "./modules/skills-dashboard"
+
+  release_name       = "skills-dashboard"
+  namespace          = "default"
+  replicas           = 2
+  host               = var.skills_dashboard_host != "" ? var.skills_dashboard_host : "skills.${var.ingress_base_domain}"
+  ingress_class_name = "nginx"
+  enable_ingress     = true
+  tls_enabled        = var.enable_cert_manager
+  annotations = {
+    "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
+  }
 
   tags = var.tags
 }

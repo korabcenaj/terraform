@@ -264,6 +264,8 @@ resource "kubernetes_service" "pihole" {
       app = "pihole"
     }
 
+    load_balancer_ip = var.load_balancer_ip
+
     port {
       port        = 53
       target_port = 53
