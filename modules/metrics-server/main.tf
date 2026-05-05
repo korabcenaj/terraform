@@ -171,7 +171,7 @@ resource "kubernetes_deployment_v1" "metrics_server" {
             "--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP",
             "--kubelet-use-node-status-port",
             "--metric-resolution=15s",
-            "--kubelet-insecure-tls"
+            "--kubelet-certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
           ]
 
           port {

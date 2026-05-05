@@ -1,15 +1,8 @@
 locals {
   base_values = yamlencode({
-    # Ensure all pods carry the instance label so Helm-generated Service
-    # selectors (which require app.kubernetes.io/instance) always find endpoints.
-    global = {
-      additionalLabels = {
-        "app.kubernetes.io/instance" = var.release_name
-      }
-    }
     configs = {
       params = {
-        "server.insecure" = true
+        # server.insecure removed — ArgoCD serves HTTPS; nginx uses backend-protocol: HTTPS
       }
     }
     repoServer = {
@@ -113,9 +106,10 @@ resource "kubernetes_ingress_v1" "argocd_server" {
     namespace = kubernetes_namespace.argocd.metadata[0].name
     labels    = var.tags
     annotations = {
-      "cert-manager.io/cluster-issuer"               = "local-lan-ca"
-      "nginx.ingress.kubernetes.io/ssl-passthrough"  = "false"
-      "nginx.ingress.kubernetes.io/backend-protocol" = "HTTP"
+      "cert-manager.io/cluster-issuer"                 = "local-lan-ca"
+      "nginx.ingress.kubernetes.io/ssl-passthrough"    = "false"
+      "nginx.ingress.kubernetes.io/backend-protocol"   = "HTTPS"
+      "nginx.ingress.kubernetes.io/proxy-ssl-verify"   = "off"
     }
   }
 
@@ -137,7 +131,7 @@ resource "kubernetes_ingress_v1" "argocd_server" {
             service {
               name = "${var.release_name}-server"
               port {
-                number = 80
+                number = 443
               }
             }
           }
