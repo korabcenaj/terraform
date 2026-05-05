@@ -148,3 +148,81 @@ resource "kubernetes_ingress_v1" "argocd_server" {
 
   depends_on = [helm_release.argocd]
 }
+
+# ---------------------------------------------------------------------------
+# Bootstrap: AppProject + Application
+#
+# Creates a "platform" AppProject and optionally an Application pointing at
+# a Git repository. The Application is set to manual sync by default so it
+# does not immediately overwrite the current state — flip auto_sync to true
+# once the repo structure is validated.
+# ---------------------------------------------------------------------------
+
+resource "kubernetes_manifest" "platform_app_project" {
+  count = var.create_bootstrap_app_project ? 1 : 0
+
+  manifest = {
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "AppProject"
+    metadata = {
+      name      = var.bootstrap_project_name
+      namespace = kubernetes_namespace.argocd.metadata[0].name
+      labels    = var.tags
+      finalizers = ["resources-finalizer.argocd.argoproj.io"]
+    }
+    spec = {
+      description = "Platform infrastructure managed by Terraform + Argo CD"
+      sourceRepos = ["*"]
+      destinations = [
+        {
+          server    = "https://kubernetes.default.svc"
+          namespace = "*"
+        }
+      ]
+      clusterResourceWhitelist = [
+        { group = "*", kind = "*" }
+      ]
+      namespaceResourceWhitelist = [
+        { group = "*", kind = "*" }
+      ]
+    }
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
+resource "kubernetes_manifest" "bootstrap_application" {
+  count = var.create_bootstrap_application ? 1 : 0
+
+  manifest = {
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata = {
+      name      = var.bootstrap_app_name
+      namespace = kubernetes_namespace.argocd.metadata[0].name
+      labels    = var.tags
+      finalizers = ["resources-finalizer.argocd.argoproj.io"]
+    }
+    spec = {
+      project = var.bootstrap_project_name
+      source = {
+        repoURL        = var.bootstrap_repo_url
+        targetRevision = var.bootstrap_repo_revision
+        path           = var.bootstrap_repo_path
+      }
+      destination = {
+        server    = "https://kubernetes.default.svc"
+        namespace = kubernetes_namespace.argocd.metadata[0].name
+      }
+      syncPolicy = var.bootstrap_auto_sync ? {
+        automated   = { prune = true, selfHeal = true }
+        syncOptions = ["CreateNamespace=true"]
+      } : {
+        automated   = null
+        syncOptions = ["CreateNamespace=true"]
+      }
+    }
+  }
+
+  depends_on = [kubernetes_manifest.platform_app_project]
+}

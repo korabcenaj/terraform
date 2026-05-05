@@ -72,6 +72,54 @@ variable "ingress_host" {
   type        = string
 }
 
+variable "create_bootstrap_app_project" {
+  description = "Create a platform AppProject in Argo CD after install"
+  type        = bool
+  default     = false
+}
+
+variable "bootstrap_project_name" {
+  description = "Name of the Argo CD AppProject to create"
+  type        = string
+  default     = "platform"
+}
+
+variable "create_bootstrap_application" {
+  description = "Create a bootstrap Application in Argo CD pointing at a Git repo"
+  type        = bool
+  default     = false
+}
+
+variable "bootstrap_app_name" {
+  description = "Name of the bootstrap Argo CD Application"
+  type        = string
+  default     = "platform-bootstrap"
+}
+
+variable "bootstrap_repo_url" {
+  description = "Git repository URL for the bootstrap Application"
+  type        = string
+  default     = ""
+}
+
+variable "bootstrap_repo_revision" {
+  description = "Git ref (branch/tag/commit) for the bootstrap Application"
+  type        = string
+  default     = "HEAD"
+}
+
+variable "bootstrap_repo_path" {
+  description = "Path within the repository containing the Application manifests"
+  type        = string
+  default     = "."
+}
+
+variable "bootstrap_auto_sync" {
+  description = "Enable automated sync (prune + self-heal) for the bootstrap Application. Set to false for initial rollout."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Labels to apply to all resources"
   type        = map(string)

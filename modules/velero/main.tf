@@ -87,3 +87,33 @@ EOT
   wait    = true
   timeout = 600
 }
+
+# ---------------------------------------------------------------------------
+# Backup Schedule
+# ---------------------------------------------------------------------------
+
+resource "kubernetes_manifest" "backup_schedule" {
+  count = var.create_backup_schedule ? 1 : 0
+
+  manifest = {
+    apiVersion = "velero.io/v1"
+    kind       = "Schedule"
+    metadata = {
+      name      = var.schedule_name
+      namespace = kubernetes_namespace.velero.metadata[0].name
+      labels    = var.tags
+    }
+    spec = {
+      schedule = var.schedule_cron
+      template = {
+        includedNamespaces      = var.backup_namespaces
+        ttl                     = var.backup_ttl
+        storageLocation         = "default"
+        snapshotVolumes         = false
+        includeClusterResources = true
+      }
+    }
+  }
+
+  depends_on = [helm_release.velero]
+}

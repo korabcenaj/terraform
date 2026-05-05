@@ -87,6 +87,11 @@ module "kube_prometheus_stack" {
   grafana_oidc_client_id     = var.grafana_oidc_client_id
   grafana_oidc_client_secret = var.grafana_oidc_client_secret
 
+  alertmanager_enabled     = var.alertmanager_enabled
+  alertmanager_webhook_url = var.alertmanager_webhook_url
+  alertmanager_repeat_interval = var.alertmanager_repeat_interval
+  create_alert_rules       = var.create_alert_rules
+
   tags = var.tags
 }
 
@@ -121,12 +126,17 @@ module "velero" {
   count  = var.enable_velero ? 1 : 0
   source = "./modules/velero"
 
-  release_name  = "velero"
-  chart_version = var.velero_chart_version
-  bucket_name   = var.velero_bucket_name
-  s3_url        = var.velero_s3_url
-  access_key    = var.minio_root_user
-  secret_key    = var.minio_root_password
+  release_name            = "velero"
+  chart_version           = var.velero_chart_version
+  bucket_name             = var.velero_bucket_name
+  s3_url                  = var.velero_s3_url
+  access_key              = var.minio_root_user
+  secret_key              = var.minio_root_password
+  create_backup_schedule  = var.velero_create_backup_schedule
+  schedule_name           = var.velero_schedule_name
+  schedule_cron           = var.velero_schedule_cron
+  backup_namespaces       = var.velero_backup_namespaces
+  backup_ttl              = var.velero_backup_ttl
 
   tags = var.tags
 
@@ -157,6 +167,9 @@ module "external_secrets" {
   vault_server                      = var.external_secrets_vault_server
   vault_kv_path                     = var.external_secrets_vault_kv_path
   vault_token                       = var.vault_token
+  vault_auth_method                 = var.external_secrets_vault_auth_method
+  vault_kubernetes_mount_path       = var.external_secrets_vault_kubernetes_mount_path
+  vault_kubernetes_role             = var.external_secrets_vault_kubernetes_role
 
   tags = var.tags
 
@@ -177,6 +190,15 @@ module "argocd" {
   oidc_client_secret    = var.argocd_oidc_client_secret
   oidc_root_ca_pem      = try(data.kubernetes_secret_v1.local_lan_ca[0].data["tls.crt"], "")
   ingress_host          = local.argocd_host
+
+  create_bootstrap_app_project = var.argocd_create_app_project
+  bootstrap_project_name       = var.argocd_project_name
+  create_bootstrap_application = var.argocd_create_bootstrap_app
+  bootstrap_app_name           = var.argocd_bootstrap_app_name
+  bootstrap_repo_url           = var.argocd_bootstrap_repo_url
+  bootstrap_repo_revision      = var.argocd_bootstrap_repo_revision
+  bootstrap_repo_path          = var.argocd_bootstrap_repo_path
+  bootstrap_auto_sync          = var.argocd_bootstrap_auto_sync
 
   tags = var.tags
 
@@ -255,6 +277,27 @@ module "oauth2_proxy" {
   tags = var.tags
 }
 
+# ---------------------------------------------------------------------------
+# AI Orchestrator — namespace + policies (workloads owned by Argo CD)
+# ---------------------------------------------------------------------------
+
+module "ai_orchestrator" {
+  count  = var.enable_ai_orchestrator ? 1 : 0
+  source = "./modules/ai-orchestrator"
+
+  namespace        = "ai-orchestrator"
+  api_gateway_port = var.ai_orchestrator_api_gateway_port
+  cpu_request      = var.ai_orchestrator_cpu_request
+  memory_request   = var.ai_orchestrator_memory_request
+  cpu_limit        = var.ai_orchestrator_cpu_limit
+  memory_limit     = var.ai_orchestrator_memory_limit
+  gpu_limit        = var.ai_orchestrator_gpu_limit
+  max_pods         = var.ai_orchestrator_max_pods
+  max_pvcs         = var.ai_orchestrator_max_pvcs
+
+  tags = var.tags
+}
+
 module "kyverno" {
   count  = var.enable_kyverno ? 1 : 0
   source = "./modules/kyverno"
@@ -312,6 +355,25 @@ resource "kubernetes_namespace" "pihole" {
   }
 }
 
+resource "kubernetes_namespace" "qbittorrent" {
+  count = var.enable_qbittorrent ? 1 : 0
+
+  metadata {
+    name = "qbittorrent"
+    labels = {
+      name                                 = "qbittorrent"
+      # linuxserver image writes to /config; privileged PSS avoids seccomp conflicts
+      "pod-security.kubernetes.io/enforce" = "privileged"
+      "pod-security.kubernetes.io/audit"   = "baseline"
+      "pod-security.kubernetes.io/warn"    = "baseline"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [metadata[0].annotations]
+  }
+}
+
 # Modules
 module "portfolio" {
   count  = var.enable_portfolio && var.manage_portfolio_workload ? 1 : 0
@@ -362,6 +424,27 @@ module "pihole" {
   memory_limit        = "512Mi"
   ingress_host        = local.pihole_host
   dns_wildcard_domain = var.ingress_base_domain
+
+  tags = var.tags
+}
+
+module "qbittorrent" {
+  count  = var.enable_qbittorrent ? 1 : 0
+  source = "./modules/qbittorrent"
+
+  namespace      = kubernetes_namespace.qbittorrent[0].metadata[0].name
+  replicas       = var.qbittorrent_replicas
+  image          = var.qbittorrent_image
+  storage_class  = var.qbittorrent_storage_class
+  config_size    = var.qbittorrent_config_size
+  downloads_size = var.qbittorrent_downloads_size
+  node_name      = var.qbittorrent_node_name
+  timezone       = var.qbittorrent_timezone
+  cpu_request    = "100m"
+  memory_request = "128Mi"
+  cpu_limit      = "500m"
+  memory_limit   = "512Mi"
+  ingress_host   = "qbittorrent.${var.ingress_base_domain}"
 
   tags = var.tags
 }
@@ -424,6 +507,8 @@ module "networking" {
     # monitoring has its own namespace-specific policies in the monitoring module
     # ingress-nginx should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
+    var.enable_ai_orchestrator ? "ai-orchestrator" : "",
+    var.enable_qbittorrent ? "qbittorrent" : "",
   ])
 }
 

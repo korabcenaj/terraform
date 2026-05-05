@@ -41,10 +41,33 @@ variable "vault_kv_path" {
 }
 
 variable "vault_token" {
-  description = "Vault token used for ClusterSecretStore bootstrap"
+  description = "Vault token used for ClusterSecretStore bootstrap (only used when vault_auth_method = \"token\")"
   type        = string
   sensitive   = true
   default     = "CHANGE_ME_VAULT_TOKEN"
+}
+
+variable "vault_auth_method" {
+  description = "Authentication method for the Vault ClusterSecretStore. Use \"token\" for a static root token (simple) or \"kubernetes\" for pod-based ServiceAccount auth (production-grade)."
+  type        = string
+  default     = "token"
+
+  validation {
+    condition     = contains(["token", "kubernetes"], var.vault_auth_method)
+    error_message = "vault_auth_method must be \"token\" or \"kubernetes\"."
+  }
+}
+
+variable "vault_kubernetes_mount_path" {
+  description = "Vault kubernetes auth mount path (only used when vault_auth_method = \"kubernetes\")"
+  type        = string
+  default     = "kubernetes"
+}
+
+variable "vault_kubernetes_role" {
+  description = "Vault kubernetes auth role bound to the ESO ServiceAccount (only used when vault_auth_method = \"kubernetes\")"
+  type        = string
+  default     = "external-secrets"
 }
 
 variable "tags" {

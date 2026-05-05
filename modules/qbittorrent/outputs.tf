@@ -1,20 +1,14 @@
 output "namespace" {
-  value = var.namespace
-}
-
-output "deployment_name" {
-  value = kubernetes_deployment.qbittorrent.metadata[0].name
+  description = "Namespace where qBittorrent is deployed"
+  value       = var.namespace
 }
 
 output "service_name" {
-  value = kubernetes_service.qbittorrent.metadata[0].name
-}
-
-output "service_endpoint" {
-  value = "${kubernetes_service.qbittorrent.metadata[0].name}.${var.namespace}.svc.cluster.local:8080"
+  description = "qBittorrent service name"
+  value       = kubernetes_service.qbittorrent.metadata[0].name
 }
 
 output "ingress_host" {
-  description = "qBittorrent ingress hostname"
-  value       = try(kubernetes_ingress_v1.qbittorrent.spec[0].rule[0].host, null)
+  description = "qBittorrent Web UI ingress hostname"
+  value       = var.ingress_host
 }

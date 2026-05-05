@@ -1,66 +1,65 @@
-resource "kubernetes_persistent_volume" "qbit_config" {
+################################################################################
+# qBittorrent — Deployment, PVCs, Service, Ingress
+#
+# Uses the linuxserver/qbittorrent image which runs as an unprivileged user
+# via PUID/PGID environment variables.
+################################################################################
+
+resource "kubernetes_persistent_volume_claim" "config" {
+  wait_until_bound = false
+
   metadata {
-    name = "qbit-config-pv"
-  }
-
-  spec {
-    capacity = {
-      storage = var.storage_size
-    }
-
-    access_modes = ["ReadWriteOnce"]
-
-    persistent_volume_source {
-      local {
-        path = var.data_path
-      }
-    }
-
-    node_affinity {
-      required {
-        node_selector_term {
-          match_expressions {
-            key      = "kubernetes.io/hostname"
-            operator = "In"
-            values   = [var.node_name]
-          }
-        }
-      }
-    }
-  }
-}
-
-resource "kubernetes_persistent_volume_claim" "qbit_config" {
-  metadata {
-    name      = "qbit-config-pvc"
+    name      = "qbittorrent-config"
     namespace = var.namespace
+    labels    = var.tags
   }
 
   spec {
-    access_modes = ["ReadWriteOnce"]
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.storage_class
 
     resources {
       requests = {
-        storage = var.storage_size
+        storage = var.config_size
       }
     }
-
-    volume_name = kubernetes_persistent_volume.qbit_config.metadata[0].name
   }
 
-  depends_on = [kubernetes_persistent_volume.qbit_config]
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "kubernetes_persistent_volume_claim" "downloads" {
+  wait_until_bound = false
+
+  metadata {
+    name      = "qbittorrent-downloads"
+    namespace = var.namespace
+    labels    = var.tags
+  }
+
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.storage_class
+
+    resources {
+      requests = {
+        storage = var.downloads_size
+      }
+    }
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "kubernetes_deployment" "qbittorrent" {
   metadata {
     name      = "qbittorrent"
     namespace = var.namespace
-    labels = merge(
-      var.tags,
-      {
-        app = "qbittorrent"
-      }
-    )
+    labels    = merge(var.tags, { app = "qbittorrent" })
   }
 
   spec {
@@ -71,41 +70,37 @@ resource "kubernetes_deployment" "qbittorrent" {
     }
 
     selector {
-      match_labels = {
-        app = "qbittorrent"
-      }
+      match_labels = { app = "qbittorrent" }
     }
 
     template {
       metadata {
-        labels = {
-          app = "qbittorrent"
-        }
+        labels = merge(var.tags, { app = "qbittorrent" })
       }
 
       spec {
         automount_service_account_token = false
 
+        dynamic "affinity" {
+          for_each = var.node_name != "" ? [1] : []
+          content {
+            node_affinity {
+              required_during_scheduling_ignored_during_execution {
+                node_selector_term {
+                  match_expressions {
+                    key      = "kubernetes.io/hostname"
+                    operator = "In"
+                    values   = [var.node_name]
+                  }
+                }
+              }
+            }
+          }
+        }
+
         container {
-          name              = "qbittorrent"
-          image             = "linuxserver/qbittorrent:5.1.4"
-          image_pull_policy = "IfNotPresent"
-
-          port {
-            container_port = 8080
-            name           = "web"
-            protocol       = "TCP"
-          }
-
-          env {
-            name  = "WEBUI_PORT"
-            value = "8080"
-          }
-
-          volume_mount {
-            name       = "config"
-            mount_path = "/config"
-          }
+          name  = "qbittorrent"
+          image = var.image
 
           resources {
             requests = {
@@ -118,86 +113,103 @@ resource "kubernetes_deployment" "qbittorrent" {
             }
           }
 
-          liveness_probe {
-            http_get {
-              path   = "/"
-              port   = 8080
-              scheme = "HTTP"
-            }
-            initial_delay_seconds = 30
-            period_seconds        = 30
-            timeout_seconds       = 5
-            failure_threshold     = 3
+          env {
+            name  = "PUID"
+            value = tostring(var.puid)
           }
 
-          readiness_probe {
-            http_get {
-              path   = "/"
-              port   = 8080
-              scheme = "HTTP"
-            }
-            initial_delay_seconds = 10
-            period_seconds        = 10
-            timeout_seconds       = 5
-            failure_threshold     = 3
+          env {
+            name  = "PGID"
+            value = tostring(var.pgid)
+          }
+
+          env {
+            name  = "TZ"
+            value = var.timezone
+          }
+
+          env {
+            name  = "WEBUI_PORT"
+            value = tostring(var.web_ui_port)
+          }
+
+          port {
+            container_port = var.web_ui_port
+            name           = "web"
+            protocol       = "TCP"
+          }
+
+          port {
+            container_port = var.torrent_port
+            name           = "torrent-tcp"
+            protocol       = "TCP"
+          }
+
+          port {
+            container_port = var.torrent_port
+            name           = "torrent-udp"
+            protocol       = "UDP"
+          }
+
+          volume_mount {
+            name       = "config"
+            mount_path = "/config"
+          }
+
+          volume_mount {
+            name       = "downloads"
+            mount_path = "/downloads"
           }
         }
 
         volume {
           name = "config"
           persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.qbit_config.metadata[0].name
+            claim_name = kubernetes_persistent_volume_claim.config.metadata[0].name
+          }
+        }
+
+        volume {
+          name = "downloads"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.downloads.metadata[0].name
           }
         }
       }
     }
   }
-
-  depends_on = [kubernetes_persistent_volume_claim.qbit_config]
 }
 
 resource "kubernetes_service" "qbittorrent" {
   metadata {
     name      = "qbittorrent"
     namespace = var.namespace
-    labels = merge(
-      var.tags,
-      {
-        app = "qbittorrent"
-      }
-    )
+    labels    = merge(var.tags, { app = "qbittorrent" })
   }
 
   spec {
-    selector = {
-      app = "qbittorrent"
-    }
+    selector = { app = "qbittorrent" }
+    type     = "ClusterIP"
 
     port {
-      port        = 8080
-      target_port = 8080
-      protocol    = "TCP"
       name        = "web"
+      port        = var.web_ui_port
+      target_port = var.web_ui_port
+      protocol    = "TCP"
     }
-
-    type = "ClusterIP"
   }
-
-  depends_on = [kubernetes_deployment.qbittorrent]
 }
 
 resource "kubernetes_ingress_v1" "qbittorrent" {
   metadata {
     name      = "qbittorrent"
     namespace = var.namespace
-    labels = merge(
-      var.tags,
-      {
-        app = "qbittorrent"
-      }
-    )
+    labels    = var.tags
     annotations = {
-      "cert-manager.io/cluster-issuer" = "local-lan-ca"
+      "cert-manager.io/cluster-issuer"                   = "local-lan-ca"
+      "nginx.ingress.kubernetes.io/proxy-body-size"      = "0"
+      "nginx.ingress.kubernetes.io/proxy-read-timeout"   = "600"
+      "nginx.ingress.kubernetes.io/proxy-send-timeout"   = "600"
     }
   }
 
@@ -219,7 +231,7 @@ resource "kubernetes_ingress_v1" "qbittorrent" {
             service {
               name = kubernetes_service.qbittorrent.metadata[0].name
               port {
-                number = 8080
+                number = var.web_ui_port
               }
             }
           }
@@ -227,6 +239,4 @@ resource "kubernetes_ingress_v1" "qbittorrent" {
       }
     }
   }
-
-  depends_on = [kubernetes_service.qbittorrent]
 }

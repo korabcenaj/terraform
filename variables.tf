@@ -351,6 +351,54 @@ variable "argocd_chart_version" {
   default     = "9.4.17"
 }
 
+variable "argocd_create_app_project" {
+  description = "Create a platform AppProject in Argo CD"
+  type        = bool
+  default     = false
+}
+
+variable "argocd_project_name" {
+  description = "Name of the Argo CD AppProject"
+  type        = string
+  default     = "platform"
+}
+
+variable "argocd_create_bootstrap_app" {
+  description = "Create a bootstrap Application in Argo CD pointing at a Git repository"
+  type        = bool
+  default     = false
+}
+
+variable "argocd_bootstrap_app_name" {
+  description = "Name of the bootstrap Argo CD Application"
+  type        = string
+  default     = "platform-bootstrap"
+}
+
+variable "argocd_bootstrap_repo_url" {
+  description = "Git repository URL for the Argo CD bootstrap Application (e.g. https://github.com/org/repo)"
+  type        = string
+  default     = ""
+}
+
+variable "argocd_bootstrap_repo_revision" {
+  description = "Git ref (branch/tag/commit) for the bootstrap Application"
+  type        = string
+  default     = "HEAD"
+}
+
+variable "argocd_bootstrap_repo_path" {
+  description = "Path within the repository containing Application manifests"
+  type        = string
+  default     = "."
+}
+
+variable "argocd_bootstrap_auto_sync" {
+  description = "Enable automated sync (prune + self-heal) on the bootstrap Application"
+  type        = bool
+  default     = false
+}
+
 variable "tempo_chart_version" {
   description = "Tempo Helm chart version"
   type        = string
@@ -427,6 +475,24 @@ variable "external_secrets_vault_kv_path" {
   description = "Vault KV mount path used by External Secrets"
   type        = string
   default     = "kv"
+}
+
+variable "external_secrets_vault_auth_method" {
+  description = "Vault auth method for External Secrets ClusterSecretStore: \"token\" (static) or \"kubernetes\" (ServiceAccount-based)"
+  type        = string
+  default     = "token"
+}
+
+variable "external_secrets_vault_kubernetes_mount_path" {
+  description = "Vault kubernetes auth mount path (used when external_secrets_vault_auth_method = \"kubernetes\")"
+  type        = string
+  default     = "kubernetes"
+}
+
+variable "external_secrets_vault_kubernetes_role" {
+  description = "Vault kubernetes auth role bound to the ESO ServiceAccount"
+  type        = string
+  default     = "external-secrets"
 }
 
 variable "minio_root_user" {
@@ -532,6 +598,58 @@ variable "jellyfin_node_name" {
 variable "jellyfin_media_path" {
   description = "Host path for Jellyfin media files"
   type        = string
+}
+
+# ---------------------------------------------------------------------------
+# qBittorrent
+# ---------------------------------------------------------------------------
+
+variable "enable_qbittorrent" {
+  description = "Deploy qBittorrent via Terraform (manages namespace, PVCs, Deployment, Service, Ingress)"
+  type        = bool
+  default     = false
+}
+
+variable "qbittorrent_replicas" {
+  description = "Number of qBittorrent replicas (keep at 1 to avoid PVC conflicts)"
+  type        = number
+  default     = 1
+}
+
+variable "qbittorrent_image" {
+  description = "qBittorrent container image"
+  type        = string
+  default     = "linuxserver/qbittorrent:5.1.4"
+}
+
+variable "qbittorrent_storage_class" {
+  description = "Storage class for qBittorrent config and downloads volumes"
+  type        = string
+  default     = "local-path"
+}
+
+variable "qbittorrent_config_size" {
+  description = "Config PVC size for qBittorrent"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "qbittorrent_downloads_size" {
+  description = "Downloads PVC size for qBittorrent"
+  type        = string
+  default     = "200Gi"
+}
+
+variable "qbittorrent_node_name" {
+  description = "Node name to pin qBittorrent scheduling (leave empty for any node)"
+  type        = string
+  default     = ""
+}
+
+variable "qbittorrent_timezone" {
+  description = "Timezone for the qBittorrent container"
+  type        = string
+  default     = "UTC"
 }
 
 # Resource limits
@@ -748,6 +866,31 @@ variable "grafana_oidc_client_secret" {
   default     = "CHANGE_ME_GRAFANA_OIDC_SECRET"
 }
 
+variable "alertmanager_enabled" {
+  description = "Enable Alertmanager notification configuration. Requires alertmanager_webhook_url to be set."
+  type        = bool
+  default     = false
+}
+
+variable "alertmanager_webhook_url" {
+  description = "Webhook URL for Alertmanager to send notifications to (Slack incoming webhook, n8n webhook, etc.)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "alertmanager_repeat_interval" {
+  description = "How long to wait before re-sending an already-firing alert"
+  type        = string
+  default     = "4h"
+}
+
+variable "create_alert_rules" {
+  description = "Create PrometheusRule with critical baseline alerts (node down, disk, OOM, crash-loop, Velero backup)"
+  type        = bool
+  default     = true
+}
+
 # ---------------------------------------------------------------------------
 # n8n
 # ---------------------------------------------------------------------------
@@ -819,4 +962,96 @@ variable "control_plane_node_name" {
   description = "Name of the control-plane node to taint."
   type        = string
   default     = "k8s-master"
+}
+
+# ---------------------------------------------------------------------------
+# AI Orchestrator
+# ---------------------------------------------------------------------------
+
+variable "enable_ai_orchestrator" {
+  description = "Manage the ai-orchestrator namespace, NetworkPolicies, and ResourceQuota via Terraform. Workloads are owned by Argo CD."
+  type        = bool
+  default     = true
+}
+
+variable "ai_orchestrator_api_gateway_port" {
+  description = "Port exposed by the api-gateway service (used in NetworkPolicy allow rule)"
+  type        = number
+  default     = 8080
+}
+
+variable "ai_orchestrator_cpu_request" {
+  description = "Namespace ResourceQuota: total CPU requests"
+  type        = string
+  default     = "500m"
+}
+
+variable "ai_orchestrator_memory_request" {
+  description = "Namespace ResourceQuota: total memory requests"
+  type        = string
+  default     = "1Gi"
+}
+
+variable "ai_orchestrator_cpu_limit" {
+  description = "Namespace ResourceQuota: total CPU limits"
+  type        = string
+  default     = "16"
+}
+
+variable "ai_orchestrator_memory_limit" {
+  description = "Namespace ResourceQuota: total memory limits"
+  type        = string
+  default     = "32Gi"
+}
+
+variable "ai_orchestrator_gpu_limit" {
+  description = "Namespace ResourceQuota: maximum nvidia.com/gpu devices"
+  type        = number
+  default     = 2
+}
+
+variable "ai_orchestrator_max_pods" {
+  description = "Namespace ResourceQuota: maximum pod count"
+  type        = number
+  default     = 20
+}
+
+variable "ai_orchestrator_max_pvcs" {
+  description = "Namespace ResourceQuota: maximum PersistentVolumeClaims"
+  type        = number
+  default     = 10
+}
+
+# ---------------------------------------------------------------------------
+# Velero backup schedules
+# ---------------------------------------------------------------------------
+
+variable "velero_create_backup_schedule" {
+  description = "Create a Velero Schedule resource for automated periodic backups"
+  type        = bool
+  default     = true
+}
+
+variable "velero_schedule_name" {
+  description = "Name of the Velero Schedule resource"
+  type        = string
+  default     = "daily-backup"
+}
+
+variable "velero_schedule_cron" {
+  description = "Cron expression for the Velero backup schedule (UTC)"
+  type        = string
+  default     = "0 2 * * *" # 02:00 UTC daily
+}
+
+variable "velero_backup_namespaces" {
+  description = "List of namespaces to include in each scheduled backup. Use [\"*\"] to back up all namespaces."
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "velero_backup_ttl" {
+  description = "Retention period for backups created by the schedule (Go duration string)"
+  type        = string
+  default     = "720h0m0s" # 30 days
 }

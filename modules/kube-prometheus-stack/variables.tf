@@ -107,3 +107,28 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "alertmanager_enabled" {
+  description = "Enable Alertmanager configuration management (requires alertmanager_webhook_url)"
+  type        = bool
+  default     = false
+}
+
+variable "alertmanager_webhook_url" {
+  description = "Webhook URL for Alertmanager notifications (e.g. Slack incoming webhook, n8n webhook, or Alertmanager webhook receiver)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "alertmanager_repeat_interval" {
+  description = "How long to wait before re-sending an already-firing alert"
+  type        = string
+  default     = "4h"
+}
+
+variable "create_alert_rules" {
+  description = "Create a PrometheusRule resource with critical baseline alerts (node down, disk pressure, OOM, crash-loop, Velero)"
+  type        = bool
+  default     = true
+}

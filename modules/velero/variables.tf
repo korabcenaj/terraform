@@ -49,3 +49,33 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "create_backup_schedule" {
+  description = "Create a Velero Schedule resource for automated periodic backups"
+  type        = bool
+  default     = true
+}
+
+variable "schedule_name" {
+  description = "Name of the Velero Schedule resource"
+  type        = string
+  default     = "daily-backup"
+}
+
+variable "schedule_cron" {
+  description = "Cron expression for the Velero backup schedule (UTC)"
+  type        = string
+  default     = "0 2 * * *"
+}
+
+variable "backup_namespaces" {
+  description = "List of namespaces to include in each scheduled backup. Use [\"*\"] for all namespaces."
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "backup_ttl" {
+  description = "Retention period for scheduled backups (Go duration string, e.g. 720h0m0s = 30 days)"
+  type        = string
+  default     = "720h0m0s"
+}

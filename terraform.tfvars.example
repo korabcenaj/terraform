@@ -9,7 +9,7 @@ kubeconfig_path = "~/.kube/config"
 # Enable/disable modules
 enable_portfolio           = true
 enable_jellyfin            = false
-enable_qbittorrent         = true
+enable_qbittorrent         = false
 enable_pihole              = true
 enable_monitoring          = true
 enable_network_policies    = true
@@ -30,6 +30,8 @@ pihole_web_password = "changeme"  # Change this to a secure password!
 portfolio_replicas   = 1
 jellyfin_replicas    = 1
 qbittorrent_replicas = 1
+# qbittorrent_node_name = "k8s"
+# qbittorrent_storage_class = "local-path"
 
 # Storage configuration
 jellyfin_storage_class = "local-path"
