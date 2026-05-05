@@ -16,6 +16,7 @@ locals {
   keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
   oauth2_proxy_host = "auth.${var.ingress_base_domain}"
   n8n_host          = "n8n.${var.ingress_base_domain}"
+    harbor_host       = "harbor.${var.ingress_base_domain}"
   # Prefer explicit override, otherwise use the stable Pi-hole LoadBalancer IP
   # (router DNS) so CoreDNS forwarding survives pod/service IP churn.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
@@ -225,10 +226,18 @@ module "keycloak" {
   argocd_client_secret     = var.argocd_oidc_client_secret
   argocd_redirect_uris     = ["https://${local.argocd_host}/auth/callback"]
   argocd_web_origins       = ["https://${local.argocd_host}"]
-  grafana_client_id        = var.grafana_oidc_client_id
-  grafana_client_secret    = var.grafana_oidc_client_secret
-  grafana_redirect_uris    = ["https://${local.grafana_host}/login/generic_oauth"]
-  grafana_web_origins      = ["https://${local.grafana_host}"]
+  grafana_client_id          = var.grafana_oidc_client_id
+  grafana_client_secret      = var.grafana_oidc_client_secret
+  grafana_redirect_uris      = ["https://${local.grafana_host}/login/generic_oauth"]
+  grafana_web_origins        = ["https://${local.grafana_host}"]
+  harbor_client_id           = var.harbor_oidc_client_id
+  harbor_client_secret       = var.harbor_oidc_client_secret
+  harbor_redirect_uris       = ["https://${local.harbor_host}/c/oidc/callback"]
+  harbor_web_origins         = ["https://${local.harbor_host}"]
+  oauth2_proxy_client_id     = var.oauth2_proxy_client_id
+  oauth2_proxy_client_secret = var.oauth2_proxy_client_secret
+  oauth2_proxy_redirect_uris = ["https://${local.oauth2_proxy_host}/oauth2/callback"]
+  oauth2_proxy_web_origins   = ["https://${local.oauth2_proxy_host}"]
 
   tags = var.tags
 }
@@ -265,17 +274,20 @@ module "oauth2_proxy" {
   count  = var.enable_oauth2_proxy ? 1 : 0
   source = "./modules/oauth2-proxy"
 
-  release_name    = "oauth2-proxy"
-  chart_version   = var.oauth2_proxy_chart_version
-  oauth2_provider = var.oauth2_proxy_provider
-  email_domain    = var.oauth2_proxy_email_domain
-  client_id       = var.oauth2_proxy_client_id
-  client_secret   = var.oauth2_proxy_client_secret
-  cookie_secret   = var.oauth2_proxy_cookie_secret
-  ingress_host    = local.oauth2_proxy_host
+  release_name     = "oauth2-proxy"
+  chart_version    = var.oauth2_proxy_chart_version
+  oauth2_provider  = var.oauth2_proxy_provider
+  email_domain     = var.oauth2_proxy_email_domain
+  client_id        = var.oauth2_proxy_client_id
+  client_secret    = var.oauth2_proxy_client_secret
+  cookie_secret    = var.oauth2_proxy_cookie_secret
+  ingress_host     = local.oauth2_proxy_host
+  oidc_issuer_url  = local.keycloak_issuer
 
   tags = var.tags
 }
+
+
 
 # ---------------------------------------------------------------------------
 # AI Orchestrator — namespace + policies (workloads owned by Argo CD)
@@ -458,6 +470,8 @@ module "monitoring" {
   prometheus_service_name = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].prometheus_service_name, "monitor-kube-prometheus-st-prometheus") : "monitor-kube-prometheus-st-prometheus"
   grafana_host            = local.grafana_host
   prometheus_host         = local.prometheus_host
+  oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
+  oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
 
   tags = var.tags
 

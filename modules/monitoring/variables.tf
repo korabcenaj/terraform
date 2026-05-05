@@ -39,3 +39,15 @@ variable "prometheus_host" {
   type        = string
   default     = "prometheus.local.lan"
 }
+
+variable "oauth2_proxy_url" {
+  description = "Public OAuth2 Proxy URL used by ingress auth annotations (e.g. https://auth.local.lan)"
+  type        = string
+  default     = ""
+}
+
+variable "oauth2_proxy_auth_internal_url" {
+  description = "In-cluster OAuth2 Proxy URL for NGINX auth-url subrequests (e.g. http://oauth2-proxy.oauth2-proxy.svc.cluster.local:4180)"
+  type        = string
+  default     = ""
+}

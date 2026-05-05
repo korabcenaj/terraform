@@ -56,3 +56,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "oidc_issuer_url" {
+  description = "OIDC issuer URL for the 'oidc' provider (e.g. https://sso.local.lan/realms/homelab)"
+  type        = string
+  default     = ""
+}

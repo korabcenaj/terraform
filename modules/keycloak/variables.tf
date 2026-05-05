@@ -130,3 +130,53 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "harbor_client_id" {
+  description = "OIDC client ID to bootstrap for Harbor"
+  type        = string
+  default     = "harbor"
+}
+
+variable "harbor_client_secret" {
+  description = "OIDC client secret to bootstrap for Harbor"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "harbor_redirect_uris" {
+  description = "Allowed redirect URIs for the Harbor OIDC client"
+  type        = list(string)
+  default     = []
+}
+
+variable "harbor_web_origins" {
+  description = "Allowed web origins for the Harbor OIDC client"
+  type        = list(string)
+  default     = []
+}
+
+variable "oauth2_proxy_client_id" {
+  description = "OIDC client ID to bootstrap for oauth2-proxy"
+  type        = string
+  default     = "oauth2-proxy"
+}
+
+variable "oauth2_proxy_client_secret" {
+  description = "OIDC client secret to bootstrap for oauth2-proxy"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "oauth2_proxy_redirect_uris" {
+  description = "Allowed redirect URIs for the oauth2-proxy OIDC client"
+  type        = list(string)
+  default     = []
+}
+
+variable "oauth2_proxy_web_origins" {
+  description = "Allowed web origins for the oauth2-proxy OIDC client"
+  type        = list(string)
+  default     = []
+}

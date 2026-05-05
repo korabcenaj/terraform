@@ -76,6 +76,59 @@ locals {
           "pkce.code.challenge.method" = "S256"
           "post.logout.redirect.uris"  = "+"
         }
+      },
+      {
+        clientId                  = var.harbor_client_id
+        name                      = "Harbor"
+        description               = "Harbor container registry OIDC client"
+        enabled                   = true
+        protocol                  = "openid-connect"
+        publicClient              = false
+        secret                    = var.harbor_client_secret
+        standardFlowEnabled       = true
+        implicitFlowEnabled       = false
+        directAccessGrantsEnabled = false
+        serviceAccountsEnabled    = false
+        redirectUris              = var.harbor_redirect_uris
+        webOrigins                = var.harbor_web_origins
+        protocolMappers = [
+          {
+            name            = "groups"
+            protocol        = "openid-connect"
+            protocolMapper  = "oidc-group-membership-mapper"
+            consentRequired = false
+            config = {
+              "full.path"            = "false"
+              "id.token.claim"       = "true"
+              "access.token.claim"   = "true"
+              "userinfo.token.claim" = "true"
+              "claim.name"           = "groups"
+            }
+          }
+        ]
+        attributes = {
+          "pkce.code.challenge.method" = "S256"
+          "post.logout.redirect.uris"  = "+"
+        }
+      },
+      {
+        clientId                  = var.oauth2_proxy_client_id
+        name                      = "OAuth2 Proxy"
+        description               = "OAuth2 Proxy for forward-auth on internal services"
+        enabled                   = true
+        protocol                  = "openid-connect"
+        publicClient              = false
+        secret                    = var.oauth2_proxy_client_secret
+        standardFlowEnabled       = true
+        implicitFlowEnabled       = false
+        directAccessGrantsEnabled = false
+        serviceAccountsEnabled    = false
+        redirectUris              = var.oauth2_proxy_redirect_uris
+        webOrigins                = var.oauth2_proxy_web_origins
+        attributes = {
+          "pkce.code.challenge.method" = "S256"
+          "post.logout.redirect.uris"  = "+"
+        }
       }
     ]
   }

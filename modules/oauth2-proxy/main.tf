@@ -45,6 +45,31 @@ resource "helm_release" "oauth2_proxy" {
   }
 
   # When used as nginx forward-auth, the proxy itself does not need a backend upstream
+
+    dynamic "set" {
+      for_each = var.oidc_issuer_url != "" ? [1] : []
+      content {
+        name  = "extraArgs.oidc-issuer-url"
+        value = var.oidc_issuer_url
+      }
+    }
+
+    dynamic "set" {
+      for_each = var.oidc_issuer_url != "" ? [1] : []
+      content {
+        name  = "extraArgs.insecure-oidc-skip-issuer-verification"
+        value = "true"
+      }
+    }
+
+    dynamic "set" {
+      for_each = var.oidc_issuer_url != "" ? [1] : []
+      content {
+        name  = "extraArgs.ssl-insecure-skip-verify"
+        value = "true"
+      }
+    }
+
   set {
     name  = "extraArgs.upstream"
     value = "file:///dev/null"
