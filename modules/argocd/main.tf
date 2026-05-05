@@ -165,9 +165,9 @@ resource "kubernetes_manifest" "platform_app_project" {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "AppProject"
     metadata = {
-      name      = var.bootstrap_project_name
-      namespace = kubernetes_namespace.argocd.metadata[0].name
-      labels    = var.tags
+      name       = var.bootstrap_project_name
+      namespace  = kubernetes_namespace.argocd.metadata[0].name
+      labels     = var.tags
       finalizers = ["resources-finalizer.argocd.argoproj.io"]
     }
     spec = {
@@ -198,9 +198,9 @@ resource "kubernetes_manifest" "bootstrap_application" {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "Application"
     metadata = {
-      name      = var.bootstrap_app_name
-      namespace = kubernetes_namespace.argocd.metadata[0].name
-      labels    = var.tags
+      name       = var.bootstrap_app_name
+      namespace  = kubernetes_namespace.argocd.metadata[0].name
+      labels     = var.tags
       finalizers = ["resources-finalizer.argocd.argoproj.io"]
     }
     spec = {
@@ -217,7 +217,7 @@ resource "kubernetes_manifest" "bootstrap_application" {
       syncPolicy = var.bootstrap_auto_sync ? {
         automated   = { prune = true, selfHeal = true }
         syncOptions = ["CreateNamespace=true"]
-      } : {
+        } : {
         automated   = null
         syncOptions = ["CreateNamespace=true"]
       }

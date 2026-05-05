@@ -145,7 +145,7 @@ resource "kubernetes_network_policy_v1" "allow_dns_egress" {
         ip_block {
           cidr = "0.0.0.0/0"
           except = [
-            "10.96.0.0/12",  # cluster service CIDR — use explicit service rules
+            "10.96.0.0/12", # cluster service CIDR — use explicit service rules
           ]
         }
       }
@@ -175,12 +175,12 @@ resource "kubernetes_resource_quota_v1" "ai_orchestrator" {
 
   spec {
     hard = {
-      pods                    = tostring(var.max_pods)
-      persistentvolumeclaims  = tostring(var.max_pvcs)
-      "requests.cpu"          = var.cpu_request
-      "requests.memory"       = var.memory_request
-      "limits.cpu"            = var.cpu_limit
-      "limits.memory"         = var.memory_limit
+      pods                      = tostring(var.max_pods)
+      persistentvolumeclaims    = tostring(var.max_pvcs)
+      "requests.cpu"            = var.cpu_request
+      "requests.memory"         = var.memory_request
+      "limits.cpu"              = var.cpu_limit
+      "limits.memory"           = var.memory_limit
       "requests.nvidia.com/gpu" = tostring(var.gpu_limit)
       "limits.nvidia.com/gpu"   = tostring(var.gpu_limit)
     }

@@ -10,7 +10,7 @@ variable "coredns_local_domain" {
   default     = "local.lan"
 
   validation {
-    condition = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", trimspace(lower(var.coredns_local_domain))))
+    condition     = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", trimspace(lower(var.coredns_local_domain))))
     error_message = "coredns_local_domain must be a valid lowercase DNS domain, for example local.lan."
   }
 }

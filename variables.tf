@@ -1080,16 +1080,16 @@ variable "skills_dashboard_host" {
   default     = ""
 }
 
-  variable "harbor_oidc_client_id" {
-    description = "OIDC client ID for Harbor"
-    type        = string
-    sensitive   = true
-    default     = "harbor"
-  }
+variable "harbor_oidc_client_id" {
+  description = "OIDC client ID for Harbor"
+  type        = string
+  sensitive   = true
+  default     = "harbor"
+}
 
-  variable "harbor_oidc_client_secret" {
-    description = "OIDC client secret for Harbor"
-    type        = string
-    sensitive   = true
-    default     = ""
-  }
+variable "harbor_oidc_client_secret" {
+  description = "OIDC client secret for Harbor"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

@@ -63,7 +63,7 @@ resource "kubernetes_manifest" "vault_cluster_secret_store" {
           path    = var.vault_kv_path
           version = "v2"
           auth = var.vault_auth_method == "kubernetes" ? {
-            kubernetes    = {
+            kubernetes = {
               mountPath = var.vault_kubernetes_mount_path
               role      = var.vault_kubernetes_role
               serviceAccountRef = {
@@ -72,7 +72,7 @@ resource "kubernetes_manifest" "vault_cluster_secret_store" {
               }
             }
             tokenSecretRef = null
-          } : {
+            } : {
             kubernetes = null
             tokenSecretRef = {
               name      = kubernetes_secret_v1.vault_token[0].metadata[0].name

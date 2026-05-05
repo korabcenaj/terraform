@@ -52,9 +52,9 @@ locals {
             name = "default"
             webhook_configs = [
               {
-                url             = var.alertmanager_webhook_url
-                send_resolved   = true
-                http_config     = {}
+                url           = var.alertmanager_webhook_url
+                send_resolved = true
+                http_config   = {}
               }
             ]
           }
@@ -208,9 +208,9 @@ resource "kubernetes_manifest" "critical_alerts" {
           name = "node"
           rules = [
             {
-              alert = "NodeDown"
-              expr  = "up{job=\"node-exporter\"} == 0"
-              for   = "2m"
+              alert  = "NodeDown"
+              expr   = "up{job=\"node-exporter\"} == 0"
+              for    = "2m"
               labels = { severity = "critical" }
               annotations = {
                 summary     = "Node {{ $labels.instance }} is down"
@@ -218,9 +218,9 @@ resource "kubernetes_manifest" "critical_alerts" {
               }
             },
             {
-              alert = "NodeDiskPressure"
-              expr  = "kubelet_node_name{condition=\"DiskPressure\"} == 1"
-              for   = "1m"
+              alert  = "NodeDiskPressure"
+              expr   = "kubelet_node_name{condition=\"DiskPressure\"} == 1"
+              for    = "1m"
               labels = { severity = "critical" }
               annotations = {
                 summary     = "Node {{ $labels.node }} has disk pressure"
@@ -228,9 +228,9 @@ resource "kubernetes_manifest" "critical_alerts" {
               }
             },
             {
-              alert = "NodeFilesystemAlmostFull"
-              expr  = "(node_filesystem_avail_bytes{fstype!~\"tmpfs|fuse.lxcfs\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|fuse.lxcfs\"}) < 0.10"
-              for   = "5m"
+              alert  = "NodeFilesystemAlmostFull"
+              expr   = "(node_filesystem_avail_bytes{fstype!~\"tmpfs|fuse.lxcfs\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|fuse.lxcfs\"}) < 0.10"
+              for    = "5m"
               labels = { severity = "warning" }
               annotations = {
                 summary     = "Filesystem on {{ $labels.instance }}:{{ $labels.mountpoint }} < 10% free"
@@ -238,9 +238,9 @@ resource "kubernetes_manifest" "critical_alerts" {
               }
             },
             {
-              alert = "NodeHighMemoryUsage"
-              expr  = "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.90"
-              for   = "5m"
+              alert  = "NodeHighMemoryUsage"
+              expr   = "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.90"
+              for    = "5m"
               labels = { severity = "warning" }
               annotations = {
                 summary     = "Node {{ $labels.instance }} memory > 90%"
@@ -253,9 +253,9 @@ resource "kubernetes_manifest" "critical_alerts" {
           name = "workload"
           rules = [
             {
-              alert = "PodCrashLooping"
-              expr  = "increase(kube_pod_container_status_restarts_total[15m]) > 3"
-              for   = "1m"
+              alert  = "PodCrashLooping"
+              expr   = "increase(kube_pod_container_status_restarts_total[15m]) > 3"
+              for    = "1m"
               labels = { severity = "critical" }
               annotations = {
                 summary     = "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash-looping"
@@ -263,9 +263,9 @@ resource "kubernetes_manifest" "critical_alerts" {
               }
             },
             {
-              alert = "PodOOMKilled"
-              expr  = "kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"} == 1"
-              for   = "0m"
+              alert  = "PodOOMKilled"
+              expr   = "kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\"} == 1"
+              for    = "0m"
               labels = { severity = "warning" }
               annotations = {
                 summary     = "Pod {{ $labels.namespace }}/{{ $labels.pod }} was OOMKilled"
@@ -273,9 +273,9 @@ resource "kubernetes_manifest" "critical_alerts" {
               }
             },
             {
-              alert = "PodNotReady"
-              expr  = "kube_pod_status_ready{condition=\"false\"} == 1"
-              for   = "10m"
+              alert  = "PodNotReady"
+              expr   = "kube_pod_status_ready{condition=\"false\"} == 1"
+              for    = "10m"
               labels = { severity = "warning" }
               annotations = {
                 summary     = "Pod {{ $labels.namespace }}/{{ $labels.pod }} not ready"
@@ -288,9 +288,9 @@ resource "kubernetes_manifest" "critical_alerts" {
           name = "backup"
           rules = [
             {
-              alert = "VeleroBackupFailed"
-              expr  = "velero_backup_failure_total > 0"
-              for   = "0m"
+              alert  = "VeleroBackupFailed"
+              expr   = "velero_backup_failure_total > 0"
+              for    = "0m"
               labels = { severity = "critical" }
               annotations = {
                 summary     = "Velero backup failed"
@@ -298,9 +298,9 @@ resource "kubernetes_manifest" "critical_alerts" {
               }
             },
             {
-              alert = "VeleroBackupPartiallyFailed"
-              expr  = "velero_backup_partial_failure_total > 0"
-              for   = "0m"
+              alert  = "VeleroBackupPartiallyFailed"
+              expr   = "velero_backup_partial_failure_total > 0"
+              for    = "0m"
               labels = { severity = "warning" }
               annotations = {
                 summary     = "Velero backup partially failed"

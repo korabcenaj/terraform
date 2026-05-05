@@ -173,9 +173,9 @@ resource "kubernetes_deployment_v1" "dashboard" {
     labels = merge(
       var.tags,
       {
-        "app.kubernetes.io/name"       = "skills-dashboard"
-        "app.kubernetes.io/instance"   = var.release_name
-        "app.kubernetes.io/component"  = "dashboard"
+        "app.kubernetes.io/name"      = "skills-dashboard"
+        "app.kubernetes.io/instance"  = var.release_name
+        "app.kubernetes.io/component" = "dashboard"
       }
     )
   }

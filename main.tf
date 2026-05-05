@@ -16,7 +16,7 @@ locals {
   keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
   oauth2_proxy_host = "auth.${var.ingress_base_domain}"
   n8n_host          = "n8n.${var.ingress_base_domain}"
-    harbor_host       = "harbor.${var.ingress_base_domain}"
+  harbor_host       = "harbor.${var.ingress_base_domain}"
   # Prefer explicit override, otherwise use the stable Pi-hole LoadBalancer IP
   # (router DNS) so CoreDNS forwarding survives pod/service IP churn.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
@@ -210,22 +210,22 @@ module "keycloak" {
   count  = var.enable_keycloak ? 1 : 0
   source = "./modules/keycloak"
 
-  release_name             = "keycloak"
-  chart_version            = var.keycloak_chart_version
-  admin_user               = var.keycloak_admin_user
-  admin_password           = var.keycloak_admin_password
-  postgresql_username      = var.keycloak_postgresql_username
-  postgresql_password      = var.keycloak_postgresql_password
-  postgresql_database      = var.keycloak_postgresql_database
-  postgresql_storage_class = var.keycloak_postgresql_storage_class
-  postgresql_storage_size  = var.keycloak_postgresql_storage_size
-  ingress_host             = local.keycloak_host
-  realm                    = var.keycloak_realm
-  bootstrap_enabled        = var.keycloak_bootstrap_enabled
-  argocd_client_id         = var.argocd_oidc_client_id
-  argocd_client_secret     = var.argocd_oidc_client_secret
-  argocd_redirect_uris     = ["https://${local.argocd_host}/auth/callback"]
-  argocd_web_origins       = ["https://${local.argocd_host}"]
+  release_name               = "keycloak"
+  chart_version              = var.keycloak_chart_version
+  admin_user                 = var.keycloak_admin_user
+  admin_password             = var.keycloak_admin_password
+  postgresql_username        = var.keycloak_postgresql_username
+  postgresql_password        = var.keycloak_postgresql_password
+  postgresql_database        = var.keycloak_postgresql_database
+  postgresql_storage_class   = var.keycloak_postgresql_storage_class
+  postgresql_storage_size    = var.keycloak_postgresql_storage_size
+  ingress_host               = local.keycloak_host
+  realm                      = var.keycloak_realm
+  bootstrap_enabled          = var.keycloak_bootstrap_enabled
+  argocd_client_id           = var.argocd_oidc_client_id
+  argocd_client_secret       = var.argocd_oidc_client_secret
+  argocd_redirect_uris       = ["https://${local.argocd_host}/auth/callback"]
+  argocd_web_origins         = ["https://${local.argocd_host}"]
   grafana_client_id          = var.grafana_oidc_client_id
   grafana_client_secret      = var.grafana_oidc_client_secret
   grafana_redirect_uris      = ["https://${local.grafana_host}/login/generic_oauth"]
@@ -274,15 +274,15 @@ module "oauth2_proxy" {
   count  = var.enable_oauth2_proxy ? 1 : 0
   source = "./modules/oauth2-proxy"
 
-  release_name     = "oauth2-proxy"
-  chart_version    = var.oauth2_proxy_chart_version
-  oauth2_provider  = var.oauth2_proxy_provider
-  email_domain     = var.oauth2_proxy_email_domain
-  client_id        = var.oauth2_proxy_client_id
-  client_secret    = var.oauth2_proxy_client_secret
-  cookie_secret    = var.oauth2_proxy_cookie_secret
-  ingress_host     = local.oauth2_proxy_host
-  oidc_issuer_url  = local.keycloak_issuer
+  release_name    = "oauth2-proxy"
+  chart_version   = var.oauth2_proxy_chart_version
+  oauth2_provider = var.oauth2_proxy_provider
+  email_domain    = var.oauth2_proxy_email_domain
+  client_id       = var.oauth2_proxy_client_id
+  client_secret   = var.oauth2_proxy_client_secret
+  cookie_secret   = var.oauth2_proxy_cookie_secret
+  ingress_host    = local.oauth2_proxy_host
+  oidc_issuer_url = local.keycloak_issuer
 
   tags = var.tags
 }
@@ -466,10 +466,10 @@ module "monitoring" {
   count  = var.enable_monitoring ? 1 : 0
   source = "./modules/monitoring"
 
-  grafana_service_name    = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].grafana_service_name, "monitor-grafana") : "monitor-grafana"
-  prometheus_service_name = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].prometheus_service_name, "monitor-kube-prometheus-st-prometheus") : "monitor-kube-prometheus-st-prometheus"
-  grafana_host            = local.grafana_host
-  prometheus_host         = local.prometheus_host
+  grafana_service_name           = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].grafana_service_name, "monitor-grafana") : "monitor-grafana"
+  prometheus_service_name        = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].prometheus_service_name, "monitor-kube-prometheus-st-prometheus") : "monitor-kube-prometheus-st-prometheus"
+  grafana_host                   = local.grafana_host
+  prometheus_host                = local.prometheus_host
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
 

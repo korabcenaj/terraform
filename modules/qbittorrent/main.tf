@@ -206,10 +206,10 @@ resource "kubernetes_ingress_v1" "qbittorrent" {
     namespace = var.namespace
     labels    = var.tags
     annotations = {
-      "cert-manager.io/cluster-issuer"                   = "local-lan-ca"
-      "nginx.ingress.kubernetes.io/proxy-body-size"      = "0"
-      "nginx.ingress.kubernetes.io/proxy-read-timeout"   = "600"
-      "nginx.ingress.kubernetes.io/proxy-send-timeout"   = "600"
+      "cert-manager.io/cluster-issuer"                 = "local-lan-ca"
+      "nginx.ingress.kubernetes.io/proxy-body-size"    = "0"
+      "nginx.ingress.kubernetes.io/proxy-read-timeout" = "600"
+      "nginx.ingress.kubernetes.io/proxy-send-timeout" = "600"
     }
   }
 
