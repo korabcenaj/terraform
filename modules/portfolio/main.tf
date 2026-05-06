@@ -193,9 +193,13 @@ resource "kubernetes_ingress_v1" "portfolio" {
         app = "portfolio"
       }
     )
-    annotations = {
-      "cert-manager.io/cluster-issuer" = "local-lan-ca"
-    }
+    annotations = merge(
+      { "cert-manager.io/cluster-issuer" = "local-lan-ca" },
+      var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? {
+        "nginx.ingress.kubernetes.io/auth-url"    = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
+        "nginx.ingress.kubernetes.io/auth-signin" = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
+      } : {}
+    )
   }
 
   spec {

@@ -413,7 +413,7 @@ variable "argocd_bootstrap_auto_sync" {
 variable "tempo_chart_version" {
   description = "Tempo Helm chart version"
   type        = string
-  default     = "1.17.2"
+  default     = "1.24.4"
 }
 
 variable "minio_storage_size" {
@@ -609,58 +609,6 @@ variable "jellyfin_node_name" {
 variable "jellyfin_media_path" {
   description = "Host path for Jellyfin media files"
   type        = string
-}
-
-# ---------------------------------------------------------------------------
-# qBittorrent
-# ---------------------------------------------------------------------------
-
-variable "enable_qbittorrent" {
-  description = "Deploy qBittorrent via Terraform (manages namespace, PVCs, Deployment, Service, Ingress)"
-  type        = bool
-  default     = false
-}
-
-variable "qbittorrent_replicas" {
-  description = "Number of qBittorrent replicas (keep at 1 to avoid PVC conflicts)"
-  type        = number
-  default     = 1
-}
-
-variable "qbittorrent_image" {
-  description = "qBittorrent container image"
-  type        = string
-  default     = "linuxserver/qbittorrent:5.1.4"
-}
-
-variable "qbittorrent_storage_class" {
-  description = "Storage class for qBittorrent config and downloads volumes"
-  type        = string
-  default     = "local-path"
-}
-
-variable "qbittorrent_config_size" {
-  description = "Config PVC size for qBittorrent"
-  type        = string
-  default     = "2Gi"
-}
-
-variable "qbittorrent_downloads_size" {
-  description = "Downloads PVC size for qBittorrent"
-  type        = string
-  default     = "200Gi"
-}
-
-variable "qbittorrent_node_name" {
-  description = "Node name to pin qBittorrent scheduling (leave empty for any node)"
-  type        = string
-  default     = ""
-}
-
-variable "qbittorrent_timezone" {
-  description = "Timezone for the qBittorrent container"
-  type        = string
-  default     = "UTC"
 }
 
 # Resource limits

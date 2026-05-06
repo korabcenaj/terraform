@@ -128,6 +128,9 @@ module "minio" {
   storage_class = var.minio_storage_class
   ingress_host  = local.minio_host
 
+  oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
+  oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+
   tags = var.tags
 }
 
@@ -161,6 +164,9 @@ module "vault" {
   storage_size  = var.vault_storage_size
   storage_class = var.vault_storage_class
   ingress_host  = local.vault_host
+
+  oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
+  oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
 
   tags = var.tags
 }
@@ -275,6 +281,9 @@ module "n8n" {
   timezone       = var.n8n_timezone
   webhook_url    = var.n8n_webhook_url
 
+  oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
+  oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+
   tags = var.tags
 }
 
@@ -379,25 +388,6 @@ resource "kubernetes_namespace" "pihole" {
   }
 }
 
-resource "kubernetes_namespace" "qbittorrent" {
-  count = var.enable_qbittorrent ? 1 : 0
-
-  metadata {
-    name = "qbittorrent"
-    labels = {
-      name = "qbittorrent"
-      # linuxserver image writes to /config; privileged PSS avoids seccomp conflicts
-      "pod-security.kubernetes.io/enforce" = "privileged"
-      "pod-security.kubernetes.io/audit"   = "baseline"
-      "pod-security.kubernetes.io/warn"    = "baseline"
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [metadata[0].annotations]
-  }
-}
-
 # Modules
 module "portfolio" {
   count  = var.enable_portfolio && var.manage_portfolio_workload ? 1 : 0
@@ -431,6 +421,9 @@ module "jellyfin" {
   memory_limit   = "1Gi"
   ingress_host   = local.jellyfin_host
 
+  oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
+  oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+
   tags = var.tags
 }
 
@@ -450,26 +443,8 @@ module "pihole" {
   ingress_host        = local.pihole_host
   dns_wildcard_domain = var.ingress_base_domain
 
-  tags = var.tags
-}
-
-module "qbittorrent" {
-  count  = var.enable_qbittorrent ? 1 : 0
-  source = "./modules/qbittorrent"
-
-  namespace      = kubernetes_namespace.qbittorrent[0].metadata[0].name
-  replicas       = var.qbittorrent_replicas
-  image          = var.qbittorrent_image
-  storage_class  = var.qbittorrent_storage_class
-  config_size    = var.qbittorrent_config_size
-  downloads_size = var.qbittorrent_downloads_size
-  node_name      = var.qbittorrent_node_name
-  timezone       = var.qbittorrent_timezone
-  cpu_request    = "100m"
-  memory_request = "128Mi"
-  cpu_limit      = "500m"
-  memory_limit   = "512Mi"
-  ingress_host   = "qbittorrent.${var.ingress_base_domain}"
+  oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
+  oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
 
   tags = var.tags
 }
@@ -535,7 +510,6 @@ module "networking" {
     # ingress-nginx should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
     var.enable_ai_orchestrator ? "ai-orchestrator" : "",
-    var.enable_qbittorrent ? "qbittorrent" : "",
   ])
 }
 

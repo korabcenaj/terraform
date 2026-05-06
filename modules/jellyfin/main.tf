@@ -39,6 +39,8 @@ resource "kubernetes_persistent_volume_claim" "jellyfin_cache" {
 }
 
 resource "kubernetes_deployment" "jellyfin" {
+  wait_for_rollout = false
+
   metadata {
     name      = "jellyfin"
     namespace = var.namespace
@@ -192,6 +194,10 @@ resource "kubernetes_deployment" "jellyfin" {
     kubernetes_persistent_volume_claim.jellyfin_config,
     kubernetes_persistent_volume_claim.jellyfin_cache
   ]
+
+  lifecycle {
+    ignore_changes = [metadata[0].annotations]
+  }
 }
 
 resource "kubernetes_service" "jellyfin" {
@@ -234,9 +240,13 @@ resource "kubernetes_ingress_v1" "jellyfin" {
         app = "jellyfin"
       }
     )
-    annotations = {
-      "cert-manager.io/cluster-issuer" = "local-lan-ca"
-    }
+    annotations = merge(
+      { "cert-manager.io/cluster-issuer" = "local-lan-ca" },
+      var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? {
+        "nginx.ingress.kubernetes.io/auth-url"    = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
+        "nginx.ingress.kubernetes.io/auth-signin" = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
+      } : {}
+    )
   }
 
   spec {

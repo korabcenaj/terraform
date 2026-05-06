@@ -71,3 +71,15 @@ variable "ingress_host" {
   description = "Hostname used by the Jellyfin ingress"
   type        = string
 }
+
+variable "oauth2_proxy_url" {
+  description = "Public OAuth2 Proxy URL (e.g. https://auth.local.lan). If set, forward-auth is enabled on the ingress."
+  type        = string
+  default     = ""
+}
+
+variable "oauth2_proxy_auth_internal_url" {
+  description = "In-cluster OAuth2 Proxy URL for NGINX auth-url subrequests (e.g. http://oauth2-proxy.oauth2-proxy.svc.cluster.local)"
+  type        = string
+  default     = ""
+}

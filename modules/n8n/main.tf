@@ -79,6 +79,22 @@ resource "helm_release" "n8n" {
     value = "local-lan-ca"
   }
 
+  dynamic "set" {
+    for_each = var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? [1] : []
+    content {
+      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/auth-url"
+      value = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
+    }
+  }
+
+  dynamic "set" {
+    for_each = var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? [1] : []
+    content {
+      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/auth-signin"
+      value = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
+    }
+  }
+
   set {
     name  = "ingress.hosts[0].host"
     value = var.ingress_host
