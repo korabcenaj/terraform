@@ -89,6 +89,19 @@ jobs:
           echo "Refusing to run terraform apply from an empty state." >&2
           exit 1
 
+      - name: Write Terraform variables
+        shell: bash
+        env:
+          TF_VARS_B64: ${{ secrets.TF_VARS_B64 }}
+        run: |
+          if [[ -z "${TF_VARS_B64:-}" ]]; then
+            echo "TF_VARS_B64 secret is not set. Terraform plan/apply will fail if required variables have no defaults." >&2
+            exit 1
+          fi
+          echo "${TF_VARS_B64}" | base64 -d > ci.auto.tfvars
+          chmod 600 ci.auto.tfvars
+          echo "Terraform variables written from secret."
+
       - name: Terraform Init
         shell: bash
         run: terraform init -input=false -backend-config=backend.kubernetes.hcl
