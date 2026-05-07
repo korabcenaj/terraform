@@ -144,6 +144,18 @@ resource "kubernetes_cluster_role_v1" "dashboard" {
     resources  = ["ingresses"]
     verbs      = ["get", "list"]
   }
+
+  rule {
+    api_groups = ["monitoring.example.com"]
+    resources  = ["websitetrackers"]
+    verbs      = ["get", "list", "watch"]
+  }
+
+  rule {
+    api_groups = ["batch"]
+    resources  = ["cronjobs", "jobs"]
+    verbs      = ["get", "list", "watch"]
+  }
 }
 
 # ClusterRoleBinding
@@ -167,6 +179,8 @@ resource "kubernetes_cluster_role_binding_v1" "dashboard" {
 
 # Deployment
 resource "kubernetes_deployment_v1" "dashboard" {
+  wait_for_rollout = false
+
   metadata {
     name      = var.release_name
     namespace = kubernetes_namespace_v1.dashboard.metadata[0].name
