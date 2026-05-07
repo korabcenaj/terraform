@@ -91,7 +91,7 @@ jobs:
 
       - name: Terraform Init
         shell: bash
-        run: terraform init -input=false
+        run: terraform init -input=false -backend-config=backend.kubernetes.hcl
 
       - name: Terraform Plan
         shell: bash

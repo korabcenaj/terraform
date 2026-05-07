@@ -81,7 +81,7 @@ jobs:
           exit 1
 
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -input=false -backend-config=backend.kubernetes.hcl
 
       - name: Terraform Plan (with drift detection)
         run: |
