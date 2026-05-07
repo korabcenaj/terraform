@@ -1,0 +1,51 @@
+name: Portfolio Sync Dispatch
+
+on:
+  workflow_run:
+    workflows:
+      - Terraform Apply
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: [self-hosted, linux, homelab, kubernetes]
+    steps:
+      - name: Log dispatch payload
+        env:
+          PORTFOLIO_REPO: korabcenaj/portfolio-container
+          TERRAFORM_REPO: korabcenaj/terraform
+          TERRAFORM_REF: ${{ github.event.workflow_run.head_branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Dispatch target: ${PORTFOLIO_REPO}"
+          echo "Terraform source repo: ${TERRAFORM_REPO}"
+          echo "Terraform ref: ${TERRAFORM_REF}"
+
+      - name: Dispatch sync event to portfolio repository
+        env:
+          PORTFOLIO_REPO: korabcenaj/portfolio-container
+          TERRAFORM_REPO: korabcenaj/terraform
+          TERRAFORM_REF: ${{ github.event.workflow_run.head_branch }}
+          GH_TOKEN: ${{ secrets.PORTFOLIO_DISPATCH_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "PORTFOLIO_DISPATCH_TOKEN secret is required." >&2
+            exit 1
+          fi
+
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${PORTFOLIO_REPO}/dispatches" \
+            -d "{\"event_type\":\"sync-portfolio-content\",\"client_payload\":{\"terraform_repo\":\"${TERRAFORM_REPO}\",\"terraform_ref\":\"${TERRAFORM_REF}\"}}"
+
+          echo "Dispatched sync event to ${PORTFOLIO_REPO} from successful Terraform Apply on main."

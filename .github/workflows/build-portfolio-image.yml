@@ -22,6 +22,8 @@ jobs:
     runs-on:
       - self-hosted
       - linux
+      - homelab
+      - kubernetes
     env:
       REGISTRY_PORT: 30500
       IMAGE_NAME: portfolio-web
