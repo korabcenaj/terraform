@@ -32,28 +32,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Require kubeconfig secret
-        run: |
-          if [[ -z "${{ secrets.KUBECONFIG_B64 }}" ]]; then
-            echo "KUBECONFIG_B64 is required for the manual Terraform plan workflow."
-            exit 1
-          fi
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.5
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.32.0
-
-      - name: Write kubeconfig
+      - name: Write kubeconfig (if secret provided)
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
         run: |
-          mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
+          if [[ -n "${KUBECONFIG_B64:-}" ]]; then
+            mkdir -p "$HOME/.kube"
+            echo "${KUBECONFIG_B64}" | base64 -d > "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+            echo "Kubeconfig written from secret."
+          else
+            echo "KUBECONFIG_B64 not set — using runner's existing kubeconfig."
+          fi
 
       - name: Verify cluster reachability
         run: |
