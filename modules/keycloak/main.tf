@@ -129,6 +129,40 @@ locals {
           "pkce.code.challenge.method" = "S256"
           "post.logout.redirect.uris"  = "+"
         }
+      },
+      {
+        clientId                  = var.matrix_client_id
+        name                      = "Matrix Synapse"
+        description               = "Matrix Synapse Android-friendly chat OIDC client"
+        enabled                   = true
+        protocol                  = "openid-connect"
+        publicClient              = false
+        secret                    = var.matrix_client_secret
+        standardFlowEnabled       = true
+        implicitFlowEnabled       = false
+        directAccessGrantsEnabled = false
+        serviceAccountsEnabled    = false
+        redirectUris              = var.matrix_redirect_uris
+        webOrigins                = var.matrix_web_origins
+        protocolMappers = [
+          {
+            name            = "groups"
+            protocol        = "openid-connect"
+            protocolMapper  = "oidc-group-membership-mapper"
+            consentRequired = false
+            config = {
+              "full.path"            = "false"
+              "id.token.claim"       = "true"
+              "access.token.claim"   = "true"
+              "userinfo.token.claim" = "true"
+              "claim.name"           = "groups"
+            }
+          }
+        ]
+        attributes = {
+          "pkce.code.challenge.method" = "S256"
+          "post.logout.redirect.uris"  = "+"
+        }
       }
     ]
   }

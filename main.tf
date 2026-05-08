@@ -4,19 +4,21 @@
 ################################################################################
 
 locals {
-  portfolio_host    = "portfolio.${var.ingress_base_domain}"
-  jellyfin_host     = "jellyfin.${var.ingress_base_domain}"
-  pihole_host       = "pihole.${var.ingress_base_domain}"
-  grafana_host      = "grafana.${var.ingress_base_domain}"
-  prometheus_host   = "prometheus.${var.ingress_base_domain}"
-  minio_host        = "minio.${var.ingress_base_domain}"
-  argocd_host       = "argocd.${var.ingress_base_domain}"
-  vault_host        = "vault.${var.ingress_base_domain}"
-  keycloak_host     = "sso.${var.ingress_base_domain}"
-  keycloak_issuer   = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
-  oauth2_proxy_host = "auth.${var.ingress_base_domain}"
-  n8n_host          = "n8n.${var.ingress_base_domain}"
-  harbor_host       = "harbor.${var.ingress_base_domain}"
+  portfolio_host      = "portfolio.${var.ingress_base_domain}"
+  jellyfin_host       = "jellyfin.${var.ingress_base_domain}"
+  pihole_host         = "pihole.${var.ingress_base_domain}"
+  grafana_host        = "grafana.${var.ingress_base_domain}"
+  prometheus_host     = "prometheus.${var.ingress_base_domain}"
+  minio_host          = "minio.${var.ingress_base_domain}"
+  argocd_host         = "argocd.${var.ingress_base_domain}"
+  vault_host          = "vault.${var.ingress_base_domain}"
+  keycloak_host       = "sso.${var.ingress_base_domain}"
+  matrix_host         = "chat.${var.ingress_base_domain}"
+  matrix_synapse_host = trimspace(var.matrix_synapse_ingress_host) != "" ? trimspace(var.matrix_synapse_ingress_host) : local.matrix_host
+  keycloak_issuer     = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
+  oauth2_proxy_host   = "auth.${var.ingress_base_domain}"
+  n8n_host            = "n8n.${var.ingress_base_domain}"
+  harbor_host         = "harbor.${var.ingress_base_domain}"
   # Prefer explicit override, otherwise use the stable Pi-hole LoadBalancer IP
   # (router DNS) so CoreDNS forwarding survives pod/service IP churn.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
@@ -252,6 +254,10 @@ module "keycloak" {
   oauth2_proxy_client_secret = var.oauth2_proxy_client_secret
   oauth2_proxy_redirect_uris = ["https://${local.oauth2_proxy_host}/oauth2/callback"]
   oauth2_proxy_web_origins   = ["https://${local.oauth2_proxy_host}"]
+  matrix_client_id           = var.matrix_synapse_oidc_client_id
+  matrix_client_secret       = var.matrix_synapse_oidc_client_secret
+  matrix_redirect_uris       = ["https://${local.matrix_synapse_host}/_synapse/client/oidc/callback"]
+  matrix_web_origins         = ["https://${local.matrix_synapse_host}"]
 
   tags = var.tags
 }
@@ -285,6 +291,57 @@ module "n8n" {
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
 
   tags = var.tags
+}
+
+module "matrix_synapse" {
+  count  = var.enable_matrix_synapse ? 1 : 0
+  source = "./modules/matrix-synapse"
+
+  namespace       = "matrix"
+  name            = "matrix-synapse"
+  image           = var.matrix_synapse_image
+  server_name     = trimspace(var.matrix_synapse_server_name) != "" ? trimspace(var.matrix_synapse_server_name) : local.matrix_synapse_host
+  public_base_url = trimspace(var.matrix_synapse_public_base_url) != "" ? trimspace(var.matrix_synapse_public_base_url) : "https://${local.matrix_synapse_host}"
+  report_stats    = var.matrix_synapse_report_stats
+  storage_size    = var.matrix_synapse_storage_size
+  storage_class   = var.matrix_synapse_storage_class
+  ingress_host    = local.matrix_synapse_host
+  cluster_issuer  = var.matrix_synapse_cluster_issuer
+  cpu_request     = var.matrix_synapse_cpu_request
+  memory_request  = var.matrix_synapse_memory_request
+  cpu_limit       = var.matrix_synapse_cpu_limit
+  memory_limit    = var.matrix_synapse_memory_limit
+
+  registration_shared_secret = var.matrix_synapse_registration_shared_secret
+  bootstrap_admin_enabled    = var.matrix_synapse_bootstrap_admin_enabled
+  bootstrap_admin_username   = var.matrix_synapse_bootstrap_admin_username
+  bootstrap_admin_password   = var.matrix_synapse_bootstrap_admin_password
+
+  oidc_enabled       = var.matrix_synapse_oidc_enabled
+  oidc_issuer_url    = trimspace(var.matrix_synapse_oidc_issuer_url) != "" ? trimspace(var.matrix_synapse_oidc_issuer_url) : local.keycloak_issuer
+  oidc_client_id     = var.matrix_synapse_oidc_client_id
+  oidc_client_secret = var.matrix_synapse_oidc_client_secret
+  oidc_scopes        = var.matrix_synapse_oidc_scopes
+
+  federation_enabled          = var.matrix_synapse_federation_enabled
+  federation_domain_whitelist = var.matrix_synapse_federation_domain_whitelist
+  well_known_enabled          = var.matrix_synapse_well_known_enabled
+
+  tags = var.tags
+}
+
+module "cloudflare_tunnel" {
+  count  = var.enable_cloudflare_tunnel ? 1 : 0
+  source = "./modules/cloudflare-tunnel"
+
+  namespace                = "cloudflare-tunnel"
+  name                     = "cloudflared"
+  image                    = var.cloudflare_tunnel_image
+  tunnel_token_secret_name = var.cloudflare_tunnel_secret_name
+
+  tags = var.tags
+
+  depends_on = [module.ingress_nginx]
 }
 
 module "oauth2_proxy" {
@@ -506,6 +563,7 @@ module "networking" {
     var.enable_argocd ? "argocd" : "",
     var.enable_tempo ? "tracing" : "",
     var.enable_n8n ? "n8n" : "",
+    var.enable_matrix_synapse ? "matrix" : "",
     # monitoring has its own namespace-specific policies in the monitoring module
     # ingress-nginx should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
@@ -544,12 +602,12 @@ module "network_policies" {
   pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
   n8n_namespace       = try(module.n8n[0].namespace, "n8n")
 
-  enable_oauth2_proxy_netpol = var.enable_oauth2_proxy
-  oauth2_proxy_namespace     = "oauth2-proxy"
-  enable_harbor_netpol       = true
-  harbor_namespace           = "harbor"
+  enable_oauth2_proxy_netpol  = var.enable_oauth2_proxy
+  oauth2_proxy_namespace      = "oauth2-proxy"
+  enable_harbor_netpol        = true
+  harbor_namespace            = "harbor"
   enable_ingress_nginx_netpol = true
-  ingress_nginx_namespace    = "ingress-nginx"
+  ingress_nginx_namespace     = "ingress-nginx"
 
   tags = var.tags
 }

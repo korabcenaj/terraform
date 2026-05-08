@@ -11,6 +11,7 @@ enable_portfolio           = true
 enable_jellyfin            = false
 enable_qbittorrent         = false
 enable_pihole              = true
+enable_matrix_synapse      = false
 enable_monitoring          = true
 enable_network_policies    = true
 enable_pod_security_standards = true
@@ -35,6 +36,22 @@ private_dns_ip = "192.168.1.210"
 portfolio_replicas   = 1
 jellyfin_replicas    = 1
 qbittorrent_replicas = 1
+# Matrix Synapse defaults to https://chat.<ingress_base_domain> when enabled.
+# matrix_synapse_server_name                  = "chat.local.lan"
+# matrix_synapse_public_base_url              = "https://chat.local.lan"
+# matrix_synapse_storage_size                 = "20Gi"
+# matrix_synapse_registration_shared_secret   = "REPLACE_WITH_32_PLUS_CHAR_SECRET"
+# matrix_synapse_bootstrap_admin_enabled      = true
+# matrix_synapse_bootstrap_admin_username     = "admin"
+# matrix_synapse_bootstrap_admin_password     = "REPLACE_WITH_STRONG_PASSWORD"
+# matrix_synapse_oidc_enabled                 = true
+# matrix_synapse_oidc_client_id               = "matrix-synapse"
+# matrix_synapse_oidc_client_secret           = "REPLACE_WITH_KEYCLOAK_CLIENT_SECRET"
+# matrix_synapse_federation_enabled           = false
+# matrix_synapse_well_known_enabled           = true
+# Cloudflare Tunnel (for CGNAT/no port-forward setups)
+# enable_cloudflare_tunnel                    = true
+# cloudflare_tunnel_token                     = "REPLACE_WITH_CLOUDFLARE_TUNNEL_TOKEN"
 # qbittorrent_node_name = "k8s"
 # qbittorrent_storage_class = "local-path"
 

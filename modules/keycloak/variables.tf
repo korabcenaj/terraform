@@ -180,3 +180,28 @@ variable "oauth2_proxy_web_origins" {
   type        = list(string)
   default     = []
 }
+
+variable "matrix_client_id" {
+  description = "OIDC client ID to bootstrap for Matrix Synapse"
+  type        = string
+  default     = "matrix-synapse"
+}
+
+variable "matrix_client_secret" {
+  description = "OIDC client secret to bootstrap for Matrix Synapse"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "matrix_redirect_uris" {
+  description = "Allowed redirect URIs for the Matrix Synapse OIDC client"
+  type        = list(string)
+  default     = []
+}
+
+variable "matrix_web_origins" {
+  description = "Allowed web origins for the Matrix Synapse OIDC client"
+  type        = list(string)
+  default     = []
+}

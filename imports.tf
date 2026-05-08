@@ -54,11 +54,6 @@ import {
 }
 
 import {
-  to = module.keycloak[0].kubernetes_namespace.keycloak
-  id = "keycloak"
-}
-
-import {
   to = module.skills_dashboard[0].kubernetes_namespace_v1.dashboard
   id = "default"
 }
@@ -91,6 +86,11 @@ import {
 import {
   to = module.skills_dashboard[0].kubernetes_ingress_v1.dashboard[0]
   id = "default/skills-dashboard"
+}
+
+import {
+  to = kubernetes_namespace.ci_builds
+  id = "ci-builds"
 }
 
 

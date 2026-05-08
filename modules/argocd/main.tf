@@ -36,6 +36,10 @@ locals {
           rootCA                   = trimspace(var.oidc_root_ca_pem) != "" ? var.oidc_root_ca_pem : null
         })
       }
+      rbac = {
+        "policy.default" = "role:admin"
+        "scopes"         = "[groups, email]"
+      }
     }
   }) : ""
 }
@@ -106,10 +110,10 @@ resource "kubernetes_ingress_v1" "argocd_server" {
     namespace = kubernetes_namespace.argocd.metadata[0].name
     labels    = var.tags
     annotations = {
-      "cert-manager.io/cluster-issuer"                 = "local-lan-ca"
-      "nginx.ingress.kubernetes.io/ssl-passthrough"    = "false"
-      "nginx.ingress.kubernetes.io/backend-protocol"   = "HTTPS"
-      "nginx.ingress.kubernetes.io/proxy-ssl-verify"   = "off"
+      "cert-manager.io/cluster-issuer"               = "local-lan-ca"
+      "nginx.ingress.kubernetes.io/ssl-passthrough"  = "false"
+      "nginx.ingress.kubernetes.io/backend-protocol" = "HTTPS"
+      "nginx.ingress.kubernetes.io/proxy-ssl-verify" = "off"
     }
   }
 

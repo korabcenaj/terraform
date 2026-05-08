@@ -60,6 +60,21 @@ output "keycloak_namespace" {
   value       = try(module.keycloak[0].namespace, null)
 }
 
+output "matrix_synapse_namespace" {
+  description = "Matrix Synapse namespace"
+  value       = try(module.matrix_synapse[0].namespace, null)
+}
+
+output "cloudflare_tunnel_namespace" {
+  description = "Cloudflare tunnel namespace"
+  value       = try(module.cloudflare_tunnel[0].namespace, null)
+}
+
+output "cloudflare_tunnel_deployment" {
+  description = "Cloudflare tunnel deployment name"
+  value       = try(module.cloudflare_tunnel[0].deployment_name, null)
+}
+
 
 output "portfolio_service" {
   description = "Portfolio service information"
@@ -94,28 +109,31 @@ output "ingress_urls" {
     vault        = "https://vault.${var.ingress_base_domain}"
     keycloak     = "https://sso.${var.ingress_base_domain}"
     oauth2_proxy = "https://auth.${var.ingress_base_domain}"
+    matrix       = "https://${trimspace(var.matrix_synapse_ingress_host) != "" ? trimspace(var.matrix_synapse_ingress_host) : "chat.${var.ingress_base_domain}"}"
   }
 }
 
 output "deployed_modules" {
   description = "Deployed modules summary"
   value = {
-    portfolio        = var.enable_portfolio
-    jellyfin         = var.enable_jellyfin
-    pihole           = var.enable_pihole
-    monitoring       = var.enable_monitoring
-    loki             = var.enable_loki
-    minio            = var.enable_minio
-    velero           = var.enable_velero
-    vault            = var.enable_vault
-    external_secrets = var.enable_external_secrets
-    argocd           = var.enable_argocd
-    tempo            = var.enable_tempo
-    keycloak         = var.enable_keycloak
-    oauth2_proxy     = var.enable_oauth2_proxy
-    kyverno          = var.enable_kyverno
-    metrics_server   = var.enable_metrics_server
-    network_policies = var.enable_network_policies
+    portfolio         = var.enable_portfolio
+    jellyfin          = var.enable_jellyfin
+    pihole            = var.enable_pihole
+    monitoring        = var.enable_monitoring
+    loki              = var.enable_loki
+    minio             = var.enable_minio
+    velero            = var.enable_velero
+    vault             = var.enable_vault
+    external_secrets  = var.enable_external_secrets
+    argocd            = var.enable_argocd
+    tempo             = var.enable_tempo
+    keycloak          = var.enable_keycloak
+    matrix_synapse    = var.enable_matrix_synapse
+    cloudflare_tunnel = var.enable_cloudflare_tunnel
+    oauth2_proxy      = var.enable_oauth2_proxy
+    kyverno           = var.enable_kyverno
+    metrics_server    = var.enable_metrics_server
+    network_policies  = var.enable_network_policies
   }
 }
 
@@ -162,6 +180,31 @@ output "tempo_release" {
 output "keycloak_release" {
   description = "Keycloak Helm release name"
   value       = try(module.keycloak[0].release_name, null)
+}
+
+output "matrix_synapse_name" {
+  description = "Matrix Synapse deployment/service base name"
+  value       = try(module.matrix_synapse[0].name, null)
+}
+
+output "matrix_synapse_ingress_host" {
+  description = "Matrix Synapse ingress host"
+  value       = try(module.matrix_synapse[0].ingress_host, null)
+}
+
+output "matrix_synapse_public_base_url" {
+  description = "Matrix Synapse public base URL"
+  value       = try(module.matrix_synapse[0].public_base_url, null)
+}
+
+output "matrix_synapse_oidc_enabled" {
+  description = "Whether Matrix Synapse OIDC is enabled"
+  value       = var.matrix_synapse_oidc_enabled
+}
+
+output "matrix_synapse_federation_enabled" {
+  description = "Whether Matrix Synapse federation is enabled"
+  value       = var.matrix_synapse_federation_enabled
 }
 
 output "keycloak_base_url" {

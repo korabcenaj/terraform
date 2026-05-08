@@ -903,6 +903,186 @@ variable "n8n_webhook_url" {
   default     = ""
 }
 
+# ---------------------------------------------------------------------------
+# Cloudflare Tunnel (CGNAT-friendly inbound access)
+# ---------------------------------------------------------------------------
+
+variable "enable_cloudflare_tunnel" {
+  description = "Deploy cloudflared in-cluster for outbound tunnel connectivity to Cloudflare"
+  type        = bool
+  default     = false
+}
+
+variable "cloudflare_tunnel_secret_name" {
+  description = "Name of the pre-existing Kubernetes secret (in the cloudflare-tunnel namespace) holding key 'token'. Create it out-of-band: kubectl create secret generic <name> --from-literal=token=<TOKEN> -n cloudflare-tunnel"
+  type        = string
+  default     = "cloudflared-token"
+}
+
+variable "cloudflare_tunnel_image" {
+  description = "cloudflared connector image"
+  type        = string
+  default     = "cloudflare/cloudflared:latest"
+}
+
+# ---------------------------------------------------------------------------
+# Matrix Synapse (Android-friendly chat via Element)
+# ---------------------------------------------------------------------------
+
+variable "enable_matrix_synapse" {
+  description = "Deploy Matrix Synapse chat server (recommended Android client: Element)"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_synapse_image" {
+  description = "Container image for Matrix Synapse"
+  type        = string
+  default     = "matrixdotorg/synapse:v1.131.0"
+}
+
+variable "matrix_synapse_server_name" {
+  description = "Optional explicit Matrix server_name used for user IDs and federation. Leave empty to use chat.<ingress_base_domain>."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_synapse_public_base_url" {
+  description = "Optional explicit public base URL for Synapse. Leave empty to use https://chat.<ingress_base_domain>."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_synapse_ingress_host" {
+  description = "Optional explicit ingress host for Matrix Synapse. Leave empty to use chat.<ingress_base_domain>."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_synapse_cluster_issuer" {
+  description = "cert-manager ClusterIssuer used by Matrix Synapse ingress TLS"
+  type        = string
+  default     = "local-lan-ca"
+}
+
+variable "matrix_synapse_report_stats" {
+  description = "Allow Synapse to report anonymous usage statistics"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_synapse_storage_size" {
+  description = "Persistent volume size for Matrix Synapse data"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "matrix_synapse_storage_class" {
+  description = "Storage class for Matrix Synapse persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "matrix_synapse_cpu_request" {
+  description = "CPU request for Matrix Synapse"
+  type        = string
+  default     = "250m"
+}
+
+variable "matrix_synapse_memory_request" {
+  description = "Memory request for Matrix Synapse"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "matrix_synapse_cpu_limit" {
+  description = "CPU limit for Matrix Synapse"
+  type        = string
+  default     = "1000m"
+}
+
+variable "matrix_synapse_memory_limit" {
+  description = "Memory limit for Matrix Synapse"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "matrix_synapse_registration_shared_secret" {
+  description = "Shared secret used for secure first-admin bootstrap and controlled user provisioning"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_MATRIX_SHARED_SECRET"
+}
+
+variable "matrix_synapse_bootstrap_admin_enabled" {
+  description = "Run one-shot Kubernetes Job to create the first Matrix admin user"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_synapse_bootstrap_admin_username" {
+  description = "Username for first Matrix admin account"
+  type        = string
+  default     = "admin"
+}
+
+variable "matrix_synapse_bootstrap_admin_password" {
+  description = "Password for first Matrix admin account"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "matrix_synapse_oidc_enabled" {
+  description = "Enable OIDC login for Matrix Synapse"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_synapse_oidc_issuer_url" {
+  description = "Optional explicit OIDC issuer URL. Leave empty to use Keycloak realm URL derived from ingress_base_domain and keycloak_realm."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_synapse_oidc_client_id" {
+  description = "OIDC client ID for Matrix Synapse"
+  type        = string
+  sensitive   = true
+  default     = "matrix-synapse"
+}
+
+variable "matrix_synapse_oidc_client_secret" {
+  description = "OIDC client secret for Matrix Synapse"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "matrix_synapse_oidc_scopes" {
+  description = "OIDC scopes requested by Matrix Synapse"
+  type        = list(string)
+  default     = ["openid", "profile", "email"]
+}
+
+variable "matrix_synapse_federation_enabled" {
+  description = "Enable Matrix federation with external homeservers"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_synapse_federation_domain_whitelist" {
+  description = "Optional allow-list of external homeserver domains for federation. Empty means unrestricted when federation is enabled."
+  type        = list(string)
+  default     = []
+}
+
+variable "matrix_synapse_well_known_enabled" {
+  description = "Expose .well-known/matrix/server and .well-known/matrix/client endpoints"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
