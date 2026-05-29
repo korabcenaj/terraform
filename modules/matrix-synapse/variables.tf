@@ -110,10 +110,10 @@ variable "bootstrap_admin_password" {
 
   validation {
     condition = (
-      !var.bootstrap_admin_enabled ||
+      trimspace(var.bootstrap_admin_password) == "" ||
       length(trimspace(var.bootstrap_admin_password)) >= 12
     )
-    error_message = "bootstrap_admin_password must be at least 12 characters when bootstrap_admin_enabled is true."
+    error_message = "bootstrap_admin_password must be at least 12 characters when set."
   }
 }
 
@@ -140,11 +140,6 @@ variable "oidc_client_secret" {
   type        = string
   sensitive   = true
   default     = ""
-
-  validation {
-    condition     = !var.oidc_enabled || trimspace(var.oidc_client_secret) != ""
-    error_message = "oidc_client_secret is required when oidc_enabled is true."
-  }
 }
 
 variable "oidc_scopes" {

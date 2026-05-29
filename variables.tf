@@ -1227,3 +1227,330 @@ variable "harbor_oidc_client_secret" {
   sensitive   = true
   default     = ""
 }
+
+# ---------------------------------------------------------------------------
+# Platform: Rancher, Traefik, MetalLB, Linkerd, KEDA
+# ---------------------------------------------------------------------------
+
+variable "enable_rancher" {
+  description = "Deploy Rancher multi-cluster manager via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "rancher_chart_version" {
+  description = "Rancher Helm chart version"
+  type        = string
+  default     = "2.14.1"
+}
+
+variable "rancher_replicas" {
+  description = "Number of Rancher server replicas"
+  type        = number
+  default     = 1
+}
+
+variable "enable_traefik" {
+  description = "Deploy Traefik ingress controller via Helm (primary ingress controller)"
+  type        = bool
+  default     = false
+}
+
+variable "traefik_chart_version" {
+  description = "Traefik Helm chart version"
+  type        = string
+  default     = "40.2.0"
+}
+
+variable "traefik_replicas" {
+  description = "Number of Traefik replicas"
+  type        = number
+  default     = 2
+}
+
+variable "traefik_service_type" {
+  description = "Traefik service type (LoadBalancer, NodePort, ClusterIP)"
+  type        = string
+  default     = "LoadBalancer"
+}
+
+variable "traefik_load_balancer_ip" {
+  description = "Static IP for Traefik LoadBalancer service (leave empty for dynamic)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_metallb" {
+  description = "Deploy MetalLB load balancer via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "metallb_chart_version" {
+  description = "MetalLB Helm chart version"
+  type        = string
+  default     = "0.15.3"
+}
+
+variable "enable_linkerd" {
+  description = "Manage Linkerd service mesh namespaces (control plane installed via CLI)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_linkerd_viz" {
+  description = "Whether Linkerd Viz dashboard is deployed"
+  type        = bool
+  default     = true
+}
+
+variable "enable_keda" {
+  description = "Deploy KEDA autoscaler via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "keda_chart_version" {
+  description = "KEDA Helm chart version"
+  type        = string
+  default     = "2.19.0"
+}
+
+# ---------------------------------------------------------------------------
+# Registry & Git: Harbor, Gitea
+# ---------------------------------------------------------------------------
+
+variable "enable_harbor" {
+  description = "Deploy Harbor container registry via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "harbor_chart_version" {
+  description = "Harbor Helm chart version"
+  type        = string
+  default     = "1.19.0"
+}
+
+variable "harbor_ingress_class_name" {
+  description = "Ingress class name for Harbor"
+  type        = string
+  default     = "traefik"
+}
+
+variable "harbor_admin_password" {
+  description = "Harbor admin password"
+  type        = string
+  sensitive   = true
+  default     = "Harbor12345"
+}
+
+variable "harbor_storage_class" {
+  description = "Storage class for Harbor persistent volumes"
+  type        = string
+  default     = "local-path"
+}
+
+variable "enable_gitea" {
+  description = "Deploy Gitea git server via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "gitea_chart_version" {
+  description = "Gitea Helm chart version"
+  type        = string
+  default     = "12.5.3"
+}
+
+variable "gitea_image_tag" {
+  description = "Gitea container image tag"
+  type        = string
+  default     = "1.24.1"
+}
+
+variable "gitea_ingress_class_name" {
+  description = "Ingress class name for Gitea"
+  type        = string
+  default     = "traefik"
+}
+
+variable "gitea_admin_username" {
+  description = "Gitea admin username"
+  type        = string
+  default     = "gitea"
+}
+
+variable "gitea_admin_password" {
+  description = "Gitea admin password"
+  type        = string
+  sensitive   = true
+  default     = "gitea123"
+}
+
+variable "gitea_admin_email" {
+  description = "Gitea admin email"
+  type        = string
+  default     = "admin@local.lan"
+}
+
+variable "gitea_postgresql_password" {
+  description = "Gitea PostgreSQL password"
+  type        = string
+  sensitive   = true
+  default     = "gitea123"
+}
+
+variable "gitea_storage_size" {
+  description = "Gitea persistent volume size"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "gitea_storage_class" {
+  description = "Storage class for Gitea persistent volumes"
+  type        = string
+  default     = "local-path"
+}
+
+# ---------------------------------------------------------------------------
+# Monitoring: Grafana Alloy
+# ---------------------------------------------------------------------------
+
+variable "enable_grafana_alloy" {
+  description = "Deploy Grafana Alloy-based k8s-monitoring via Helm (replaces kube-prometheus-stack)"
+  type        = bool
+  default     = false
+}
+
+variable "grafana_alloy_chart_version" {
+  description = "k8s-monitoring Helm chart version (Grafana Alloy)"
+  type        = string
+  default     = "4.1.3"
+}
+
+variable "grafana_alloy_metrics_password" {
+  description = "Grafana Cloud metrics (Prometheus) API key"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "grafana_alloy_logs_password" {
+  description = "Grafana Cloud logs (Loki) API key"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+# ---------------------------------------------------------------------------
+# Rancher ecosystem: Fleet, Turtles
+# ---------------------------------------------------------------------------
+
+variable "enable_fleet" {
+  description = "Deploy Rancher Fleet (GitOps at scale) via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "fleet_chart_version" {
+  description = "Fleet Helm chart version"
+  type        = string
+  default     = "109.0.1+up0.15.1"
+}
+
+variable "enable_rancher_turtles" {
+  description = "Deploy Rancher Turtles (Cluster API integration) via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "rancher_turtles_chart_version" {
+  description = "Rancher Turtles Helm chart version"
+  type        = string
+  default     = "109.0.1+up0.26.1"
+}
+
+# ---------------------------------------------------------------------------
+# CI/CD: Argo Workflows, Tekton
+# ---------------------------------------------------------------------------
+
+variable "enable_argo_workflows" {
+  description = "Manage Argo Workflows namespace (workloads managed by Argo CD)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_argo_events" {
+  description = "Manage Argo Events namespace (workloads managed by Argo CD)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_argo_rollouts" {
+  description = "Manage Argo Rollouts namespace (workloads managed by Argo CD)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_tekton_pipelines" {
+  description = "Manage Tekton Pipelines namespace (workloads managed by Argo CD)"
+  type        = bool
+  default     = false
+}
+
+# ---------------------------------------------------------------------------
+# Security: Falco, Sealed Secrets
+# ---------------------------------------------------------------------------
+
+variable "enable_falco" {
+  description = "Deploy Falco runtime security via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "falco_chart_version" {
+  description = "Falco Helm chart version"
+  type        = string
+  default     = "8.0.2"
+}
+
+variable "enable_sealed_secrets" {
+  description = "Deploy Sealed Secrets controller for GitOps-friendly secret encryption"
+  type        = bool
+  default     = false
+}
+
+variable "sealed_secrets_image" {
+  description = "Sealed Secrets controller image"
+  type        = string
+  default     = "docker.io/bitnami/sealed-secrets-controller:v0.24.1"
+}
+
+# ---------------------------------------------------------------------------
+# Build & Apps: BuildKit, Sabnzbd, Website Tracker
+# ---------------------------------------------------------------------------
+
+variable "enable_buildkit" {
+  description = "Manage BuildKit namespace (workload managed by Argo CD)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_sabnzbd" {
+  description = "Manage Sabnzbd namespace (workload managed by Argo CD)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_website_tracker" {
+  description = "Deploy Website Tracker operator via Helm"
+  type        = bool
+  default     = false
+}
+
+variable "website_tracker_chart_version" {
+  description = "Website Tracker Helm chart version"
+  type        = string
+  default     = "0.1.0"
+}

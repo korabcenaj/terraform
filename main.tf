@@ -1,5 +1,5 @@
 ################################################################################
-# Docker-Apps Kubernetes Infrastructure as Code
+# Kubernetes Infrastructure as Code
 # Manages all cluster and application deployments
 ################################################################################
 
@@ -19,6 +19,8 @@ locals {
   oauth2_proxy_host   = "auth.${var.ingress_base_domain}"
   n8n_host            = "n8n.${var.ingress_base_domain}"
   harbor_host         = "harbor.${var.ingress_base_domain}"
+  rancher_host        = "rancher.${var.ingress_base_domain}"
+  gitea_host          = "git.${var.ingress_base_domain}"
   # Prefer explicit override, otherwise use the stable Pi-hole LoadBalancer IP
   # (router DNS) so CoreDNS forwarding survives pod/service IP churn.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
@@ -568,6 +570,18 @@ module "networking" {
     # ingress-nginx should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
     var.enable_ai_orchestrator ? "ai-orchestrator" : "",
+    var.enable_rancher ? "cattle-system" : "",
+    var.enable_traefik ? "traefik" : "",
+    var.enable_harbor ? "harbor" : "",
+    var.enable_gitea ? "git" : "",
+    var.enable_keda ? "keda" : "",
+    var.enable_grafana_alloy ? "grafana-alloy" : "",
+    var.enable_falco ? "falco" : "",
+    var.enable_buildkit ? "buildkit" : "",
+    var.enable_sabnzbd ? "sabnzbd" : "",
+    var.enable_argo_workflows ? "argo" : "",
+    var.enable_tekton_pipelines ? "tekton-pipelines" : "",
+    var.enable_linkerd ? "linkerd" : "",
   ])
 }
 
@@ -640,7 +654,7 @@ module "skills_dashboard" {
   namespace          = "default"
   replicas           = 2
   host               = var.skills_dashboard_host != "" ? var.skills_dashboard_host : "skills.${var.ingress_base_domain}"
-  ingress_class_name = "nginx"
+  ingress_class_name = "traefik"
   enable_ingress     = true
   tls_enabled        = var.enable_cert_manager
   annotations = {
@@ -724,6 +738,221 @@ resource "kubernetes_role_binding_v1" "kaniko_builder" {
     name      = kubernetes_service_account_v1.kaniko_builder.metadata[0].name
     namespace = kubernetes_service_account_v1.kaniko_builder.metadata[0].namespace
   }
+}
+
+# ---------------------------------------------------------------------------
+# Platform: Rancher, Traefik, MetalLB, Linkerd, KEDA
+# ---------------------------------------------------------------------------
+
+module "rancher" {
+  count  = var.enable_rancher ? 1 : 0
+  source = "./modules/rancher"
+
+  release_name  = "rancher"
+  chart_version = var.rancher_chart_version
+  hostname      = local.rancher_host
+  replicas      = var.rancher_replicas
+
+  tags = var.tags
+
+  depends_on = [module.cert_manager]
+}
+
+module "traefik" {
+  count  = var.enable_traefik ? 1 : 0
+  source = "./modules/traefik"
+
+  release_name  = "traefik"
+  chart_version = var.traefik_chart_version
+  replicas      = var.traefik_replicas
+  service_type  = var.traefik_service_type
+  load_balancer_ip = var.traefik_load_balancer_ip
+
+  tags = var.tags
+}
+
+module "metallb" {
+  count  = var.enable_metallb ? 1 : 0
+  source = "./modules/metallb"
+
+  release_name  = "metallb"
+  chart_version = var.metallb_chart_version
+
+  tags = var.tags
+}
+
+module "linkerd" {
+  count  = var.enable_linkerd ? 1 : 0
+  source = "./modules/linkerd"
+
+  enable_linkerd_viz = var.enable_linkerd_viz
+
+  tags = var.tags
+}
+
+module "keda" {
+  count  = var.enable_keda ? 1 : 0
+  source = "./modules/keda"
+
+  release_name  = "keda"
+  chart_version = var.keda_chart_version
+
+  tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Registry & Git: Harbor, Gitea
+# ---------------------------------------------------------------------------
+
+module "harbor" {
+  count  = var.enable_harbor ? 1 : 0
+  source = "./modules/harbor"
+
+  release_name     = "harbor"
+  chart_version    = var.harbor_chart_version
+  ingress_host     = local.harbor_host
+  ingress_class_name = var.harbor_ingress_class_name
+  admin_password   = var.harbor_admin_password
+  storage_class    = var.harbor_storage_class
+
+  tags = var.tags
+}
+
+module "gitea" {
+  count  = var.enable_gitea ? 1 : 0
+  source = "./modules/gitea"
+
+  release_name      = "gitea"
+  chart_version     = var.gitea_chart_version
+  image_tag         = var.gitea_image_tag
+  ingress_host      = local.gitea_host
+  ingress_class_name = var.gitea_ingress_class_name
+  admin_username    = var.gitea_admin_username
+  admin_password    = var.gitea_admin_password
+  admin_email       = var.gitea_admin_email
+  postgresql_password = var.gitea_postgresql_password
+  storage_size      = var.gitea_storage_size
+  storage_class     = var.gitea_storage_class
+
+  tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Monitoring: Grafana Alloy (replaces kube-prometheus-stack)
+# ---------------------------------------------------------------------------
+
+module "grafana_alloy" {
+  count  = var.enable_grafana_alloy ? 1 : 0
+  source = "./modules/grafana-alloy"
+
+  release_name                 = "grafana-k8s-monitoring"
+  chart_version                = var.grafana_alloy_chart_version
+  cluster_name                 = var.cluster_name
+  metrics_destination_password = var.grafana_alloy_metrics_password
+  logs_destination_password    = var.grafana_alloy_logs_password
+
+  tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Rancher ecosystem: Fleet, Turtles
+# ---------------------------------------------------------------------------
+
+module "fleet" {
+  count  = var.enable_fleet ? 1 : 0
+  source = "./modules/fleet"
+
+  release_name = "fleet"
+  chart_version = var.fleet_chart_version
+  rancher_url  = "https://${local.rancher_host}"
+
+  tags = var.tags
+
+  depends_on = [module.rancher]
+}
+
+module "rancher_turtles" {
+  count  = var.enable_rancher_turtles ? 1 : 0
+  source = "./modules/rancher-turtles"
+
+  release_name  = "rancher-turtles"
+  chart_version = var.rancher_turtles_chart_version
+
+  tags = var.tags
+
+  depends_on = [module.rancher]
+}
+
+# ---------------------------------------------------------------------------
+# CI/CD: Argo Workflows, Tekton
+# ---------------------------------------------------------------------------
+
+module "argo_workflows" {
+  count  = var.enable_argo_workflows ? 1 : 0
+  source = "./modules/argo-workflows"
+
+  enable_argo_events   = var.enable_argo_events
+  enable_argo_rollouts = var.enable_argo_rollouts
+
+  tags = var.tags
+}
+
+module "tekton_pipelines" {
+  count  = var.enable_tekton_pipelines ? 1 : 0
+  source = "./modules/tekton-pipelines"
+
+  tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Security: Falco, Sealed Secrets
+# ---------------------------------------------------------------------------
+
+module "falco" {
+  count  = var.enable_falco ? 1 : 0
+  source = "./modules/falco"
+
+  release_name  = "falco"
+  chart_version = var.falco_chart_version
+
+  tags = var.tags
+}
+
+module "sealed_secrets" {
+  count  = var.enable_sealed_secrets ? 1 : 0
+  source = "./modules/sealed-secrets"
+
+  image = var.sealed_secrets_image
+
+  tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Build & Apps: BuildKit, Sabnzbd, Website Tracker
+# ---------------------------------------------------------------------------
+
+module "buildkit" {
+  count  = var.enable_buildkit ? 1 : 0
+  source = "./modules/buildkit"
+
+  tags = var.tags
+}
+
+module "sabnzbd" {
+  count  = var.enable_sabnzbd ? 1 : 0
+  source = "./modules/sabnzbd"
+
+  tags = var.tags
+}
+
+module "website_tracker" {
+  count  = var.enable_website_tracker ? 1 : 0
+  source = "./modules/website-tracker"
+
+  release_name  = "website-tracker"
+  chart_version = var.website_tracker_chart_version
+
+  tags = var.tags
 }
 
 # ---------------------------------------------------------------------------

@@ -259,3 +259,141 @@ output "kyverno_enforcement_mode" {
   description = "Active Kyverno enforcement mode"
   value       = try(module.kyverno[0].enforcement_mode, null)
 }
+
+# ---------------------------------------------------------------------------
+# Platform outputs
+# ---------------------------------------------------------------------------
+
+output "rancher_namespace" {
+  description = "Rancher namespace"
+  value       = try(module.rancher[0].namespace, null)
+}
+
+output "rancher_hostname" {
+  description = "Rancher server hostname"
+  value       = try(module.rancher[0].hostname, null)
+}
+
+output "traefik_namespace" {
+  description = "Traefik namespace"
+  value       = try(module.traefik[0].namespace, null)
+}
+
+output "metallb_namespace" {
+  description = "MetalLB namespace"
+  value       = try(module.metallb[0].namespace, null)
+}
+
+output "linkerd_namespace" {
+  description = "Linkerd namespace"
+  value       = try(module.linkerd[0].namespace, null)
+}
+
+output "keda_namespace" {
+  description = "KEDA namespace"
+  value       = try(module.keda[0].namespace, null)
+}
+
+# ---------------------------------------------------------------------------
+# Registry & Git outputs
+# ---------------------------------------------------------------------------
+
+output "harbor_namespace" {
+  description = "Harbor namespace"
+  value       = try(module.harbor[0].namespace, null)
+}
+
+output "harbor_ingress_host" {
+  description = "Harbor ingress hostname"
+  value       = try(module.harbor[0].ingress_host, null)
+}
+
+output "gitea_namespace" {
+  description = "Gitea namespace"
+  value       = try(module.gitea[0].namespace, null)
+}
+
+output "gitea_ingress_host" {
+  description = "Gitea ingress hostname"
+  value       = try(module.gitea[0].ingress_host, null)
+}
+
+# ---------------------------------------------------------------------------
+# Monitoring outputs
+# ---------------------------------------------------------------------------
+
+output "grafana_alloy_namespace" {
+  description = "Grafana Alloy namespace"
+  value       = try(module.grafana_alloy[0].namespace, null)
+}
+
+# ---------------------------------------------------------------------------
+# Rancher ecosystem outputs
+# ---------------------------------------------------------------------------
+
+output "fleet_release" {
+  description = "Fleet Helm release name"
+  value       = try(module.fleet[0].release_name, null)
+}
+
+output "rancher_turtles_release" {
+  description = "Rancher Turtles Helm release name"
+  value       = try(module.rancher_turtles[0].release_name, null)
+}
+
+# ---------------------------------------------------------------------------
+# CI/CD outputs
+# ---------------------------------------------------------------------------
+
+output "argo_workflows_namespace" {
+  description = "Argo Workflows namespace"
+  value       = try(module.argo_workflows[0].argo_namespace, null)
+}
+
+output "argo_events_namespace" {
+  description = "Argo Events namespace"
+  value       = try(module.argo_workflows[0].argo_events_namespace, null)
+}
+
+output "argo_rollouts_namespace" {
+  description = "Argo Rollouts namespace"
+  value       = try(module.argo_workflows[0].argo_rollouts_namespace, null)
+}
+
+output "tekton_pipelines_namespace" {
+  description = "Tekton Pipelines namespace"
+  value       = try(module.tekton_pipelines[0].pipelines_namespace, null)
+}
+
+# ---------------------------------------------------------------------------
+# Security outputs
+# ---------------------------------------------------------------------------
+
+output "falco_namespace" {
+  description = "Falco namespace"
+  value       = try(module.falco[0].namespace, null)
+}
+
+output "sealed_secrets_deployment" {
+  description = "Sealed Secrets deployment name"
+  value       = try(module.sealed_secrets[0].deployment_name, null)
+}
+
+# ---------------------------------------------------------------------------
+# Build & Apps outputs
+# ---------------------------------------------------------------------------
+
+output "buildkit_namespace" {
+  description = "BuildKit namespace"
+  value       = try(module.buildkit[0].namespace, null)
+}
+
+output "sabnzbd_namespace" {
+  description = "Sabnzbd namespace"
+  value       = try(module.sabnzbd[0].namespace, null)
+}
+
+output "website_tracker_namespace" {
+  description = "Website Tracker namespace"
+  value       = try(module.website_tracker[0].namespace, null)
+}
