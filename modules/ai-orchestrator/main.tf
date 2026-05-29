@@ -71,6 +71,14 @@ resource "kubernetes_network_policy_v1" "allow_ingress_nginx" {
         }
       }
 
+      from {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "traefik"
+          }
+        }
+      }
+
       ports {
         protocol = "TCP"
         port     = tostring(var.api_gateway_port)

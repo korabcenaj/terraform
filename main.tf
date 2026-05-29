@@ -620,7 +620,7 @@ module "network_policies" {
   oauth2_proxy_namespace      = "oauth2-proxy"
   enable_harbor_netpol        = true
   harbor_namespace            = "harbor"
-  enable_ingress_nginx_netpol = true
+  enable_ingress_nginx_netpol = var.enable_ingress_nginx
   ingress_nginx_namespace     = "ingress-nginx"
 
   tags = var.tags
