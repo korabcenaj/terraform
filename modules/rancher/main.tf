@@ -43,5 +43,5 @@ resource "helm_release" "rancher" {
   }
 
   wait    = true
-  timeout = 600
+  timeout = 900
 }

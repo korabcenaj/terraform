@@ -38,5 +38,5 @@ resource "helm_release" "traefik" {
   }
 
   wait    = true
-  timeout = 300
+  timeout = 600
 }

@@ -949,9 +949,6 @@ module "website_tracker" {
   count  = var.enable_website_tracker ? 1 : 0
   source = "./modules/website-tracker"
 
-  release_name  = "website-tracker"
-  chart_version = var.website_tracker_chart_version
-
   tags = var.tags
 }
 
