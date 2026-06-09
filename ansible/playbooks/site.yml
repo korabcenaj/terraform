@@ -1,0 +1,16 @@
+---
+# ===========================================================================
+# Playbook: site.yml
+# Master playbook — imports all other playbooks in sequence.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml
+# ===========================================================================
+
+- name: Import node setup
+  ansible.builtin.import_playbook: node-setup.yml
+  tags: [setup, bootstrap]
+
+- name: Import node audit
+  ansible.builtin.import_playbook: node-audit.yml
+  tags: [audit, security, report]

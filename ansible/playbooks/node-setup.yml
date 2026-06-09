@@ -1,0 +1,71 @@
+---
+# ===========================================================================
+# Playbook: node-setup.yml
+# Full initial setup for all Kubernetes nodes: common packages, container
+# runtime, Kubernetes tooling, and OS hardening.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/node-setup.yml
+#   ansible-playbook -i inventory/hosts.yml playbooks/node-setup.yml --limit k8s_workers
+# ===========================================================================
+
+- name: Setup Kubernetes nodes
+  hosts: k8s_cluster
+  gather_facts: true
+  serial: 1
+  any_errors_fatal: true
+
+  pre_tasks:
+    - name: Check minimum Ubuntu version
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+        fail_msg: "This playbook requires Ubuntu 24.04+. Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Display node information
+      ansible.builtin.debug:
+        msg:
+          - "Node: {{ inventory_hostname }} ({{ ansible_host }})"
+          - "Role: {{ node_role | default('unknown') }}"
+          - "CPU: {{ ansible_processor_count }} cores"
+          - "Memory: {{ (ansible_memtotal_mb / 1024) | round(1) }} GB"
+          - "Disk: {{ (ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_total') | first / 1024 / 1024 / 1024) | round(1) }} GB"
+
+  roles:
+    - common
+    - containerd
+    - kubernetes
+    - hardening
+
+  post_tasks:
+    - name: Node setup complete
+      ansible.builtin.debug:
+        msg: "✅ {{ inventory_hostname }} is ready for Kubernetes cluster join."
+
+- name: Setup GPU nodes (AMD + Intel)
+  hosts: k8s_cluster
+  gather_facts: false
+  serial: 1
+  tags: [gpu]
+
+  tasks:
+    - name: Detect AMD GPU
+      ansible.builtin.shell:
+        cmd: "set -o pipefail && lspci | grep -i 'amd/ati' || true"
+        executable: /bin/bash
+      register: amd_gpu_check
+      changed_when: false
+
+    - name: Detect Intel GPU
+      ansible.builtin.shell:
+        cmd: "set -o pipefail && lspci | grep -i 'vga.*intel' || true"
+        executable: /bin/bash
+      register: intel_gpu_check
+      changed_when: false
+
+    - name: Display GPU info
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} — AMD GPU: {{ 'yes' if amd_gpu_check.stdout != '' else 'no' }}"
+          - "{{ inventory_hostname }} — Intel GPU: {{ 'yes' if intel_gpu_check.stdout != '' else 'no' }}"

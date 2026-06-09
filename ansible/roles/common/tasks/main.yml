@@ -1,0 +1,91 @@
+---
+# ===========================================================================
+# Role: common — Base system setup for all nodes
+# ===========================================================================
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  register: apt_update
+  changed_when: false
+
+- name: Install common system packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    install_recommends: false
+
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ kernel_modules }}"
+
+- name: Persist kernel modules
+  ansible.builtin.copy:
+    content: |
+      {% for mod in kernel_modules %}
+      {{ mod }}
+      {% endfor %}
+    dest: /etc/modules-load.d/kubernetes.conf
+    mode: "0644"
+
+- name: Apply sysctl settings
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+  loop: "{{ sysctl_settings | dict2items }}"
+
+- name: Disable swap
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+  when: ansible_swaptotal_mb > 0
+
+- name: Remove swap from fstab
+  ansible.posix.mount:
+    name: swap
+    fstype: swap
+    state: absent
+
+- name: Configure timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Enable and start chrony (NTP)
+  ansible.builtin.systemd:
+    name: chrony
+    state: started
+    enabled: true
+
+- name: Configure UFW defaults
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop: "{{ ufw_default_rules }}"
+  notify: Enable UFW
+
+- name: Configure logrotate for system logs
+  ansible.builtin.copy:
+    content: |
+      /var/log/syslog
+      /var/log/auth.log
+      /var/log/kern.log
+      {
+        rotate 7
+        daily
+        missingok
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+          /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+      }
+    dest: /etc/logrotate.d/system-logs
+    mode: "0644"

@@ -1,0 +1,131 @@
+# ===========================================================================
+# Community Ansible Playbooks for AWX — Homelab Kubernetes Platform
+# ===========================================================================
+#
+# All repos below are production-tested, well-maintained, and relevant to
+# a Kubernetes homelab running Ubuntu 24.04.
+#
+# Usage: Run the companion script `setup-awx-community.sh` to add these
+# as AWX Projects and Job Templates automatically.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# CATEGORY 1 — SECURITY HARDENING (HIGH PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 1. ansible-lockdown — CIS Benchmark Hardening
+#    Applies CIS security benchmarks to Ubuntu servers
+#    GitHub: https://github.com/ansible-lockdown/UBUNTU22-CIS
+#    Playbooks: default.yml, level1.yml, level2.yml
+#    Why: Industry-standard hardening for production nodes
+- name: UBUNTU22-CIS
+  repo: https://github.com/ansible-lockdown/UBUNTU22-CIS.git
+  playbooks:
+    - default.yml
+
+# ---------------------------------------------------------------------------
+# CATEGORY 2 — PROMETHEUS / MONITORING (HIGH PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 2. cloudalchemy — Prometheus Node Exporter
+#    Deploys Prometheus node_exporter on all nodes
+#    GitHub: https://github.com/cloudalchemy/ansible-node-exporter
+#    Playbooks: site.yml
+#    Why: Metrics collection for Grafana dashboards
+- name: ansible-node-exporter
+  repo: https://github.com/cloudalchemy/ansible-node-exporter.git
+  playbooks:
+    - site.yml
+
+# ---------------------------------------------------------------------------
+# CATEGORY 3 — NGINX / INGRESS (MEDIUM PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 3. nginxinc — Official NGINX Role
+#    Production-grade NGINX deployment & config management
+#    GitHub: https://github.com/nginxinc/ansible-role-nginx
+#    Why: Reverse proxy, load balancing, TLS termination
+- name: ansible-role-nginx
+  repo: https://github.com/nginxinc/ansible-role-nginx.git
+
+# ---------------------------------------------------------------------------
+# CATEGORY 4 — SSL / CERTIFICATES (MEDIUM PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 4. geerlingguy — Certbot (Let's Encrypt)
+#    Automated Let's Encrypt SSL certificate management
+#    GitHub: https://github.com/geerlingguy/ansible-role-certbot
+#    Why: Auto-renewing TLS certs for all services
+- name: ansible-role-certbot
+  repo: https://github.com/geerlingguy/ansible-role-certbot.git
+
+# ---------------------------------------------------------------------------
+# CATEGORY 5 — SYSTEM MAINTENANCE (MEDIUM PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 5. robertdebock — System Update
+#    Automated system package updates with reboot handling
+#    GitHub: https://github.com/robertdebock/ansible-role-update
+#    Playbooks: update.yml
+#    Why: Patch management complementing your node-update.yml
+- name: ansible-role-update
+  repo: https://github.com/robertdebock/ansible-role-update.git
+
+# 6. robertdebock — Fail2ban
+#    Intrusion prevention with fail2ban
+#    GitHub: https://github.com/robertdebock/ansible-role-fail2ban
+#    Why: Brute-force protection for SSH and services
+- name: ansible-role-fail2ban
+  repo: https://github.com/robertdebock/ansible-role-fail2ban.git
+
+# 7. robertdebock — Bootstrap
+#    OS bootstrap (repositories, system tuning)
+#    GitHub: https://github.com/robertdebock/ansible-role-bootstrap
+#    Why: Ensures all nodes have consistent base configuration
+- name: ansible-role-bootstrap
+  repo: https://github.com/robertdebock/ansible-role-bootstrap.git
+
+# ---------------------------------------------------------------------------
+# CATEGORY 6 — DOCKER / CONTAINERS (LOW PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 8. geerlingguy — Docker
+#    Docker CE installation and configuration
+#    GitHub: https://github.com/geerlingguy/ansible-role-docker
+#    Why: Alternative container runtime; useful for CI/CD
+- name: ansible-role-docker
+  repo: https://github.com/geerlingguy/ansible-role-docker.git
+
+# ---------------------------------------------------------------------------
+# CATEGORY 7 — STORAGE / BACKUPS (LOW PRIORITY)
+# ---------------------------------------------------------------------------
+
+# 9. geerlingguy — NFS
+#    NFS client/server configuration
+#    GitHub: https://github.com/geerlingguy/ansible-role-nfs
+#    Why: Shared storage for PVCs and backups
+- name: ansible-role-nfs
+  repo: https://github.com/geerlingguy/ansible-role-nfs.git
+
+# ---------------------------------------------------------------------------
+# CATEGORY 8 — MONITORING STACK (STRETCH GOAL)
+# ---------------------------------------------------------------------------
+
+# 10. cloudalchemy — Full Prometheus Stack
+#     Prometheus + Alertmanager + Grafana + exporters
+#     GitHub: https://github.com/cloudalchemy/ansible-prometheus
+#     Playbooks: site.yml
+#     Why: Full observability pipeline (alternative to k8s operators)
+- name: ansible-prometheus
+  repo: https://github.com/cloudalchemy/ansible-prometheus.git
+
+# ---------------------------------------------------------------------------
+# BONUS: JEFF GEERLINGUY'S ANSIBLE-FOR-DEVOPS
+# ---------------------------------------------------------------------------
+
+# 11. geerlingguy — Ansible for DevOps Examples
+#     Complete playbook examples for every DevOps scenario
+#     GitHub: https://github.com/geerlingguy/ansible-for-devops.git
+#     Why: Reference implementations you can adapt
+- name: ansible-for-devops
+  repo: https://github.com/geerlingguy/ansible-for-devops.git

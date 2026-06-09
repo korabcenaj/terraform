@@ -1,0 +1,65 @@
+---
+# ===========================================================================
+# Group Variables — All Hosts
+# ===========================================================================
+
+# OS base image
+os_base: "ubuntu"
+os_version: "24.04"
+
+# System packages common to all nodes
+common_packages:
+  - curl
+  - wget
+  - vim
+  - htop
+  - iotop
+  - net-tools
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - apt-transport-https
+  - software-properties-common
+  - jq
+  - yq
+  - git
+  - unzip
+  - tar
+  - gzip
+  - bzip2
+  - rsync
+  - nfs-common
+  - chrony
+  - ufw
+  - fail2ban
+  - auditd
+  - logrotate
+
+# Kernel modules to load
+kernel_modules:
+  - overlay
+  - br_netfilter
+
+# Sysctl settings for Kubernetes
+sysctl_settings:
+  net.bridge.bridge-nf-call-iptables: 1
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.ipv4.ip_forward: 1
+  vm.swappiness: 0
+  vm.overcommit_memory: 1
+  kernel.panic: 10
+  kernel.panic_on_oops: 1
+
+# UFW default rules
+ufw_default_rules:
+  - { port: 22, proto: tcp, rule: allow, comment: "SSH" }
+  - { port: 6443, proto: tcp, rule: allow, comment: "Kubernetes API" }
+  - { port: 2379:2380, proto: tcp, rule: allow, comment: "etcd" }
+  - { port: 10250, proto: tcp, rule: allow, comment: "kubelet API" }
+  - { port: 10251, proto: tcp, rule: allow, comment: "kube-scheduler" }
+  - { port: 10252, proto: tcp, rule: allow, comment: "kube-controller-manager" }
+  - { port: 30000:32767, proto: tcp, rule: allow, comment: "NodePort services" }
+  - { port: 179, proto: tcp, rule: allow, comment: "BGP / Calico" }
+  - { port: 4789, proto: udp, rule: allow, comment: "VXLAN / Flannel" }
+  - { port: 8472, proto: udp, rule: allow, comment: "Flannel VXLAN" }
+  - { port: 51820, proto: udp, rule: allow, comment: "WireGuard" }

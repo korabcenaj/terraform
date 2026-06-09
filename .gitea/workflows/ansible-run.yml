@@ -1,0 +1,89 @@
+name: Ansible Node Setup
+
+"on":
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Target host group or node (e.g., k8s_cluster, k8s_workers, k8s-master)"
+        required: false
+        default: "k8s_cluster"
+      playbook:
+        description: "Playbook to execute"
+        required: false
+        default: "playbooks/node-setup.yml"
+        type: choice
+        options:
+          - "playbooks/node-setup.yml"
+          - "playbooks/node-update.yml"
+          - "playbooks/node-audit.yml"
+          - "playbooks/site.yml"
+      extra_vars:
+        description: "Extra Ansible variables as JSON or YAML (optional)"
+        required: false
+        default: ""
+
+env:
+  ANSIBLE_FORCE_COLOR: true
+  ANSIBLE_HOST_KEY_CHECKING: false
+
+jobs:
+  ansible-run:
+    name: "Run Ansible: ${{ gitea.event.inputs.playbook }}"
+    runs-on: [self-hosted, linux, homelab, kubernetes]
+    defaults:
+      run:
+        working-directory: ansible
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core
+
+      - name: Install required collections
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+
+      - name: Decrypt secrets (if vault password provided)
+        if: env.ANSIBLE_VAULT_PASSWORD != ''
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          echo "${ANSIBLE_VAULT_PASSWORD}" > /tmp/ansible-vault-pass
+
+      - name: Run Ansible playbook
+        env:
+          ANSIBLE_VAULT_PASSWORD_FILE: /tmp/ansible-vault-pass
+          ANSIBLE_SSH_PRIVATE_KEY: ${{ secrets.ANSIBLE_SSH_PRIVATE_KEY }}
+        run: |
+          # Write SSH key if provided
+          if [[ -n "${ANSIBLE_SSH_PRIVATE_KEY}" ]]; then
+            mkdir -p ~/.ssh
+            echo "${ANSIBLE_SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+          fi
+
+          EXTRA_ARGS=""
+          if [[ -n "${{ gitea.event.inputs.extra_vars }}" ]]; then
+            EXTRA_ARGS="--extra-vars '${{ gitea.event.inputs.extra_vars }}'"
+          fi
+
+          ansible-playbook \
+            -i inventory/hosts.yml \
+            "${{ gitea.event.inputs.playbook }}" \
+            --limit "${{ gitea.event.inputs.limit }}" \
+            ${EXTRA_ARGS}
+
+      - name: Cleanup secrets
+        if: always()
+        run: |
+          rm -f /tmp/ansible-vault-pass
+          rm -f ~/.ssh/id_ed25519

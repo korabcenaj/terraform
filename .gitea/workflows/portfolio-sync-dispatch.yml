@@ -1,0 +1,57 @@
+name: Portfolio Sync Dispatch
+
+# Gitea does not support the GitHub-style "workflow_run" trigger.
+# Instead, this workflow listens for a repository_dispatch event sent by
+# the Terraform Apply workflow (see terraform-apply.yml) after a successful apply.
+#
+# To trigger manually:
+#   curl -X POST \
+#     -H "Authorization: token <GITEA_TOKEN>" \
+#     -H "Accept: application/json" \
+#     "https://git.local.lan/api/v1/repos/korabcenaj/terraform/dispatches" \
+#     -d '{"event_type":"terraform-apply-success","client_payload":{"ref":"main"}}'
+
+on:
+  repository_dispatch:
+    types:
+      - terraform-apply-success
+
+jobs:
+  sync-portfolio:
+    runs-on: [self-hosted, linux, homelab, kubernetes]
+    steps:
+      - name: Log dispatch payload
+        env:
+          PORTFOLIO_OWNER: ${{ vars.PORTFOLIO_OWNER || 'korabcenaj' }}
+          PORTFOLIO_REPO: ${{ vars.PORTFOLIO_REPO || 'portfolio-container' }}
+          TERRAFORM_REF: ${{ gitea.event.client_payload.ref || 'main' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Dispatch target: ${PORTFOLIO_OWNER}/${PORTFOLIO_REPO}"
+          echo "Terraform source repo: ${{ gitea.repository }}"
+          echo "Terraform ref: ${TERRAFORM_REF}"
+
+      - name: Dispatch sync event to portfolio repository
+        env:
+          PORTFOLIO_OWNER: ${{ vars.PORTFOLIO_OWNER || 'korabcenaj' }}
+          PORTFOLIO_REPO: ${{ vars.PORTFOLIO_REPO || 'portfolio-container' }}
+          TERRAFORM_REF: ${{ gitea.event.client_payload.ref || 'main' }}
+          GITEA_SERVER: ${{ vars.GITEA_SERVER_URL || 'https://git.local.lan' }}
+          GITEA_TOKEN: ${{ secrets.PORTFOLIO_DISPATCH_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GITEA_TOKEN:-}" ]]; then
+            echo "PORTFOLIO_DISPATCH_TOKEN secret is required." >&2
+            exit 1
+          fi
+
+          curl -sS -X POST \
+            -H "Accept: application/json" \
+            -H "Authorization: token ${GITEA_TOKEN}" \
+            "${GITEA_SERVER}/api/v1/repos/${PORTFOLIO_OWNER}/${PORTFOLIO_REPO}/dispatches" \
+            -d "{\"event_type\":\"sync-portfolio-content\",\"client_payload\":{\"terraform_repo\":\"${{ gitea.repository }}\",\"terraform_ref\":\"${TERRAFORM_REF}\"}}"
+
+          echo "Dispatched sync event to ${PORTFOLIO_OWNER}/${PORTFOLIO_REPO} from successful Terraform Apply on ${TERRAFORM_REF}."

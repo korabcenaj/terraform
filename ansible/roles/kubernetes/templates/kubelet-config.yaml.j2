@@ -1,0 +1,48 @@
+# ===========================================================================
+# Kubelet Configuration — Resource Reservations & Eviction Thresholds
+#
+# This template is rendered per-node by Ansible based on the node's actual
+# CPU and memory capacity.  It reserves resources for the OS and kube-system
+# daemons so they don't compete with application pods.
+# ===========================================================================
+
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+
+# ---- Resource Reservations ----
+# These values are dynamically computed by the Ansible task.
+systemReserved:
+  cpu: "{{ system_reserved_cpu }}"
+  memory: "{{ system_reserved_memory }}"
+  ephemeral-storage: "{{ system_reserved_ephemeral }}"
+kubeReserved:
+  cpu: "{{ kube_reserved_cpu }}"
+  memory: "{{ kube_reserved_memory }}"
+  ephemeral-storage: "{{ kube_reserved_ephemeral }}"
+
+# ---- Eviction Thresholds ----
+# Aggressively evict pods when memory / disk run low so the node stays healthy.
+evictionHard:
+  memory.available:   "{{ eviction_hard_memory }}"
+  nodefs.available:   "{{ eviction_hard_nodefs }}"
+  nodefs.inodesFree:  "5%"
+  imagefs.available:  "{{ eviction_hard_imagefs }}"
+evictionSoft:
+  memory.available:   "{{ eviction_soft_memory }}"
+  nodefs.available:   "{{ eviction_soft_nodefs }}"
+evictionSoftGracePeriod:
+  memory.available:   "{{ eviction_soft_grace }}"
+  nodefs.available:   "{{ eviction_soft_grace }}"
+evictionMaxPodGracePeriod: 60
+evictionPressureTransitionPeriod: "{{ eviction_transition_period }}"
+
+# ---- Image GC ----
+imageGCHighThresholdPercent: 80
+imageGCLowThresholdPercent: 60
+imageMinimumGCAge: "2m"
+
+# ---- Runtime ----
+cgroupDriver: systemd
+maxPods: {{ max_pods }}
+containerLogMaxSize: "10Mi"
+containerLogMaxFiles: 3

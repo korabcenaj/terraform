@@ -1,0 +1,36 @@
+---
+# ===========================================================================
+# Ansible Galaxy Requirements
+# Install: ansible-galaxy collection install -r requirements.yml
+# ===========================================================================
+
+collections:
+  # Red Hat Ansible Automation Platform ecosystem
+  - name: ansible.posix
+    version: ">=1.5.4"
+  - name: community.general
+    version: ">=9.0.0"
+  - name: community.kubernetes
+    version: ">=2.0.1"
+  - name: kubernetes.core
+    version: ">=5.0.0"
+  - name: ansible.utils
+    version: ">=5.0.0"
+
+  # Security and hardening
+  - name: devsec.hardening
+    version: ">=9.0.0"
+
+  # Monitoring integrations
+  - name: prometheus.prometheus
+    version: ">=0.16.0"
+
+  # Container and cloud tooling
+  - name: containers.podman
+    version: ">=1.15.0"
+  - name: community.docker
+    version: ">=3.10.0"
+  - name: community.crypto
+    version: ">=2.20.0"
+
+roles: []

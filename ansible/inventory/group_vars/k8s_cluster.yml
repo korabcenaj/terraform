@@ -1,0 +1,27 @@
+---
+# ===========================================================================
+# Group Variables — k8s_cluster
+# ===========================================================================
+
+# Container runtime
+container_runtime: containerd
+
+# Kubernetes version
+kubernetes_version: "1.36"
+
+# CNI plugin
+cni_plugin: cilium
+cilium_version: "1.16.5"
+
+# Pod network CIDR (must not overlap with host networks)
+pod_network_cidr: "10.244.0.0/16"
+
+# Service CIDR
+service_cidr: "10.96.0.0/12"
+
+# Cluster DNS IP (usually the 10th IP in the service CIDR)
+cluster_dns_ip: "10.96.0.10"
+
+# APT repository for Kubernetes
+kubernetes_apt_repo: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/"
+kubernetes_apt_key_url: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key"

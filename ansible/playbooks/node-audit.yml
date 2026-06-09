@@ -1,0 +1,95 @@
+---
+# ===========================================================================
+# Playbook: node-audit.yml
+# Run security and compliance audit against all nodes.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/node-audit.yml
+# ===========================================================================
+
+- name: Audit Kubernetes nodes
+  hosts: k8s_cluster
+  gather_facts: true
+
+  tasks:
+    - name: Check SSH configuration
+      ansible.builtin.command:
+        cmd: sshd -t
+      changed_when: false
+      register: sshd_test
+      failed_when: false
+
+    - name: Check UFW status
+      ansible.builtin.command:
+        cmd: ufw status verbose
+      changed_when: false
+      register: ufw_status
+
+    - name: Check running services
+      ansible.builtin.service_facts:
+
+    - name: Check disk usage
+      ansible.builtin.shell:
+        cmd: df -h / /var/lib/containerd /var/lib/kubelet 2>/dev/null || df -h /
+      changed_when: false
+      register: disk_usage
+
+    - name: Check kernel version
+      ansible.builtin.command:
+        cmd: uname -r
+      changed_when: false
+      register: kernel_version
+
+    - name: Check kubernetes component versions
+      ansible.builtin.shell:
+        cmd: |
+          echo "kubeadm: $(kubeadm version -o short 2>/dev/null || echo 'not installed')"
+          echo "kubelet: $(kubelet --version 2>/dev/null || echo 'not installed')"
+          echo "kubectl: $(kubectl version --client -o short 2>/dev/null || echo 'not installed')"
+      changed_when: false
+      register: k8s_versions
+
+    - name: Check open ports
+      ansible.builtin.shell:
+        cmd: ss -tlnp 2>/dev/null || netstat -tlnp
+      changed_when: false
+      register: open_ports
+
+    - name: Display audit summary
+      ansible.builtin.debug:
+        msg:
+          - "===== Audit: {{ inventory_hostname }} ====="
+          - "Kernel: {{ kernel_version.stdout }}"
+          - "SSH config: {{ 'OK' if sshd_test.rc == 0 else 'FAILED' }}"
+          - "UFW: {{ ufw_status.stdout_lines[0] | default('not found') }}"
+          - "{{ k8s_versions.stdout }}"
+          - ""
+          - "--- Disk Usage ---"
+          - "{{ disk_usage.stdout }}"
+          - ""
+          - "--- Open Ports ---"
+          - "{{ open_ports.stdout }}"
+
+    - name: Write audit report
+      ansible.builtin.copy:
+        content: |
+          # Node Audit Report — {{ inventory_hostname }}
+          Date: {{ ansible_date_time.iso8601 }}
+          Kernel: {{ kernel_version.stdout }}
+          SSH config valid: {{ 'yes' if sshd_test.rc == 0 else 'no' }}
+
+          {{ k8s_versions.stdout }}
+
+          ## Disk Usage
+          ```
+          {{ disk_usage.stdout }}
+          ```
+
+          ## Open Ports
+          ```
+          {{ open_ports.stdout }}
+          ```
+        dest: "/tmp/ansible-audit-{{ inventory_hostname }}-{{ ansible_date_time.date }}.md"
+        mode: "0644"
+      delegate_to: localhost
+      become: false

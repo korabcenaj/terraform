@@ -1,0 +1,129 @@
+name: Terraform Plan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+
+env:
+  TF_IN_AUTOMATION: true
+
+jobs:
+  terraform-plan:
+    runs-on:
+      - self-hosted
+      - linux
+      - homelab
+      - kubernetes
+    env:
+      IS_DRIFT_RUN: ${{ gitea.event_name == 'schedule' }}
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Write kubeconfig (if secret provided)
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          if [[ -n "${KUBECONFIG_B64:-}" ]]; then
+            mkdir -p "$HOME/.kube"
+            echo "${KUBECONFIG_B64}" | base64 -d > "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+            echo "Kubeconfig written from secret."
+          else
+            echo "KUBECONFIG_B64 not set — using runner's existing kubeconfig."
+          fi
+
+      - name: Verify cluster reachability
+        run: |
+          if ! kubectl --request-timeout=10s get --raw=/readyz >/dev/null 2>&1; then
+            echo "Kubernetes API is not reachable from this runner using the provided kubeconfig."
+            echo "For homelab clusters, use a self-hosted runner or a kubeconfig whose server endpoint is reachable from the runner."
+            exit 1
+          fi
+
+      - name: Ensure plan has state context
+        run: |
+          if [[ -f terraform.tfstate ]]; then
+            echo "Using checked-in local Terraform state."
+            exit 0
+          fi
+
+          if grep -REq '^[[:space:]]*backend[[:space:]]+"' -- *.tf; then
+            echo "Backend configuration detected in Terraform configuration."
+            exit 0
+          fi
+
+          if [[ -f backend.tf.example ]]; then
+            echo "No terraform.tfstate file is present and remote backend is not enabled."
+            echo "Tip: copy backend.tf.example to backend.tf and provide backend-config values."
+            exit 1
+          fi
+
+          echo "No terraform.tfstate file is present in the repository checkout and no backend is enabled in Terraform files."
+          echo "Refusing to run terraform plan from an empty state because that would be misleading."
+          exit 1
+
+      - name: Write Terraform variables
+        shell: bash
+        env:
+          TF_VARS_B64: ${{ secrets.TF_VARS_B64 }}
+        run: |
+          if [[ -z "${TF_VARS_B64:-}" ]]; then
+            echo "TF_VARS_B64 secret is not set. Terraform plan/apply will fail if required variables have no defaults." >&2
+            exit 1
+          fi
+          echo "${TF_VARS_B64}" | base64 -d > ci.auto.tfvars
+          chmod 600 ci.auto.tfvars
+          echo "Terraform variables written from secret."
+
+      - name: Terraform Init
+        run: terraform init -input=false -backend-config=backend.kubernetes.hcl
+
+      - name: Terraform Plan (with drift detection)
+        run: |
+          set +e
+          terraform plan -input=false -lock-timeout=5m -detailed-exitcode -no-color -out=tfplan
+          plan_exit_code=$?
+          set -e
+
+          case "${plan_exit_code}" in
+            0)
+              echo "No Terraform changes detected."
+              ;;
+            1)
+              echo "Terraform plan failed."
+              exit 1
+              ;;
+            2)
+              if [[ "${IS_DRIFT_RUN}" == "true" ]]; then
+                echo "Drift detected during scheduled run."
+                exit 1
+              fi
+              echo "Terraform plan contains changes."
+              ;;
+            *)
+              echo "Unexpected terraform plan exit code: ${plan_exit_code}"
+              exit 1
+              ;;
+          esac
+
+      - name: Terraform Plan Summary
+        if: always()
+        run: |
+          if [[ -f tfplan ]]; then
+            terraform show -no-color tfplan > tfplan.txt
+            echo "Terraform plan summary:"
+            grep -E "^Plan:" tfplan.txt || true
+          else
+            echo "No tfplan output generated."
+          fi

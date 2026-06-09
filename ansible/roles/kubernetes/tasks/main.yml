@@ -1,0 +1,83 @@
+---
+# ===========================================================================
+# Role: kubernetes — kubeadm, kubelet, kubectl installation
+# ===========================================================================
+
+- name: Add Kubernetes APT key
+  ansible.builtin.apt_key:
+    url: "{{ kubernetes_apt_key_url }}"
+    state: present
+
+- name: Add Kubernetes APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb {{ kubernetes_apt_repo }} /"
+    state: present
+    update_cache: true
+
+- name: Install kubeadm, kubelet, kubectl
+  ansible.builtin.apt:
+    name:
+      - "kubeadm={{ kubeadm_version }}"
+      - "kubelet={{ kubeadm_version }}"
+      - "kubectl={{ kubeadm_version }}"
+    state: present
+    install_recommends: false
+    update_cache: true
+
+- name: Hold Kubernetes packages (prevent unintended upgrades)
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+- name: Enable kubelet
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+    daemon_reload: true
+
+# ---- Kubelet Resource Reservation & Eviction Configuration ----
+
+- name: Compute kubelet resource reservations based on node capacity
+  ansible.builtin.set_fact:
+    # System reserved: OS daemons (sshd, systemd, containerd outside kube, etc.)
+    # Rough formula: 500m CPU + 5% of memory, capped at 1Gi
+    _sys_mem_mib: "{{ (ansible_memtotal_mb * 0.05) | int }}"
+    system_reserved_cpu: "500m"
+    system_reserved_memory: "{{ [(_sys_mem_mib | int), 1024] | min }}Mi"
+    system_reserved_ephemeral: "2Gi"
+    # Kube reserved: kubelet itself + kube-system pods overhead
+    kube_reserved_cpu: "300m"
+    kube_reserved_memory: "512Mi"
+    kube_reserved_ephemeral: "1Gi"
+    # Eviction: start evicting pods when memory/nodefs drop below these thresholds
+    eviction_hard_memory: "500Mi"
+    eviction_hard_nodefs: "5%"
+    eviction_hard_imagefs: "10%"
+    eviction_soft_memory: "1Gi"
+    eviction_soft_nodefs: "10%"
+    eviction_soft_grace: "2m"
+    eviction_transition_period: "3m"
+    max_pods: "{{ 110 if ansible_processor_vcpus >= 4 else 60 }}"
+
+- name: Write kubelet configuration
+  ansible.builtin.template:
+    src: kubelet-config.yaml.j2
+    dest: /var/lib/kubelet/config.yaml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart kubelet
+
+- name: Ensure kubelet drop-in uses the config file
+  ansible.builtin.copy:
+    content: |
+      KUBELET_KUBEADM_ARGS="--config=/var/lib/kubelet/config.yaml"
+    dest: /var/lib/kubelet/kubeadm-flags.env
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart kubelet

@@ -1,0 +1,31 @@
+---
+# .ansible-lint — Ansible linting configuration
+# https://ansible.readthedocs.io/projects/lint/
+
+profile: production
+
+exclude_paths:
+  - .git/
+  - .gitea/
+  - collections/
+  - terraform.tfstate.d/
+
+parseable: true
+quiet: false
+verbosity: 0
+
+# Rules to skip (project-specific decisions)
+skip_list:
+  - name[template]           # We use {{ var }} in comments and descriptions
+  - fqcn[action-core]        # We rely on ansible.builtin. prefix for clarity
+  - jinja[spacing]           # We have controlled spacing in certain templates
+
+use_default_rules: true
+
+# Mock modules for syntax validation
+mock_modules:
+  - community.general.modprobe
+  - community.general.timezone
+  - community.general.ufw
+  - ansible.posix.sysctl
+  - ansible.posix.mount

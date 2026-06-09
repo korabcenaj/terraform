@@ -1,0 +1,11 @@
+---
+- name: Reboot node for NVIDIA driver
+  ansible.builtin.reboot:
+    msg: "Rebooting after NVIDIA driver installation"
+    reboot_timeout: 600
+
+- name: Restart containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: true

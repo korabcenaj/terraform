@@ -1,0 +1,155 @@
+name: Terraform Apply
+
+"on":
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type APPLY to confirm a Terraform apply against the current state
+        required: true
+        default: ""
+      extra_args:
+        description: Optional extra terraform plan arguments, for example -var='portfolio_replicas=2'
+        required: false
+        default: ""
+
+env:
+  TF_IN_AUTOMATION: true
+
+jobs:
+  terraform-apply:
+    runs-on:
+      - self-hosted
+      - linux
+      - homelab
+      - kubernetes
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirm apply intent
+        shell: bash
+        run: |
+          if [[ "${{ gitea.event.inputs.confirm }}" != "APPLY" ]]; then
+            echo "Refusing to apply. Re-run the workflow and set confirm=APPLY." >&2
+            exit 1
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Write kubeconfig (if secret provided)
+        shell: bash
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          if [[ -n "${KUBECONFIG_B64:-}" ]]; then
+            mkdir -p "$HOME/.kube"
+            echo "${KUBECONFIG_B64}" | base64 -d > "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+            echo "Kubeconfig written from secret."
+          else
+            echo "KUBECONFIG_B64 not set — using runner's existing kubeconfig."
+          fi
+
+      - name: Verify cluster reachability
+        shell: bash
+        run: |
+          if ! kubectl --request-timeout=10s get --raw=/readyz >/dev/null 2>&1; then
+            echo "Kubernetes API is not reachable from this runner using the provided kubeconfig." >&2
+            exit 1
+          fi
+
+      - name: Ensure apply has state context
+        shell: bash
+        run: |
+          if [[ -f terraform.tfstate ]]; then
+            echo "Using checked-in local Terraform state."
+            exit 0
+          fi
+
+          if grep -REq '^[[:space:]]*backend[[:space:]]+"' -- *.tf; then
+            echo "Backend configuration detected in Terraform configuration."
+            exit 0
+          fi
+
+          echo "No terraform.tfstate file is present in the repository checkout and no backend is enabled in Terraform files." >&2
+          echo "Refusing to run terraform apply from an empty state." >&2
+          exit 1
+
+      - name: Write Terraform variables
+        shell: bash
+        env:
+          TF_VARS_B64: ${{ secrets.TF_VARS_B64 }}
+        run: |
+          if [[ -z "${TF_VARS_B64:-}" ]]; then
+            echo "TF_VARS_B64 secret is not set. Terraform plan/apply will fail if required variables have no defaults." >&2
+            exit 1
+          fi
+          echo "${TF_VARS_B64}" | base64 -d > ci.auto.tfvars
+          chmod 600 ci.auto.tfvars
+          echo "Terraform variables written from secret."
+
+      - name: Terraform Init
+        shell: bash
+        run: terraform init -input=false -backend-config=backend.kubernetes.hcl
+
+      - name: Terraform Plan
+        shell: bash
+        env:
+          EXTRA_ARGS: ${{ gitea.event.inputs.extra_args }}
+        run: |
+          set -euo pipefail
+
+          plan_args=( -input=false -lock-timeout=5m -no-color -out=tfplan )
+
+          if [[ -n "${EXTRA_ARGS}" ]]; then
+            # Intentional word splitting for user-supplied terraform arguments.
+            # shellcheck disable=SC2206
+            extra_parts=( ${EXTRA_ARGS} )
+            plan_args+=( "${extra_parts[@]}" )
+          fi
+
+          terraform plan "${plan_args[@]}"
+
+      - name: Terraform Plan Summary
+        shell: bash
+        run: |
+          terraform show -no-color tfplan > tfplan.txt
+          echo "Terraform plan summary:"
+          grep -E '^Plan:' tfplan.txt || true
+
+      - name: Terraform Apply
+        shell: bash
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Dispatch sync to portfolio repository
+        if: success()
+        shell: bash
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GITEA_TOKEN:-}" ]]; then
+            echo "GITEA_TOKEN secret is not set. Skipping portfolio sync dispatch." >&2
+            exit 0
+          fi
+
+          # Resolve the Gitea API URL from the repository context
+          GITEA_SERVER="${GITEA_SERVER_URL:-https://git.local.lan}"
+          PORTFOLIO_OWNER="${PORTFOLIO_OWNER:-korabcenaj}"
+          PORTFOLIO_REPO="${PORTFOLIO_REPO:-portfolio-container}"
+
+          curl -sS -X POST \
+            -H "Accept: application/json" \
+            -H "Authorization: token ${GITEA_TOKEN}" \
+            "${GITEA_SERVER}/api/v1/repos/${PORTFOLIO_OWNER}/${PORTFOLIO_REPO}/dispatches" \
+            -d "{\"event_type\":\"sync-portfolio-content\",\"client_payload\":{\"terraform_repo\":\"${{ gitea.repository }}\",\"terraform_ref\":\"${{ gitea.ref }}\"}}"
+
+          echo "Dispatched sync event to ${PORTFOLIO_OWNER}/${PORTFOLIO_REPO} from successful Terraform Apply."
