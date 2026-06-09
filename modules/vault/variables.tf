@@ -50,3 +50,9 @@ variable "oauth2_proxy_auth_internal_url" {
   type        = string
   default     = ""
 }
+
+variable "oauth2_proxy_middleware" {
+  description = "Traefik Middleware annotation for OAuth2 Proxy forward-auth (e.g. oauth2-proxy-forward-auth@kubernetescrd)"
+  type        = string
+  default     = ""
+}

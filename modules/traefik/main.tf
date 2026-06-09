@@ -37,6 +37,24 @@ resource "helm_release" "traefik" {
     }
   }
 
+  # Resource limits required by the compute-quota ResourceQuota in this namespace
+  set {
+    name  = "resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "resources.requests.memory"
+    value = "64Mi"
+  }
+  set {
+    name  = "resources.limits.cpu"
+    value = "500m"
+  }
+  set {
+    name  = "resources.limits.memory"
+    value = "256Mi"
+  }
+
   wait    = true
-  timeout = 600
+  timeout = 900
 }

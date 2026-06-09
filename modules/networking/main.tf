@@ -86,7 +86,7 @@ resource "kubernetes_network_policy" "allow_dns" {
       to {
         namespace_selector {
           match_labels = {
-            name = "kube-system"
+            "kubernetes.io/metadata.name" = "kube-system"
           }
         }
       }
@@ -94,7 +94,7 @@ resource "kubernetes_network_policy" "allow_dns" {
   }
 }
 
-# Allow ingress-nginx to reach pods in every managed namespace
+# Allow traefik to reach pods in every managed namespace
 resource "kubernetes_network_policy" "allow_from_ingress" {
   for_each = toset(var.namespaces_with_policies)
   metadata {
@@ -110,7 +110,7 @@ resource "kubernetes_network_policy" "allow_from_ingress" {
       from {
         namespace_selector {
           match_labels = {
-            name = "ingress-nginx"
+            name = "traefik"
           }
         }
       }

@@ -75,31 +75,6 @@ variable "bootstrap_enabled" {
   default     = true
 }
 
-variable "argocd_client_id" {
-  description = "OIDC client ID to bootstrap for Argo CD"
-  type        = string
-  sensitive   = true
-  default     = "argocd"
-}
-
-variable "argocd_client_secret" {
-  description = "OIDC client secret to bootstrap for Argo CD"
-  type        = string
-  sensitive   = true
-}
-
-variable "argocd_redirect_uris" {
-  description = "Allowed redirect URIs for the Argo CD OIDC client"
-  type        = list(string)
-  default     = []
-}
-
-variable "argocd_web_origins" {
-  description = "Allowed web origins for the Argo CD OIDC client"
-  type        = list(string)
-  default     = []
-}
-
 variable "grafana_client_id" {
   description = "OIDC client ID to bootstrap for Grafana"
   type        = string
@@ -202,6 +177,31 @@ variable "matrix_redirect_uris" {
 
 variable "matrix_web_origins" {
   description = "Allowed web origins for the Matrix Synapse OIDC client"
+  type        = list(string)
+  default     = []
+}
+
+variable "dendrite_client_id" {
+  description = "OIDC client ID to bootstrap for Matrix Dendrite"
+  type        = string
+  default     = "matrix-dendrite"
+}
+
+variable "dendrite_client_secret" {
+  description = "OIDC client secret to bootstrap for Matrix Dendrite"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "dendrite_redirect_uris" {
+  description = "Allowed redirect URIs for the Matrix Dendrite OIDC client"
+  type        = list(string)
+  default     = []
+}
+
+variable "dendrite_web_origins" {
+  description = "Allowed web origins for the Matrix Dendrite OIDC client"
   type        = list(string)
   default     = []
 }

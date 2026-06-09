@@ -76,15 +76,14 @@ resource "kubernetes_ingress_v1" "minio_console" {
     labels    = var.tags
     annotations = merge(
       { "cert-manager.io/cluster-issuer" = "local-lan-ca" },
-      var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? {
-        "nginx.ingress.kubernetes.io/auth-url"    = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
-        "nginx.ingress.kubernetes.io/auth-signin" = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
+      var.oauth2_proxy_middleware != "" ? {
+        "traefik.ingress.kubernetes.io/router.middlewares" = var.oauth2_proxy_middleware
       } : {}
     )
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.ingress_host]

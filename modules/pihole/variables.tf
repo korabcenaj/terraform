@@ -86,13 +86,13 @@ variable "tags" {
 variable "ingress_ip" {
   description = "IP address of the ingress controller (for local DNS wildcard)"
   type        = string
-  default     = "192.168.1.200"
+  default     = "192.168.0.206"
 }
 
 variable "load_balancer_ip" {
   description = "Static LoadBalancer IP for the Pi-hole service"
   type        = string
-  default     = "192.168.1.210"
+  default     = "192.168.0.210"
 }
 
 variable "local_dns_records" {

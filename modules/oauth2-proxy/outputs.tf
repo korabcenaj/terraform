@@ -19,11 +19,16 @@ output "ingress_host" {
 }
 
 output "auth_url" {
-  description = "Value for nginx.ingress.kubernetes.io/auth-url annotation on protected ingresses"
-  value       = "https://${var.ingress_host}/oauth2/auth"
+  description = "Traefik Middleware reference for forward-auth on protected ingresses (use with traefik.ingress.kubernetes.io/router.middlewares annotation)"
+  value       = "${kubernetes_namespace.oauth2_proxy.metadata[0].name}-forward-auth@kubernetescrd"
 }
 
 output "signin_url" {
-  description = "Value for nginx.ingress.kubernetes.io/auth-signin annotation on protected ingresses"
+  description = "OAuth2 Proxy sign-in URL for redirecting unauthenticated users"
   value       = "https://${var.ingress_host}/oauth2/start?rd=$escaped_request_uri"
+}
+
+output "middleware_name" {
+  description = "Traefik ForwardAuth Middleware resource name"
+  value       = "forward-auth"
 }

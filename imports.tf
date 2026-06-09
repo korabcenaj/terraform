@@ -6,8 +6,7 @@
 #
 # USAGE:
 #   1. Ensure the target module/resource is enabled in terraform.tfvars
-#      (enable_cert_manager = true, manage_cert_manager_controller = true,
-#       enable_ai_orchestrator = true)
+#      (enable_cert_manager = true, manage_cert_manager_controller = true)
 #   2. If cert-manager was installed via plain kubectl (no Helm release secret),
 #      first adopt it into Helm:
 #        helm -n cert-manager upgrade --install cert-manager \
@@ -41,51 +40,6 @@ import {
 import {
   to = kubernetes_service_account_v1.kaniko_builder
   id = "default/kaniko-builder"
-}
-
-import {
-  to = module.ai_orchestrator[0].kubernetes_network_policy_v1.default_deny_ingress
-  id = "ai-orchestrator/default-deny-ingress"
-}
-
-import {
-  to = module.ai_orchestrator[0].kubernetes_network_policy_v1.allow_dns_egress
-  id = "ai-orchestrator/allow-dns-egress"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_namespace_v1.dashboard
-  id = "default"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_service_account_v1.dashboard
-  id = "default/skills-dashboard"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_cluster_role_v1.dashboard
-  id = "skills-dashboard"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_cluster_role_binding_v1.dashboard
-  id = "skills-dashboard"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_deployment_v1.dashboard
-  id = "default/skills-dashboard"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_service_v1.dashboard
-  id = "default/skills-dashboard"
-}
-
-import {
-  to = module.skills_dashboard[0].kubernetes_ingress_v1.dashboard[0]
-  id = "default/skills-dashboard"
 }
 
 import {

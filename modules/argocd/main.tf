@@ -2,7 +2,7 @@ locals {
   base_values = yamlencode({
     configs = {
       params = {
-        # server.insecure removed — ArgoCD serves HTTPS; nginx uses backend-protocol: HTTPS
+        # server.insecure removed — ArgoCD serves HTTPS; traefik uses backend-protocol: HTTPS
       }
     }
     repoServer = {
@@ -88,6 +88,127 @@ resource "helm_release" "argocd" {
     value = "ClusterIP"
   }
 
+  # ---- Resource limits for all ArgoCD components ----
+  # Controller
+  set {
+    name  = "controller.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "controller.resources.requests.memory"
+    value = "256Mi"
+  }
+  set {
+    name  = "controller.resources.limits.cpu"
+    value = "500m"
+  }
+  set {
+    name  = "controller.resources.limits.memory"
+    value = "2Gi"
+  }
+  # Server
+  set {
+    name  = "server.resources.requests.cpu"
+    value = "25m"
+  }
+  set {
+    name  = "server.resources.requests.memory"
+    value = "128Mi"
+  }
+  set {
+    name  = "server.resources.limits.cpu"
+    value = "250m"
+  }
+  set {
+    name  = "server.resources.limits.memory"
+    value = "512Mi"
+  }
+  # Repo Server
+  set {
+    name  = "repoServer.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "repoServer.resources.requests.memory"
+    value = "256Mi"
+  }
+  set {
+    name  = "repoServer.resources.limits.cpu"
+    value = "500m"
+  }
+  set {
+    name  = "repoServer.resources.limits.memory"
+    value = "1Gi"
+  }
+  # Redis
+  set {
+    name  = "redis.resources.requests.cpu"
+    value = "25m"
+  }
+  set {
+    name  = "redis.resources.requests.memory"
+    value = "128Mi"
+  }
+  set {
+    name  = "redis.resources.limits.cpu"
+    value = "250m"
+  }
+  set {
+    name  = "redis.resources.limits.memory"
+    value = "256Mi"
+  }
+  # Dex
+  set {
+    name  = "dex.resources.requests.cpu"
+    value = "25m"
+  }
+  set {
+    name  = "dex.resources.requests.memory"
+    value = "128Mi"
+  }
+  set {
+    name  = "dex.resources.limits.cpu"
+    value = "250m"
+  }
+  set {
+    name  = "dex.resources.limits.memory"
+    value = "256Mi"
+  }
+  # Notifications
+  set {
+    name  = "notifications.resources.requests.cpu"
+    value = "25m"
+  }
+  set {
+    name  = "notifications.resources.requests.memory"
+    value = "64Mi"
+  }
+  set {
+    name  = "notifications.resources.limits.cpu"
+    value = "250m"
+  }
+  set {
+    name  = "notifications.resources.limits.memory"
+    value = "128Mi"
+  }
+  # ApplicationSet
+  set {
+    name  = "applicationSet.resources.requests.cpu"
+    value = "25m"
+  }
+  set {
+    name  = "applicationSet.resources.requests.memory"
+    value = "64Mi"
+  }
+  set {
+    name  = "applicationSet.resources.limits.cpu"
+    value = "250m"
+  }
+  set {
+    name  = "applicationSet.resources.limits.memory"
+    value = "128Mi"
+  }
+
   dynamic "set_sensitive" {
     for_each = trimspace(var.admin_password_bcrypt) != "" ? [1] : []
     content {
@@ -110,15 +231,12 @@ resource "kubernetes_ingress_v1" "argocd_server" {
     namespace = kubernetes_namespace.argocd.metadata[0].name
     labels    = var.tags
     annotations = {
-      "cert-manager.io/cluster-issuer"               = "local-lan-ca"
-      "nginx.ingress.kubernetes.io/ssl-passthrough"  = "false"
-      "nginx.ingress.kubernetes.io/backend-protocol" = "HTTPS"
-      "nginx.ingress.kubernetes.io/proxy-ssl-verify" = "off"
+      "cert-manager.io/cluster-issuer" = "local-lan-ca"
     }
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.ingress_host]
@@ -135,7 +253,7 @@ resource "kubernetes_ingress_v1" "argocd_server" {
             service {
               name = "${var.release_name}-server"
               port {
-                number = 443
+                number = 80
               }
             }
           }

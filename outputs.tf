@@ -45,11 +45,6 @@ output "external_secrets_namespace" {
   value       = try(module.external_secrets[0].namespace, null)
 }
 
-output "argocd_namespace" {
-  description = "Argo CD namespace"
-  value       = try(module.argocd[0].namespace, null)
-}
-
 output "tempo_namespace" {
   description = "Tempo tracing namespace"
   value       = try(module.tempo[0].namespace, null)
@@ -57,7 +52,7 @@ output "tempo_namespace" {
 
 output "keycloak_namespace" {
   description = "Keycloak namespace"
-  value       = try(module.keycloak[0].namespace, null)
+  value       = try(module.keycloak_light[0].namespace, null)
 }
 
 output "matrix_synapse_namespace" {
@@ -103,13 +98,13 @@ output "ingress_urls" {
     jellyfin     = "https://jellyfin.${var.ingress_base_domain}"
     pihole       = "https://pihole.${var.ingress_base_domain}"
     grafana      = "https://grafana.${var.ingress_base_domain}"
-    prometheus   = "https://prometheus.${var.ingress_base_domain}"
     minio        = "https://minio.${var.ingress_base_domain}"
-    argocd       = "https://argocd.${var.ingress_base_domain}"
     vault        = "https://vault.${var.ingress_base_domain}"
     keycloak     = "https://sso.${var.ingress_base_domain}"
     oauth2_proxy = "https://auth.${var.ingress_base_domain}"
-    matrix       = "https://${trimspace(var.matrix_synapse_ingress_host) != "" ? trimspace(var.matrix_synapse_ingress_host) : "chat.${var.ingress_base_domain}"}"
+    matrix       = "https://${local.matrix_synapse_host}"
+    dendrite     = "https://${local.matrix_dendrite_host}"
+    awx          = "https://awx.${var.ingress_base_domain}"
   }
 }
 
@@ -125,15 +120,16 @@ output "deployed_modules" {
     velero            = var.enable_velero
     vault             = var.enable_vault
     external_secrets  = var.enable_external_secrets
-    argocd            = var.enable_argocd
     tempo             = var.enable_tempo
-    keycloak          = var.enable_keycloak
+    keycloak          = var.enable_keycloak_light
     matrix_synapse    = var.enable_matrix_synapse
+    matrix_dendrite   = var.enable_matrix_dendrite
     cloudflare_tunnel = var.enable_cloudflare_tunnel
     oauth2_proxy      = var.enable_oauth2_proxy
     kyverno           = var.enable_kyverno
     metrics_server    = var.enable_metrics_server
     network_policies  = var.enable_network_policies
+    awx               = var.enable_awx
   }
 }
 
@@ -167,19 +163,14 @@ output "external_secrets_release" {
   value       = try(module.external_secrets[0].release_name, null)
 }
 
-output "argocd_release" {
-  description = "Argo CD Helm release name"
-  value       = try(module.argocd[0].release_name, null)
-}
-
 output "tempo_release" {
   description = "Tempo Helm release name"
   value       = try(module.tempo[0].release_name, null)
 }
 
 output "keycloak_release" {
-  description = "Keycloak Helm release name"
-  value       = try(module.keycloak[0].release_name, null)
+  description = "Keycloak deployment name"
+  value       = try(module.keycloak_light[0].release_name, null)
 }
 
 output "matrix_synapse_name" {
@@ -207,20 +198,49 @@ output "matrix_synapse_federation_enabled" {
   value       = var.matrix_synapse_federation_enabled
 }
 
+output "matrix_dendrite_namespace" {
+  description = "Matrix Dendrite namespace"
+  value       = try(module.matrix_dendrite[0].namespace, null)
+}
+
+output "matrix_dendrite_name" {
+  description = "Matrix Dendrite deployment/service base name"
+  value       = try(module.matrix_dendrite[0].name, null)
+}
+
+output "matrix_dendrite_ingress_host" {
+  description = "Matrix Dendrite ingress host"
+  value       = try(module.matrix_dendrite[0].ingress_host, null)
+}
+
+output "matrix_dendrite_public_base_url" {
+  description = "Matrix Dendrite public base URL"
+  value       = try(module.matrix_dendrite[0].public_base_url, null)
+}
+
+output "matrix_dendrite_oidc_enabled" {
+  description = "Whether Matrix Dendrite OIDC is enabled"
+  value       = var.matrix_dendrite_oidc_enabled
+}
+
+output "matrix_dendrite_federation_enabled" {
+  description = "Whether Matrix Dendrite federation is enabled"
+  value       = var.matrix_dendrite_federation_enabled
+}
+
 output "keycloak_base_url" {
   description = "Local Keycloak base URL"
-  value       = try(module.keycloak[0].base_url, "https://sso.${var.ingress_base_domain}")
+  value       = try(module.keycloak_light[0].base_url, "https://sso.${var.ingress_base_domain}")
 }
 
 output "keycloak_issuer_url" {
-  description = "Expected OIDC issuer URL for the configured Keycloak realm"
-  value       = try(module.keycloak[0].issuer_url, "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}")
+  description = "Expected OIDC issuer URL for the default realm"
+  value       = try(module.keycloak_light[0].issuer_url, "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_light_realm}")
 }
 
 output "native_oidc_apps" {
   description = "Applications configured to use native OIDC instead of ingress-wide forward-auth"
   value = {
-    argocd  = var.enable_argocd_oidc
     grafana = var.enable_grafana_oidc
   }
 }
@@ -236,12 +256,12 @@ output "oauth2_proxy_release" {
 }
 
 output "oauth2_proxy_auth_url" {
-  description = "nginx auth-url annotation value for protecting ingresses with OAuth2 Proxy"
-  value       = try(module.oauth2_proxy[0].auth_url, "https://auth.${var.ingress_base_domain}/oauth2/auth")
+  description = "Traefik Middleware annotation value for protecting ingresses with OAuth2 Proxy forward-auth"
+  value       = try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd")
 }
 
 output "oauth2_proxy_signin_url" {
-  description = "nginx auth-signin annotation value for protected ingresses"
+  description = "OAuth2 Proxy sign-in URL for redirecting unauthenticated users"
   value       = try(module.oauth2_proxy[0].signin_url, "https://auth.${var.ingress_base_domain}/oauth2/start?rd=$escaped_request_uri")
 }
 
@@ -269,19 +289,9 @@ output "rancher_namespace" {
   value       = try(module.rancher[0].namespace, null)
 }
 
-output "rancher_hostname" {
-  description = "Rancher server hostname"
-  value       = try(module.rancher[0].hostname, null)
-}
-
 output "traefik_namespace" {
   description = "Traefik namespace"
   value       = try(module.traefik[0].namespace, null)
-}
-
-output "metallb_namespace" {
-  description = "MetalLB namespace"
-  value       = try(module.metallb[0].namespace, null)
 }
 
 output "linkerd_namespace" {
@@ -316,15 +326,6 @@ output "gitea_namespace" {
 output "gitea_ingress_host" {
   description = "Gitea ingress hostname"
   value       = try(module.gitea[0].ingress_host, null)
-}
-
-# ---------------------------------------------------------------------------
-# Monitoring outputs
-# ---------------------------------------------------------------------------
-
-output "grafana_alloy_namespace" {
-  description = "Grafana Alloy namespace"
-  value       = try(module.grafana_alloy[0].namespace, null)
 }
 
 # ---------------------------------------------------------------------------
@@ -396,4 +397,29 @@ output "sabnzbd_namespace" {
 output "website_tracker_namespace" {
   description = "Website Tracker namespace"
   value       = try(module.website_tracker[0].namespace, null)
+}
+
+# ---------------------------------------------------------------------------
+# Automation (AWX / Ansible) outputs
+# ---------------------------------------------------------------------------
+
+output "awx_namespace" {
+  description = "AWX namespace"
+  value       = try(module.awx[0].namespace, null)
+}
+
+output "awx_ingress_url" {
+  description = "AWX web UI URL"
+  value       = try(module.awx[0].ingress_url, null)
+}
+
+output "awx_admin_user" {
+  description = "AWX admin username"
+  value       = try(module.awx[0].admin_user, null)
+}
+
+output "awx_admin_password_cmd" {
+  description = "Command to retrieve the auto-generated AWX admin password from the cluster"
+  value       = var.enable_awx && trimspace(var.awx_admin_password) == "" ? "kubectl get secret awx-admin-password -n awx -o jsonpath='{.data.password}' | base64 -d" : null
+  sensitive   = true
 }

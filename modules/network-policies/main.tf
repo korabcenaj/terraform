@@ -23,12 +23,12 @@ resource "kubernetes_network_policy" "portfolio" {
       }
     }
 
-    # Allow ingress from ingress-nginx controller
+    # Allow ingress from traefik controller
     ingress {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -91,12 +91,12 @@ resource "kubernetes_network_policy" "jellyfin" {
       }
     }
 
-    # Allow ingress from ingress-nginx
+    # Allow ingress from traefik
     ingress {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -178,7 +178,7 @@ resource "kubernetes_network_policy" "pihole" {
     ingress {
       from {
         ip_block {
-          cidr = "192.168.1.0/24"
+          cidr = "192.168.0.0/24"
         }
       }
       ports {
@@ -213,7 +213,7 @@ resource "kubernetes_network_policy" "pihole" {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -227,7 +227,7 @@ resource "kubernetes_network_policy" "pihole" {
     ingress {
       from {
         ip_block {
-          cidr = "192.168.1.0/24"
+          cidr = "192.168.0.0/24"
         }
       }
       ports {
@@ -303,12 +303,12 @@ resource "kubernetes_network_policy" "n8n" {
   spec {
     pod_selector {}
 
-    # Allow ingress-nginx to reach the n8n HTTP port
+    # Allow traefik to reach the n8n HTTP port
     ingress {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -347,7 +347,7 @@ resource "kubernetes_network_policy" "n8n" {
 }
 
 # ---------------------------------------------------------------------------
-# oauth2-proxy — allow ingress from nginx, egress to Keycloak + DNS
+# oauth2-proxy — allow ingress from traefik, egress to Keycloak + DNS
 # ---------------------------------------------------------------------------
 resource "kubernetes_network_policy" "oauth2_proxy" {
   count = var.enable_oauth2_proxy_netpol ? 1 : 0
@@ -365,7 +365,7 @@ resource "kubernetes_network_policy" "oauth2_proxy" {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -407,12 +407,12 @@ resource "kubernetes_network_policy" "oauth2_proxy" {
       }
     }
 
-    # Egress via ingress-nginx for OIDC discovery (sso.local.lan resolves via nginx)
+    # Egress via traefik for OIDC discovery (sso.local.lan resolves via traefik)
     egress {
       to {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -423,7 +423,7 @@ resource "kubernetes_network_policy" "oauth2_proxy" {
 }
 
 # ---------------------------------------------------------------------------
-# harbor — allow ingress from nginx + ci-builds, intra-namespace + Keycloak egress
+# harbor — allow ingress from traefik + ci-builds, intra-namespace + Keycloak egress
 # ---------------------------------------------------------------------------
 resource "kubernetes_network_policy" "harbor" {
   count = var.enable_harbor_netpol ? 1 : 0
@@ -441,7 +441,7 @@ resource "kubernetes_network_policy" "harbor" {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -497,7 +497,7 @@ resource "kubernetes_network_policy" "harbor" {
       to {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -508,15 +508,15 @@ resource "kubernetes_network_policy" "harbor" {
 }
 
 # ---------------------------------------------------------------------------
-# ingress-nginx — accept external HTTP/S, forward to all app namespaces
+# traefik — accept external HTTP/S, forward to all app namespaces
 # ---------------------------------------------------------------------------
-resource "kubernetes_network_policy" "ingress_nginx" {
-  count = var.enable_ingress_nginx_netpol ? 1 : 0
+resource "kubernetes_network_policy" "traefik" {
+  count = var.enable_traefik_netpol ? 1 : 0
 
   metadata {
-    name      = "ingress-nginx-netpol"
-    namespace = var.ingress_nginx_namespace
-    labels    = merge(var.tags, { app = "ingress-nginx" })
+    name      = "traefik-netpol"
+    namespace = var.traefik_namespace
+    labels    = merge(var.tags, { app = "traefik" })
   }
 
   spec {

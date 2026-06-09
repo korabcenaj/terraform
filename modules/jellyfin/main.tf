@@ -73,11 +73,22 @@ resource "kubernetes_deployment" "jellyfin" {
           "kubernetes.io/hostname" = var.node_name
         }
 
+        toleration {
+          key    = "node-role.kubernetes.io/control-plane"
+          effect = "NoSchedule"
+        }
+
         automount_service_account_token = false
+
+        security_context {
+          seccomp_profile {
+            type = "RuntimeDefault"
+          }
+        }
 
         container {
           name  = "jellyfin"
-          image = "jellyfin/jellyfin:10.10.7"
+          image = var.image
 
           security_context {
             allow_privilege_escalation = false
@@ -116,7 +127,6 @@ resource "kubernetes_deployment" "jellyfin" {
           volume_mount {
             name       = "media"
             mount_path = "/media"
-            read_only  = true
           }
 
           volume_mount {
@@ -125,14 +135,31 @@ resource "kubernetes_deployment" "jellyfin" {
           }
 
           resources {
-            requests = {
-              cpu    = var.cpu_request
-              memory = var.memory_request
+            requests = merge(
+              {
+                cpu    = var.cpu_request
+                memory = var.memory_request
+              },
+              var.gpu_count > 0 ? { (var.gpu_resource_name) = tostring(var.gpu_count) } : {}
+            )
+            limits = merge(
+              {
+                cpu    = var.cpu_limit
+                memory = var.memory_limit
+              },
+              var.gpu_count > 0 ? { (var.gpu_resource_name) = tostring(var.gpu_count) } : {}
+            )
+          }
+
+          startup_probe {
+            tcp_socket {
+              port = 8096
             }
-            limits = {
-              cpu    = var.cpu_limit
-              memory = var.memory_limit
-            }
+            initial_delay_seconds = 0
+            period_seconds        = 10
+            timeout_seconds       = 1
+            success_threshold     = 1
+            failure_threshold     = 30
           }
 
           liveness_probe {
@@ -176,9 +203,8 @@ resource "kubernetes_deployment" "jellyfin" {
 
         volume {
           name = "media"
-          host_path {
-            path = var.media_path
-            type = "Directory"
+          persistent_volume_claim {
+            claim_name = var.media_pvc_name
           }
         }
 
@@ -224,7 +250,8 @@ resource "kubernetes_service" "jellyfin" {
       name        = "web"
     }
 
-    type = "ClusterIP"
+    type = var.load_balancer_ip != "" ? "LoadBalancer" : "ClusterIP"
+    load_balancer_ip = var.load_balancer_ip != "" ? var.load_balancer_ip : null
   }
 
   depends_on = [kubernetes_deployment.jellyfin]
@@ -242,15 +269,14 @@ resource "kubernetes_ingress_v1" "jellyfin" {
     )
     annotations = merge(
       { "cert-manager.io/cluster-issuer" = "local-lan-ca" },
-      var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? {
-        "nginx.ingress.kubernetes.io/auth-url"    = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
-        "nginx.ingress.kubernetes.io/auth-signin" = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
+      var.oauth2_proxy_middleware != "" ? {
+        "traefik.ingress.kubernetes.io/router.middlewares" = var.oauth2_proxy_middleware
       } : {}
     )
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.ingress_host]

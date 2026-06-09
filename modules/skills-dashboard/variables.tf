@@ -6,7 +6,7 @@ variable "enable_skills_dashboard" {
 
 variable "skills_dashboard_image" {
   type        = string
-  default     = "192.168.1.13:30002/library/skills-dashboard:latest"
+  default     = "192.168.0.83:30002/library/skills-dashboard:latest"
   description = "Skills dashboard container image"
 }
 

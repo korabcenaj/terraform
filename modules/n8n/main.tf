@@ -71,7 +71,7 @@ resource "helm_release" "n8n" {
 
   set {
     name  = "ingress.className"
-    value = "nginx"
+    value = "traefik"
   }
 
   set {
@@ -80,18 +80,10 @@ resource "helm_release" "n8n" {
   }
 
   dynamic "set" {
-    for_each = var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? [1] : []
+    for_each = var.oauth2_proxy_middleware != "" ? [1] : []
     content {
-      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/auth-url"
-      value = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
-    }
-  }
-
-  dynamic "set" {
-    for_each = var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? [1] : []
-    content {
-      name  = "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/auth-signin"
-      value = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
+      name  = "ingress.annotations.traefik\\.ingress\\.kubernetes\\.io/router\\.middlewares"
+      value = var.oauth2_proxy_middleware
     }
   }
 

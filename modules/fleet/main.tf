@@ -35,6 +35,24 @@ resource "helm_release" "fleet" {
     value = "rancher-critical"
   }
 
+  # ---- Resource limits ----
+  set {
+    name  = "resources.requests.cpu"
+    value = "25m"
+  }
+  set {
+    name  = "resources.requests.memory"
+    value = "128Mi"
+  }
+  set {
+    name  = "resources.limits.cpu"
+    value = "250m"
+  }
+  set {
+    name  = "resources.limits.memory"
+    value = "256Mi"
+  }
+
   wait    = true
   timeout = 300
 }

@@ -68,6 +68,37 @@ resource "helm_release" "harbor" {
     value = var.storage_class
   }
 
+  # ---- Trivy: limit concurrency to avoid DoS-ing a small cluster ----
+  set {
+    name  = "trivy.enabled"
+    value = "true"
+  }
+  set {
+    name  = "trivy.replicas"
+    value = "1"
+  }
+  set {
+    name  = "trivy.resources.requests.cpu"
+    value = "50m"
+  }
+  set {
+    name  = "trivy.resources.requests.memory"
+    value = "256Mi"
+  }
+  set {
+    name  = "trivy.resources.limits.cpu"
+    value = "500m"
+  }
+  set {
+    name  = "trivy.resources.limits.memory"
+    value = "512Mi"
+  }
+  # Scan only on push, not periodic rescans of everything
+  set {
+    name  = "trivy.vulnerabilityReport.periodicScanInterval"
+    value = "0"
+  }
+
   wait    = true
   timeout = 600
 }

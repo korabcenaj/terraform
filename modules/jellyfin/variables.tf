@@ -63,8 +63,27 @@ variable "node_name" {
 }
 
 variable "media_path" {
-  description = "Host path for media files, mounted read-only at /media"
+  description = "Host path for media files, mounted read-only at /media (ignored when media_pvc_name is set)"
   type        = string
+  default     = "/media/library"
+}
+
+variable "media_pvc_name" {
+  description = "Name of an existing PVC to use for media (takes precedence over media_path)"
+  type        = string
+  default     = "jellyfin-media-pvc"
+}
+
+variable "image" {
+  description = "Jellyfin container image"
+  type        = string
+  default     = "jellyfin/jellyfin:10.10.7"
+}
+
+variable "load_balancer_ip" {
+  description = "External IP for the LoadBalancer service (e.g. 192.168.0.209)"
+  type        = string
+  default     = ""
 }
 
 variable "ingress_host" {
@@ -82,4 +101,22 @@ variable "oauth2_proxy_auth_internal_url" {
   description = "In-cluster OAuth2 Proxy URL for NGINX auth-url subrequests (e.g. http://oauth2-proxy.oauth2-proxy.svc.cluster.local)"
   type        = string
   default     = ""
+}
+
+variable "oauth2_proxy_middleware" {
+  description = "Traefik Middleware annotation for OAuth2 Proxy forward-auth (e.g. oauth2-proxy-forward-auth@kubernetescrd)"
+  type        = string
+  default     = ""
+}
+
+variable "gpu_count" {
+  description = "Number of AMD GPUs to request for hardware transcoding (0 disables GPU)"
+  type        = number
+  default     = 0
+}
+
+variable "gpu_resource_name" {
+  description = "Kubernetes resource name for AMD GPU (e.g. amd.com/gpu or gpu.amd.com/amdgpu)"
+  type        = string
+  default     = "amd.com/gpu"
 }

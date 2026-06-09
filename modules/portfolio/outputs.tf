@@ -13,3 +13,7 @@ output "service_name" {
 output "service_endpoint" {
   value = "${kubernetes_service.portfolio.metadata[0].name}.${var.namespace}.svc.cluster.local"
 }
+
+output "configmap_name" {
+  value = kubernetes_config_map.portfolio_static.metadata[0].name
+}

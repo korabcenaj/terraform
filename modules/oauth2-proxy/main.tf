@@ -61,7 +61,7 @@ resource "helm_release" "oauth2_proxy" {
     value = var.email_domain
   }
 
-  # When used as nginx forward-auth, the proxy itself does not need a backend upstream
+  # When used as traefik forward-auth, the proxy itself does not need a backend upstream
 
   dynamic "set" {
     for_each = var.oidc_issuer_url != "" ? [1] : []
@@ -164,7 +164,7 @@ resource "kubernetes_ingress_v1" "oauth2_proxy" {
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.ingress_host]
@@ -186,6 +186,38 @@ resource "kubernetes_ingress_v1" "oauth2_proxy" {
             }
           }
         }
+      }
+    }
+  }
+
+  depends_on = [helm_release.oauth2_proxy]
+}
+
+# ---------------------------------------------------------------------------
+# Traefik ForwardAuth Middleware
+# Replaces the old nginx.ingress.kubernetes.io/auth-url annotation approach.
+# Protected ingresses reference this via:
+#   traefik.ingress.kubernetes.io/router.middlewares:
+#     ${var.namespace}-forward-auth@kubernetescrd
+# ---------------------------------------------------------------------------
+resource "kubernetes_manifest" "traefik_forward_auth_middleware" {
+  manifest = {
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "Middleware"
+    metadata = {
+      name      = "forward-auth"
+      namespace = kubernetes_namespace.oauth2_proxy.metadata[0].name
+      labels    = var.tags
+    }
+    spec = {
+      forwardAuth = {
+        address = "http://${var.release_name}.${kubernetes_namespace.oauth2_proxy.metadata[0].name}.svc.cluster.local:4180/oauth2/auth"
+        authResponseHeaders = [
+          "X-Auth-Request-User",
+          "X-Auth-Request-Email",
+          "X-Auth-Request-Groups",
+          "X-Auth-Request-Preferred-Username",
+        ]
       }
     }
   }

@@ -23,7 +23,7 @@ variable "namespace" {
 
 variable "image_repository" {
   type    = string
-  default = "192.168.1.13:30002/library/skills-dashboard"
+  default = "192.168.0.83:30002/library/skills-dashboard"
 }
 
 variable "image_tag" {
@@ -43,7 +43,7 @@ variable "host" {
 
 variable "ingress_class_name" {
   type    = string
-  default = "nginx"
+  default = "traefik"
 }
 
 variable "resource_limits_cpu" {

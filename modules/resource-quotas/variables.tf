@@ -16,112 +16,106 @@ variable "enable_pihole_quota" {
   default     = true
 }
 
+variable "enable_argo_quota" {
+  description = "Enable ResourceQuota for argo namespace"
+  type        = bool
+  default     = true
+}
+
+variable "enable_gitea_quota" {
+  description = "Enable ResourceQuota for git namespace"
+  type        = bool
+  default     = true
+}
+
+variable "enable_harbor_quota" {
+  description = "Enable ResourceQuota for harbor namespace"
+  type        = bool
+  default     = true
+}
+
+variable "enable_buildkit_quota" {
+  description = "Enable ResourceQuota for buildkit namespace"
+  type        = bool
+  default     = true
+}
+
+variable "enable_awx_quota" {
+  description = "Enable ResourceQuota for awx namespace"
+  type        = bool
+  default     = true
+}
+
+variable "enable_matrix_quota" {
+  description = "Enable ResourceQuota for matrix namespace"
+  type        = bool
+  default     = true
+}
+
+variable "enable_n8n_quota" {
+  description = "Enable ResourceQuota for n8n namespace"
+  type        = bool
+  default     = true
+}
+
 variable "portfolio_namespace" {
   description = "Portfolio namespace name"
   type        = string
+  default     = "portfolio"
 }
 
 variable "jellyfin_namespace" {
   description = "Jellyfin namespace name"
   type        = string
+  default     = "jellyfin"
 }
 
 variable "pihole_namespace" {
   description = "Pi-hole namespace name"
   type        = string
+  default     = "pihole"
 }
 
-# Portfolio quotas
-variable "portfolio_pod_limit" {
-  description = "Max pods in portfolio namespace"
+variable "argo_namespace" {
+  description = "Argo namespace name"
   type        = string
-  default     = "10"
+  default     = "argo"
 }
 
-variable "portfolio_cpu_request_quota" {
-  description = "Total CPU requests quota for portfolio"
+variable "git_namespace" {
+  description = "Gitea namespace name"
   type        = string
-  default     = "2"
+  default     = "git"
 }
 
-variable "portfolio_memory_request_quota" {
-  description = "Total memory requests quota for portfolio"
+variable "harbor_namespace" {
+  description = "Harbor namespace name"
   type        = string
-  default     = "2Gi"
+  default     = "harbor"
 }
 
-variable "portfolio_cpu_limit_quota" {
-  description = "Total CPU limits quota for portfolio"
+variable "buildkit_namespace" {
+  description = "BuildKit namespace name"
   type        = string
-  default     = "4"
+  default     = "buildkit"
 }
 
-variable "portfolio_memory_limit_quota" {
-  description = "Total memory limits quota for portfolio"
+variable "awx_namespace" {
+  description = "AWX namespace name"
   type        = string
-  default     = "4Gi"
+  default     = "awx"
 }
 
-# Jellyfin quotas
-variable "jellyfin_pod_limit" {
-  description = "Max pods in jellyfin namespace"
+variable "matrix_namespace" {
+  description = "Matrix namespace name"
   type        = string
-  default     = "10"
+  default     = "matrix"
 }
 
-variable "jellyfin_cpu_request_quota" {
-  description = "Total CPU requests quota for jellyfin"
+variable "n8n_namespace" {
+  description = "n8n namespace name"
   type        = string
-  default     = "3"
-}
-
-variable "jellyfin_memory_request_quota" {
-  description = "Total memory requests quota for jellyfin"
-  type        = string
-  default     = "3Gi"
-}
-
-variable "jellyfin_cpu_limit_quota" {
-  description = "Total CPU limits quota for jellyfin"
-  type        = string
-  default     = "6"
-}
-
-variable "jellyfin_memory_limit_quota" {
-  description = "Total memory limits quota for jellyfin"
-  type        = string
-  default     = "6Gi"
-}
-
-# Pi-hole quotas
-variable "pihole_pod_limit" {
-  description = "Max pods in pihole namespace"
-  type        = string
-  default     = "5"
-}
-
-variable "pihole_cpu_request_quota" {
-  description = "Total CPU requests quota for pihole"
-  type        = string
-  default     = "1"
-}
-
-variable "pihole_memory_request_quota" {
-  description = "Total memory requests quota for pihole"
-  type        = string
-  default     = "2Gi"
-}
-
-variable "pihole_cpu_limit_quota" {
-  description = "Total CPU limits quota for pihole"
-  type        = string
-  default     = "2"
-}
-
-variable "pihole_memory_limit_quota" {
-  description = "Total memory limits quota for pihole"
-  type        = string
-  default     = "2Gi"
+  default     = "n8n"
 }
 
 variable "tags" {

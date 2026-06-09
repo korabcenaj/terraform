@@ -8,28 +8,52 @@ locals {
   jellyfin_host       = "jellyfin.${var.ingress_base_domain}"
   pihole_host         = "pihole.${var.ingress_base_domain}"
   grafana_host        = "grafana.${var.ingress_base_domain}"
-  prometheus_host     = "prometheus.${var.ingress_base_domain}"
   minio_host          = "minio.${var.ingress_base_domain}"
-  argocd_host         = "argocd.${var.ingress_base_domain}"
   vault_host          = "vault.${var.ingress_base_domain}"
   keycloak_host       = "sso.${var.ingress_base_domain}"
   matrix_host         = "chat.${var.ingress_base_domain}"
   matrix_synapse_host = trimspace(var.matrix_synapse_ingress_host) != "" ? trimspace(var.matrix_synapse_ingress_host) : local.matrix_host
-  keycloak_issuer     = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_realm}"
+  matrix_dendrite_host = trimspace(var.matrix_dendrite_ingress_host) != "" ? trimspace(var.matrix_dendrite_ingress_host) : local.matrix_host
+  keycloak_issuer     = "https://sso.${var.ingress_base_domain}/realms/${var.keycloak_light_realm}"
   oauth2_proxy_host   = "auth.${var.ingress_base_domain}"
   n8n_host            = "n8n.${var.ingress_base_domain}"
   harbor_host         = "harbor.${var.ingress_base_domain}"
   rancher_host        = "rancher.${var.ingress_base_domain}"
   gitea_host          = "git.${var.ingress_base_domain}"
+  awx_host            = "awx.${var.ingress_base_domain}"
   # Prefer explicit override, otherwise use the stable Pi-hole LoadBalancer IP
-  # (router DNS) so CoreDNS forwarding survives pod/service IP churn.
   private_dns_upstream = trimspace(var.private_dns_ip) != "" ? trimspace(var.private_dns_ip) : (
     var.enable_pihole ? trimspace(var.pihole_load_balancer_ip) : ""
   )
+
+  # Namespaces that should receive LimitRange defaults
+  limit_range_namespaces = compact([
+    var.enable_portfolio ? "portfolio" : "",
+    var.enable_jellyfin ? "jellyfin" : "",
+    var.enable_pihole ? "pihole" : "",
+    var.enable_keycloak_light ? "keycloak" : "",
+    var.enable_harbor ? "harbor" : "",
+    var.enable_gitea ? "git" : "",
+    var.enable_awx ? "awx" : "",
+    var.enable_buildkit ? "buildkit" : "",
+    var.enable_n8n ? "n8n" : "",
+    var.enable_matrix_synapse ? "matrix" : "",
+    var.enable_matrix_dendrite ? "matrix" : "",
+    var.enable_sabnzbd ? "sabnzbd" : "",
+    var.enable_website_tracker ? "website-tracker-system" : "",
+    var.enable_argo_workflows ? "argo" : "",
+    var.enable_argo_events ? "argo-events" : "",
+    var.enable_argo_rollouts ? "argo-rollouts" : "",
+    var.enable_tekton_pipelines ? "tekton-pipelines" : "",
+    var.enable_cloudflare_tunnel ? "cloudflare-tunnel" : "",
+    "ci-builds",
+    "oauth2-proxy",   # if oauth2-proxy module creates it
+    "actions",         # Gitea Actions runners
+  ])
 }
 
 # ---------------------------------------------------------------------------
-# Infrastructure: cert-manager, ingress-nginx, kube-prometheus-stack
+# Infrastructure: cert-manager, traefik
 # ---------------------------------------------------------------------------
 
 # Read the cluster CA certificate so oauth2-proxy can verify Keycloak TLS
@@ -49,61 +73,6 @@ module "cert_manager" {
   manage_controller_install = var.manage_cert_manager_controller
   create_selfsigned_issuer  = true
   create_local_ca_issuer    = true
-
-  tags = var.tags
-}
-
-data "kubernetes_secret_v1" "local_lan_ca" {
-  count = var.enable_argocd && var.enable_argocd_oidc && var.enable_cert_manager ? 1 : 0
-
-  metadata {
-    name      = "local-lan-ca-secret"
-    namespace = "cert-manager"
-  }
-
-  depends_on = [module.cert_manager]
-}
-
-module "ingress_nginx" {
-  count  = var.enable_ingress_nginx ? 1 : 0
-  source = "./modules/ingress-nginx"
-
-  release_name       = "ingress-nginx"
-  chart_version      = var.ingress_nginx_chart_version
-  service_type       = var.ingress_nginx_service_type
-  replica_count      = var.ingress_nginx_replicas
-  enable_metrics     = var.enable_monitoring
-  limit_rps          = var.ingress_nginx_limit_rps
-  limit_connections  = var.ingress_nginx_limit_connections
-  enable_modsecurity = var.ingress_nginx_enable_modsecurity
-  enable_owasp_crs   = var.ingress_nginx_enable_owasp_crs
-
-  tags = var.tags
-}
-
-module "kube_prometheus_stack" {
-  count  = var.enable_kube_prometheus_stack ? 1 : 0
-  source = "./modules/kube-prometheus-stack"
-
-  release_name               = "monitor"
-  chart_version              = var.kube_prometheus_stack_chart_version
-  grafana_admin_password     = var.grafana_admin_password
-  prometheus_retention       = var.prometheus_retention
-  prometheus_storage_size    = var.prometheus_storage_size
-  prometheus_storage_class   = var.prometheus_storage_class
-  grafana_storage_size       = var.grafana_storage_size
-  grafana_storage_class      = var.grafana_storage_class
-  grafana_host               = local.grafana_host
-  grafana_oidc_enabled       = var.enable_grafana_oidc
-  grafana_oidc_name          = "Keycloak"
-  grafana_oidc_issuer_url    = local.keycloak_issuer
-  grafana_oidc_client_id     = var.grafana_oidc_client_id
-  grafana_oidc_client_secret = var.grafana_oidc_client_secret
-
-  alertmanager_enabled         = var.alertmanager_enabled
-  alertmanager_webhook_url     = var.alertmanager_webhook_url
-  alertmanager_repeat_interval = var.alertmanager_repeat_interval
-  create_alert_rules           = var.create_alert_rules
 
   tags = var.tags
 }
@@ -134,6 +103,7 @@ module "minio" {
 
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+  oauth2_proxy_middleware        = var.enable_oauth2_proxy ? try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd") : ""
 
   tags = var.tags
 }
@@ -171,6 +141,7 @@ module "vault" {
 
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+  oauth2_proxy_middleware        = var.enable_oauth2_proxy ? try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd") : ""
 
   tags = var.tags
 }
@@ -195,71 +166,22 @@ module "external_secrets" {
   depends_on = [module.vault]
 }
 
-module "argocd" {
-  count  = var.enable_argocd ? 1 : 0
-  source = "./modules/argocd"
+module "keycloak_light" {
+  count  = var.enable_keycloak_light ? 1 : 0
+  source = "./modules/keycloak-light"
 
-  release_name          = "argocd"
-  chart_version         = var.argocd_chart_version
-  admin_password_bcrypt = var.argocd_admin_password_bcrypt
-  oidc_enabled          = var.enable_argocd_oidc
-  oidc_name             = "Keycloak"
-  oidc_issuer_url       = local.keycloak_issuer
-  oidc_client_id        = var.argocd_oidc_client_id
-  oidc_client_secret    = var.argocd_oidc_client_secret
-  oidc_root_ca_pem      = try(data.kubernetes_secret_v1.local_lan_ca[0].data["tls.crt"], "")
-  ingress_host          = local.argocd_host
-
-  create_bootstrap_app_project = var.argocd_create_app_project
-  bootstrap_project_name       = var.argocd_project_name
-  create_bootstrap_application = var.argocd_create_bootstrap_app
-  bootstrap_app_name           = var.argocd_bootstrap_app_name
-  bootstrap_repo_url           = var.argocd_bootstrap_repo_url
-  bootstrap_repo_revision      = var.argocd_bootstrap_repo_revision
-  bootstrap_repo_path          = var.argocd_bootstrap_repo_path
-  bootstrap_auto_sync          = var.argocd_bootstrap_auto_sync
-
-  tags = var.tags
-
-  depends_on = [module.cert_manager]
-}
-
-module "keycloak" {
-  count  = var.enable_keycloak ? 1 : 0
-  source = "./modules/keycloak"
-
-  release_name               = "keycloak"
-  chart_version              = var.keycloak_chart_version
-  admin_user                 = var.keycloak_admin_user
-  admin_password             = var.keycloak_admin_password
-  postgresql_username        = var.keycloak_postgresql_username
-  postgresql_password        = var.keycloak_postgresql_password
-  postgresql_database        = var.keycloak_postgresql_database
-  postgresql_storage_class   = var.keycloak_postgresql_storage_class
-  postgresql_storage_size    = var.keycloak_postgresql_storage_size
-  ingress_host               = local.keycloak_host
-  realm                      = var.keycloak_realm
-  bootstrap_enabled          = var.keycloak_bootstrap_enabled
-  argocd_client_id           = var.argocd_oidc_client_id
-  argocd_client_secret       = var.argocd_oidc_client_secret
-  argocd_redirect_uris       = ["https://${local.argocd_host}/auth/callback"]
-  argocd_web_origins         = ["https://${local.argocd_host}"]
-  grafana_client_id          = var.grafana_oidc_client_id
-  grafana_client_secret      = var.grafana_oidc_client_secret
-  grafana_redirect_uris      = ["https://${local.grafana_host}/login/generic_oauth"]
-  grafana_web_origins        = ["https://${local.grafana_host}"]
-  harbor_client_id           = var.harbor_oidc_client_id
-  harbor_client_secret       = var.harbor_oidc_client_secret
-  harbor_redirect_uris       = ["https://${local.harbor_host}/c/oidc/callback"]
-  harbor_web_origins         = ["https://${local.harbor_host}"]
-  oauth2_proxy_client_id     = var.oauth2_proxy_client_id
-  oauth2_proxy_client_secret = var.oauth2_proxy_client_secret
-  oauth2_proxy_redirect_uris = ["https://${local.oauth2_proxy_host}/oauth2/callback"]
-  oauth2_proxy_web_origins   = ["https://${local.oauth2_proxy_host}"]
-  matrix_client_id           = var.matrix_synapse_oidc_client_id
-  matrix_client_secret       = var.matrix_synapse_oidc_client_secret
-  matrix_redirect_uris       = ["https://${local.matrix_synapse_host}/_synapse/client/oidc/callback"]
-  matrix_web_origins         = ["https://${local.matrix_synapse_host}"]
+  namespace      = "keycloak"
+  name           = "keycloak"
+  image          = var.keycloak_light_image
+  admin_user     = var.keycloak_light_admin_user
+  admin_password = var.keycloak_light_admin_password
+  ingress_host   = local.keycloak_host
+  storage_size   = var.keycloak_light_storage_size
+  storage_class  = var.keycloak_light_storage_class
+  cpu_request    = var.keycloak_light_cpu_request
+  memory_request = var.keycloak_light_memory_request
+  cpu_limit      = var.keycloak_light_cpu_limit
+  memory_limit   = var.keycloak_light_memory_limit
 
   tags = var.tags
 }
@@ -291,6 +213,7 @@ module "n8n" {
 
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+  oauth2_proxy_middleware        = var.enable_oauth2_proxy ? try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd") : ""
 
   tags = var.tags
 }
@@ -320,7 +243,7 @@ module "matrix_synapse" {
   bootstrap_admin_password   = var.matrix_synapse_bootstrap_admin_password
 
   oidc_enabled       = var.matrix_synapse_oidc_enabled
-  oidc_issuer_url    = trimspace(var.matrix_synapse_oidc_issuer_url) != "" ? trimspace(var.matrix_synapse_oidc_issuer_url) : local.keycloak_issuer
+  oidc_issuer_url    = trimspace(var.matrix_synapse_oidc_issuer_url) != "" ? trimspace(var.matrix_synapse_oidc_issuer_url) : try(module.keycloak_light[0].issuer_url, local.keycloak_issuer)
   oidc_client_id     = var.matrix_synapse_oidc_client_id
   oidc_client_secret = var.matrix_synapse_oidc_client_secret
   oidc_scopes        = var.matrix_synapse_oidc_scopes
@@ -328,6 +251,42 @@ module "matrix_synapse" {
   federation_enabled          = var.matrix_synapse_federation_enabled
   federation_domain_whitelist = var.matrix_synapse_federation_domain_whitelist
   well_known_enabled          = var.matrix_synapse_well_known_enabled
+
+  tags = var.tags
+}
+
+module "matrix_dendrite" {
+  count  = var.enable_matrix_dendrite ? 1 : 0
+  source = "./modules/matrix-dendrite"
+
+  namespace       = "matrix"
+  name            = "matrix-dendrite"
+  image           = var.matrix_dendrite_image
+  server_name     = trimspace(var.matrix_dendrite_server_name) != "" ? trimspace(var.matrix_dendrite_server_name) : local.matrix_dendrite_host
+  public_base_url = trimspace(var.matrix_dendrite_public_base_url) != "" ? trimspace(var.matrix_dendrite_public_base_url) : "https://${local.matrix_dendrite_host}"
+  storage_size    = var.matrix_dendrite_storage_size
+  storage_class   = var.matrix_dendrite_storage_class
+  ingress_host    = local.matrix_dendrite_host
+  cluster_issuer  = var.matrix_dendrite_cluster_issuer
+  cpu_request     = var.matrix_dendrite_cpu_request
+  memory_request  = var.matrix_dendrite_memory_request
+  cpu_limit       = var.matrix_dendrite_cpu_limit
+  memory_limit    = var.matrix_dendrite_memory_limit
+
+  registration_shared_secret = var.matrix_dendrite_registration_shared_secret
+  bootstrap_admin_enabled    = var.matrix_dendrite_bootstrap_admin_enabled
+  bootstrap_admin_username   = var.matrix_dendrite_bootstrap_admin_username
+  bootstrap_admin_password   = var.matrix_dendrite_bootstrap_admin_password
+
+  oidc_enabled       = var.matrix_dendrite_oidc_enabled
+  oidc_issuer_url    = trimspace(var.matrix_dendrite_oidc_issuer_url) != "" ? trimspace(var.matrix_dendrite_oidc_issuer_url) : try(module.keycloak_light[0].issuer_url, local.keycloak_issuer)
+  oidc_client_id     = var.matrix_dendrite_oidc_client_id
+  oidc_client_secret = var.matrix_dendrite_oidc_client_secret
+  oidc_scopes        = var.matrix_dendrite_oidc_scopes
+
+  federation_enabled          = var.matrix_dendrite_federation_enabled
+  federation_domain_whitelist = var.matrix_dendrite_federation_domain_whitelist
+  well_known_enabled          = var.matrix_dendrite_well_known_enabled
 
   tags = var.tags
 }
@@ -343,7 +302,7 @@ module "cloudflare_tunnel" {
 
   tags = var.tags
 
-  depends_on = [module.ingress_nginx]
+  depends_on = [module.traefik]
 }
 
 module "oauth2_proxy" {
@@ -358,7 +317,7 @@ module "oauth2_proxy" {
   client_secret                 = var.oauth2_proxy_client_secret
   cookie_secret                 = var.oauth2_proxy_cookie_secret
   ingress_host                  = local.oauth2_proxy_host
-  oidc_issuer_url               = local.keycloak_issuer
+  oidc_issuer_url               = try(module.keycloak_light[0].issuer_url, local.keycloak_issuer)
   insecure_skip_oidc_tls_verify = var.oauth2_proxy_insecure_skip_oidc_tls_verify
   oidc_ca_cert_pem              = data.kubernetes_secret.local_lan_ca.data["tls.crt"]
   allowed_group                 = "homelab-admins"
@@ -368,27 +327,6 @@ module "oauth2_proxy" {
 }
 
 
-
-# ---------------------------------------------------------------------------
-# AI Orchestrator — namespace + policies (workloads owned by Argo CD)
-# ---------------------------------------------------------------------------
-
-module "ai_orchestrator" {
-  count  = var.enable_ai_orchestrator ? 1 : 0
-  source = "./modules/ai-orchestrator"
-
-  namespace        = "ai-orchestrator"
-  api_gateway_port = var.ai_orchestrator_api_gateway_port
-  cpu_request      = var.ai_orchestrator_cpu_request
-  memory_request   = var.ai_orchestrator_memory_request
-  cpu_limit        = var.ai_orchestrator_cpu_limit
-  memory_limit     = var.ai_orchestrator_memory_limit
-  gpu_limit        = var.ai_orchestrator_gpu_limit
-  max_pods         = var.ai_orchestrator_max_pods
-  max_pvcs         = var.ai_orchestrator_max_pvcs
-
-  tags = var.tags
-}
 
 module "kyverno" {
   count  = var.enable_kyverno ? 1 : 0
@@ -452,13 +390,17 @@ module "portfolio" {
   count  = var.enable_portfolio && var.manage_portfolio_workload ? 1 : 0
   source = "./modules/portfolio"
 
-  namespace      = kubernetes_namespace.portfolio[0].metadata[0].name
-  replicas       = var.portfolio_replicas
-  cpu_request    = var.default_cpu_request
-  memory_request = var.default_memory_request
-  cpu_limit      = var.default_cpu_limit
-  memory_limit   = var.default_memory_limit
-  ingress_host   = local.portfolio_host
+  namespace             = kubernetes_namespace.portfolio[0].metadata[0].name
+  image                 = var.portfolio_image
+  image_pull_secrets    = var.portfolio_image_pull_secrets
+  replicas              = var.portfolio_replicas
+  cpu_request           = var.default_cpu_request
+  memory_request        = var.default_memory_request
+  cpu_limit             = var.default_cpu_limit
+  memory_limit          = var.default_memory_limit
+  ingress_host          = local.portfolio_host
+
+  oauth2_proxy_middleware = var.enable_oauth2_proxy ? try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd") : ""
 
   tags = var.tags
 }
@@ -474,6 +416,8 @@ module "jellyfin" {
   cache_size     = var.jellyfin_cache_size
   node_name      = var.jellyfin_node_name
   media_path     = var.jellyfin_media_path
+  load_balancer_ip = var.jellyfin_load_balancer_ip
+  gpu_count      = var.jellyfin_gpu_count
   cpu_request    = "250m"
   memory_request = "512Mi"
   cpu_limit      = "1000m"
@@ -482,6 +426,7 @@ module "jellyfin" {
 
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+  oauth2_proxy_middleware        = var.enable_oauth2_proxy ? try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd") : ""
 
   tags = var.tags
 }
@@ -492,6 +437,7 @@ module "pihole" {
 
   namespace           = kubernetes_namespace.pihole[0].metadata[0].name
   load_balancer_ip    = var.pihole_load_balancer_ip
+  ingress_ip          = var.traefik_load_balancer_ip
   replicas            = 1
   web_password        = var.pihole_web_password
   timezone            = "UTC"
@@ -512,16 +458,13 @@ module "monitoring" {
   count  = var.enable_monitoring ? 1 : 0
   source = "./modules/monitoring"
 
-  grafana_service_name           = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].grafana_service_name, "monitor-grafana") : "monitor-grafana"
-  prometheus_service_name        = var.enable_kube_prometheus_stack ? try(module.kube_prometheus_stack[0].prometheus_service_name, "monitor-kube-prometheus-st-prometheus") : "monitor-kube-prometheus-st-prometheus"
+  grafana_service_name           = "monitor-grafana"
   grafana_host                   = local.grafana_host
-  prometheus_host                = local.prometheus_host
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
+  oauth2_proxy_middleware        = var.enable_oauth2_proxy ? try(module.oauth2_proxy[0].auth_url, "oauth2-proxy-forward-auth@kubernetescrd") : ""
 
   tags = var.tags
-
-  depends_on = [module.kube_prometheus_stack]
 }
 
 module "metrics_server" {
@@ -557,31 +500,29 @@ module "networking" {
     var.enable_portfolio ? "portfolio" : "",
     var.enable_jellyfin ? "jellyfin" : "",
     var.enable_pihole ? "pihole" : "",
-    var.enable_loki ? "logging" : "",
+    var.enable_loki ? "loki" : "",
     var.enable_minio ? "minio" : "",
     var.enable_velero ? "velero" : "",
     var.enable_vault ? "vault" : "",
     var.enable_external_secrets ? "external-secrets" : "",
-    var.enable_argocd ? "argocd" : "",
     var.enable_tempo ? "tracing" : "",
     var.enable_n8n ? "n8n" : "",
     var.enable_matrix_synapse ? "matrix" : "",
     # monitoring has its own namespace-specific policies in the monitoring module
-    # ingress-nginx should not receive a blanket default-deny without explicit allow rules
+    # traefik should not receive a blanket default-deny without explicit allow rules
     var.enable_cert_manager ? "cert-manager" : "",
-    var.enable_ai_orchestrator ? "ai-orchestrator" : "",
     var.enable_rancher ? "cattle-system" : "",
     var.enable_traefik ? "traefik" : "",
     var.enable_harbor ? "harbor" : "",
     var.enable_gitea ? "git" : "",
     var.enable_keda ? "keda" : "",
-    var.enable_grafana_alloy ? "grafana-alloy" : "",
     var.enable_falco ? "falco" : "",
     var.enable_buildkit ? "buildkit" : "",
     var.enable_sabnzbd ? "sabnzbd" : "",
     var.enable_argo_workflows ? "argo" : "",
     var.enable_tekton_pipelines ? "tekton-pipelines" : "",
     var.enable_linkerd ? "linkerd" : "",
+    var.enable_awx ? "awx" : "",
   ])
 }
 
@@ -593,12 +534,25 @@ module "resource_quotas" {
   enable_portfolio_quota = var.enable_portfolio
   enable_jellyfin_quota  = var.enable_jellyfin
   enable_pihole_quota    = var.enable_pihole
-
-  portfolio_namespace = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
+  enable_argo_quota      = var.enable_argo_workflows
+  enable_gitea_quota     = var.enable_gitea
+  enable_harbor_quota    = var.enable_harbor
+  enable_buildkit_quota  = var.enable_buildkit
+  enable_awx_quota       = var.enable_awx
+  enable_matrix_quota    = var.enable_matrix_synapse
+  enable_n8n_quota       = var.enable_n8n
 
   tags = var.tags
+}
+
+# ---- LimitRanges — Default CPU/Memory for every namespace ----
+# Ensures no container runs without resource constraints.
+module "limit_ranges" {
+  for_each = toset(local.limit_range_namespaces)
+  source   = "./modules/limit-range"
+
+  namespace = each.key
+  tags      = var.tags
 }
 
 # Network Policies
@@ -620,8 +574,8 @@ module "network_policies" {
   oauth2_proxy_namespace      = "oauth2-proxy"
   enable_harbor_netpol        = true
   harbor_namespace            = "harbor"
-  enable_ingress_nginx_netpol = var.enable_ingress_nginx
-  ingress_nginx_namespace     = "ingress-nginx"
+  enable_traefik_netpol       = var.enable_traefik
+  traefik_namespace           = "traefik"
 
   tags = var.tags
 }
@@ -638,28 +592,6 @@ module "pod_disruption_budgets" {
   portfolio_namespace = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
   jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
   pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
-
-  tags = var.tags
-}
-
-# ---------------------------------------------------------------------------
-# Skills Dashboard
-# ---------------------------------------------------------------------------
-
-module "skills_dashboard" {
-  count  = var.enable_skills_dashboard ? 1 : 0
-  source = "./modules/skills-dashboard"
-
-  release_name       = "skills-dashboard"
-  namespace          = "default"
-  replicas           = 2
-  host               = var.skills_dashboard_host != "" ? var.skills_dashboard_host : "skills.${var.ingress_base_domain}"
-  ingress_class_name = "traefik"
-  enable_ingress     = true
-  tls_enabled        = var.enable_cert_manager
-  annotations = {
-    "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
-  }
 
   tags = var.tags
 }
@@ -748,11 +680,6 @@ module "rancher" {
   count  = var.enable_rancher ? 1 : 0
   source = "./modules/rancher"
 
-  release_name  = "rancher"
-  chart_version = var.rancher_chart_version
-  hostname      = local.rancher_host
-  replicas      = var.rancher_replicas
-
   tags = var.tags
 
   depends_on = [module.cert_manager]
@@ -769,16 +696,10 @@ module "traefik" {
   load_balancer_ip = var.traefik_load_balancer_ip
 
   tags = var.tags
-}
 
-module "metallb" {
-  count  = var.enable_metallb ? 1 : 0
-  source = "./modules/metallb"
-
-  release_name  = "metallb"
-  chart_version = var.metallb_chart_version
-
-  tags = var.tags
+  # Traefik's LoadBalancer service depends on MetalLB being ready first.
+  # This prevents the Helm install from timing out while waiting for an
+  # external IP that MetalLB hasn't provisioned yet.
 }
 
 module "linkerd" {
@@ -838,23 +759,6 @@ module "gitea" {
 }
 
 # ---------------------------------------------------------------------------
-# Monitoring: Grafana Alloy (replaces kube-prometheus-stack)
-# ---------------------------------------------------------------------------
-
-module "grafana_alloy" {
-  count  = var.enable_grafana_alloy ? 1 : 0
-  source = "./modules/grafana-alloy"
-
-  release_name                 = "grafana-k8s-monitoring"
-  chart_version                = var.grafana_alloy_chart_version
-  cluster_name                 = var.cluster_name
-  metrics_destination_password = var.grafana_alloy_metrics_password
-  logs_destination_password    = var.grafana_alloy_logs_password
-
-  tags = var.tags
-}
-
-# ---------------------------------------------------------------------------
 # Rancher ecosystem: Fleet, Turtles
 # ---------------------------------------------------------------------------
 
@@ -862,9 +766,10 @@ module "fleet" {
   count  = var.enable_fleet ? 1 : 0
   source = "./modules/fleet"
 
-  release_name = "fleet"
-  chart_version = var.fleet_chart_version
-  rancher_url  = "https://${local.rancher_host}"
+  release_name              = "fleet"
+  chart_version             = var.fleet_chart_version
+  fleet_crd_chart_version   = var.fleet_chart_version
+  rancher_url               = "https://${local.rancher_host}"
 
   tags = var.tags
 
@@ -925,6 +830,35 @@ module "sealed_secrets" {
   image = var.sealed_secrets_image
 
   tags = var.tags
+}
+
+# ---------------------------------------------------------------------------
+# Automation: AWX (Ansible Automation Platform upstream)
+# ---------------------------------------------------------------------------
+
+module "awx" {
+  count  = var.enable_awx ? 1 : 0
+  source = "./modules/awx"
+
+  namespace               = "awx"
+  release_name            = "awx-operator"
+  operator_chart_version  = var.awx_operator_chart_version
+  awx_instance_name       = "awx"
+  awx_image_version       = var.awx_image_version
+  admin_user              = var.awx_admin_user
+  admin_password          = var.awx_admin_password
+  admin_email             = var.awx_admin_email
+  ingress_host            = "awx.${var.ingress_base_domain}"
+  ingress_class_name      = "traefik"
+  cluster_issuer          = "local-lan-ca"
+  postgres_storage_class  = var.awx_postgres_storage_class
+  postgres_storage_size   = var.awx_postgres_storage_size
+  web_replicas            = var.awx_web_replicas
+  task_replicas           = var.awx_task_replicas
+
+  tags = var.tags
+
+  depends_on = [module.cert_manager]
 }
 
 # ---------------------------------------------------------------------------

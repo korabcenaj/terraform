@@ -73,14 +73,14 @@ variable "harbor_namespace" {
   default     = "harbor"
 }
 
-variable "enable_ingress_nginx_netpol" {
-  description = "Enable NetworkPolicy for ingress-nginx"
+variable "enable_traefik_netpol" {
+  description = "Enable NetworkPolicy for traefik"
   type        = bool
   default     = true
 }
 
-variable "ingress_nginx_namespace" {
-  description = "ingress-nginx namespace name"
+variable "traefik_namespace" {
+  description = "traefik namespace name"
   type        = string
-  default     = "ingress-nginx"
+  default     = "traefik"
 }

@@ -1,20 +1,12 @@
 # Monitoring stack is already deployed via Helm charts in the cluster
 # This module serves as a placeholder and documentation for monitoring configuration
 
-# In production, we would manage Prometheus, Grafana, Alertmanager here
+# In production, we would manage Grafana here
 # For now, we reference the existing monitoring namespace
 
 data "kubernetes_namespace" "monitoring" {
   metadata {
     name = "monitoring"
-  }
-}
-
-# Example: Reference existing Prometheus installation
-data "kubernetes_service" "prometheus" {
-  metadata {
-    name      = var.prometheus_service_name
-    namespace = data.kubernetes_namespace.monitoring.metadata[0].name
   }
 }
 
@@ -29,7 +21,7 @@ data "kubernetes_service" "grafana" {
 # Ingress for Grafana
 resource "kubernetes_ingress_v1" "grafana" {
   metadata {
-    name      = "grafana"
+    name      = "monitoring-grafana"
     namespace = data.kubernetes_namespace.monitoring.metadata[0].name
     labels    = var.tags
     annotations = {
@@ -38,11 +30,11 @@ resource "kubernetes_ingress_v1" "grafana" {
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.grafana_host]
-      secret_name = "grafana-tls"
+      secret_name = "grafana-local-lan-tls"
     }
 
     rule {
@@ -56,49 +48,6 @@ resource "kubernetes_ingress_v1" "grafana" {
               name = var.grafana_service_name
               port {
                 number = var.grafana_service_port
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-# Ingress for Prometheus
-resource "kubernetes_ingress_v1" "prometheus" {
-  metadata {
-    name      = "prometheus"
-    namespace = data.kubernetes_namespace.monitoring.metadata[0].name
-    labels    = var.tags
-    annotations = merge(
-      { "cert-manager.io/cluster-issuer" = "local-lan-ca" },
-      var.oauth2_proxy_auth_internal_url != "" && var.oauth2_proxy_url != "" ? {
-        "nginx.ingress.kubernetes.io/auth-url"    = "${var.oauth2_proxy_auth_internal_url}/oauth2/auth"
-        "nginx.ingress.kubernetes.io/auth-signin" = "${var.oauth2_proxy_url}/oauth2/start?rd=https://$host$uri"
-      } : {}
-    )
-  }
-
-  spec {
-    ingress_class_name = "nginx"
-
-    tls {
-      hosts       = [var.prometheus_host]
-      secret_name = "prometheus-tls"
-    }
-
-    rule {
-      host = var.prometheus_host
-      http {
-        path {
-          path      = "/"
-          path_type = "Prefix"
-          backend {
-            service {
-              name = var.prometheus_service_name
-              port {
-                number = var.prometheus_service_port
               }
             }
           }
@@ -122,7 +71,7 @@ resource "kubernetes_network_policy" "monitoring_default_deny" {
   }
 }
 
-# Allow ingress-nginx to reach Grafana and Prometheus
+# Allow traefik to reach Grafana
 resource "kubernetes_network_policy" "monitoring_allow_from_ingress" {
   metadata {
     name      = "allow-from-ingress"
@@ -138,7 +87,7 @@ resource "kubernetes_network_policy" "monitoring_allow_from_ingress" {
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "traefik"
           }
         }
       }
@@ -150,71 +99,8 @@ resource "kubernetes_network_policy" "monitoring_allow_from_ingress" {
         port     = "3000"
         protocol = "TCP"
       }
-      ports {
-        port     = "9090"
-        protocol = "TCP"
-      }
-      ports {
-        port     = "9093"
-        protocol = "TCP"
-      }
     }
   }
 }
 
-# Allow Prometheus to scrape all namespaces (metrics egress)
-resource "kubernetes_network_policy" "monitoring_allow_scrape_egress" {
-  metadata {
-    name      = "allow-scrape-egress"
-    namespace = data.kubernetes_namespace.monitoring.metadata[0].name
-    labels    = var.tags
-  }
 
-  spec {
-    pod_selector {
-      match_labels = {
-        app = "prometheus"
-      }
-    }
-    policy_types = ["Egress"]
-
-    egress {
-      to {
-        ip_block {
-          cidr = "0.0.0.0/0"
-        }
-      }
-      ports {
-        port     = "9100"
-        protocol = "TCP"
-      }
-      ports {
-        port     = "10250"
-        protocol = "TCP"
-      }
-      ports {
-        port     = "10255"
-        protocol = "TCP"
-      }
-      ports {
-        port     = "8080"
-        protocol = "TCP"
-      }
-    }
-
-    # DNS
-    egress {
-      to {
-        namespace_selector {
-          match_labels = {
-            "kubernetes.io/metadata.name" = "kube-system"
-          }
-        }
-      }
-      ports {
-        port     = "53"
-        protocol = "UDP"
-      }
-    }
-  }
-}

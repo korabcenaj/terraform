@@ -1,7 +1,7 @@
 variable "namespace" {
   description = "Namespace where Loki and Promtail will be installed"
   type        = string
-  default     = "logging"
+  default     = "loki"
 }
 
 variable "release_name" {

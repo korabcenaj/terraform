@@ -70,7 +70,7 @@ variable "enable_pihole" {
 variable "pihole_load_balancer_ip" {
   description = "Pi-hole LoadBalancer IP used by clients/routers for DNS"
   type        = string
-  default     = "192.168.1.210"
+  default     = "192.168.0.210"
 
   validation {
     condition     = can(regex("^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}$", trimspace(var.pihole_load_balancer_ip)))
@@ -202,70 +202,6 @@ variable "manage_cert_manager_controller" {
   default     = true
 }
 
-variable "enable_ingress_nginx" {
-  description = "Deploy ingress-nginx via Helm (the cluster's ingress controller)"
-  type        = bool
-  default     = true
-}
-
-variable "ingress_nginx_chart_version" {
-  description = "ingress-nginx Helm chart version"
-  type        = string
-  default     = "4.15.1"
-}
-
-variable "ingress_nginx_service_type" {
-  description = "Service type for the ingress-nginx controller (LoadBalancer or NodePort)"
-  type        = string
-  default     = "LoadBalancer"
-}
-
-variable "ingress_nginx_replicas" {
-  description = "Number of ingress-nginx controller replicas"
-  type        = number
-  default     = 2
-}
-
-variable "ingress_nginx_limit_rps" {
-  description = "Global ingress-nginx request rate limit per client IP (0 disables)"
-  type        = number
-  default     = 0
-
-  validation {
-    condition     = var.ingress_nginx_limit_rps >= 0
-    error_message = "ingress_nginx_limit_rps must be >= 0."
-  }
-}
-
-variable "ingress_nginx_limit_connections" {
-  description = "Global ingress-nginx concurrent connection limit per client IP (0 disables)"
-  type        = number
-  default     = 0
-
-  validation {
-    condition     = var.ingress_nginx_limit_connections >= 0
-    error_message = "ingress_nginx_limit_connections must be >= 0."
-  }
-}
-
-variable "ingress_nginx_enable_modsecurity" {
-  description = "Enable ModSecurity in ingress-nginx"
-  type        = bool
-  default     = false
-}
-
-variable "ingress_nginx_enable_owasp_crs" {
-  description = "Enable OWASP CRS rules when ModSecurity is enabled"
-  type        = bool
-  default     = false
-}
-
-variable "enable_kube_prometheus_stack" {
-  description = "Deploy kube-prometheus-stack via Helm (Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics)"
-  type        = bool
-  default     = true
-}
-
 variable "enable_loki" {
   description = "Deploy Loki + Promtail via Helm for centralized cluster log aggregation"
   type        = bool
@@ -296,22 +232,10 @@ variable "enable_external_secrets" {
   default     = false
 }
 
-variable "enable_argocd" {
-  description = "Deploy Argo CD via Helm"
-  type        = bool
-  default     = false
-}
-
 variable "enable_tempo" {
   description = "Deploy Grafana Tempo via Helm for distributed tracing"
   type        = bool
   default     = false
-}
-
-variable "kube_prometheus_stack_chart_version" {
-  description = "kube-prometheus-stack Helm chart version"
-  type        = string
-  default     = "82.18.0"
 }
 
 variable "loki_chart_version" {
@@ -353,61 +277,7 @@ variable "vault_chart_version" {
 variable "external_secrets_chart_version" {
   description = "External Secrets Helm chart version"
   type        = string
-  default     = "0.14.1"
-}
-
-variable "argocd_chart_version" {
-  description = "Argo CD Helm chart version"
-  type        = string
-  default     = "9.4.17"
-}
-
-variable "argocd_create_app_project" {
-  description = "Create a platform AppProject in Argo CD"
-  type        = bool
-  default     = false
-}
-
-variable "argocd_project_name" {
-  description = "Name of the Argo CD AppProject"
-  type        = string
-  default     = "platform"
-}
-
-variable "argocd_create_bootstrap_app" {
-  description = "Create a bootstrap Application in Argo CD pointing at a Git repository"
-  type        = bool
-  default     = false
-}
-
-variable "argocd_bootstrap_app_name" {
-  description = "Name of the bootstrap Argo CD Application"
-  type        = string
-  default     = "platform-bootstrap"
-}
-
-variable "argocd_bootstrap_repo_url" {
-  description = "Git repository URL for the Argo CD bootstrap Application (e.g. https://github.com/org/repo)"
-  type        = string
-  default     = ""
-}
-
-variable "argocd_bootstrap_repo_revision" {
-  description = "Git ref (branch/tag/commit) for the bootstrap Application"
-  type        = string
-  default     = "HEAD"
-}
-
-variable "argocd_bootstrap_repo_path" {
-  description = "Path within the repository containing Application manifests"
-  type        = string
-  default     = "."
-}
-
-variable "argocd_bootstrap_auto_sync" {
-  description = "Enable automated sync (prune + self-heal) on the bootstrap Application"
-  type        = bool
-  default     = false
+  default     = "2.5.0"
 }
 
 variable "tempo_chart_version" {
@@ -526,54 +396,23 @@ variable "vault_token" {
   default     = "CHANGE_ME_VAULT_TOKEN"
 }
 
-variable "argocd_admin_password_bcrypt" {
-  description = "Optional bcrypt hash for Argo CD admin password"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "grafana_admin_password" {
-  description = "Grafana admin password"
-  type        = string
-  sensitive   = true
-}
-
-variable "prometheus_retention" {
-  description = "Prometheus data retention period"
-  type        = string
-  default     = "30d"
-}
-
-variable "prometheus_storage_size" {
-  description = "Prometheus persistent volume size"
-  type        = string
-  default     = "20Gi"
-}
-
-variable "prometheus_storage_class" {
-  description = "Storage class for Prometheus persistent volume"
-  type        = string
-  default     = "local-path"
-}
-
-variable "grafana_storage_size" {
-  description = "Grafana persistent volume size"
-  type        = string
-  default     = "2Gi"
-}
-
-variable "grafana_storage_class" {
-  description = "Storage class for Grafana persistent volume"
-  type        = string
-  default     = "local-path"
-}
-
 # Application configurations
 variable "portfolio_replicas" {
-  description = "Number of portfolio replicas"
+  description = "Number of portfolio replicas (ignored when KEDA is enabled)"
   type        = number
   default     = 1
+}
+
+variable "portfolio_image" {
+  description = "Container image for portfolio web app"
+  type        = string
+  default     = "nginxinc/nginx-unprivileged:1.29-alpine"
+}
+
+variable "portfolio_image_pull_secrets" {
+  description = "List of image pull secret names for portfolio"
+  type        = list(string)
+  default     = []
 }
 
 variable "jellyfin_replicas" {
@@ -606,9 +445,22 @@ variable "jellyfin_node_name" {
   type        = string
 }
 
+variable "jellyfin_gpu_count" {
+  description = "Number of AMD GPUs for Jellyfin hardware transcoding (0 disables GPU)"
+  type        = number
+  default     = 1
+}
+
 variable "jellyfin_media_path" {
-  description = "Host path for Jellyfin media files"
+  description = "Host path for Jellyfin media files (used for hostPath PV; ignored when media_pvc_name is set)"
   type        = string
+  default     = "/media/library"
+}
+
+variable "jellyfin_load_balancer_ip" {
+  description = "External IP for Jellyfin LoadBalancer service"
+  type        = string
+  default     = "192.168.0.209"
 }
 
 # Resource limits
@@ -704,7 +556,7 @@ variable "enable_kyverno" {
 variable "kyverno_chart_version" {
   description = "Kyverno Helm chart version"
   type        = string
-  default     = "3.2.6"
+  default     = "3.8.1"
 }
 
 variable "kyverno_enforcement_mode" {
@@ -720,95 +572,74 @@ variable "kyverno_create_policies" {
 }
 
 # ---------------------------------------------------------------------------
-# Local identity provider and native app OIDC
+# Local identity provider — lightweight Keycloak (Quarkus, H2 embedded DB, no PostgreSQL)
 # ---------------------------------------------------------------------------
 
-variable "enable_keycloak" {
-  description = "Deploy a local Keycloak identity provider for LAN-only authentication"
+variable "enable_keycloak_light" {
+  description = "Deploy a lightweight Keycloak identity provider (Quarkus-based, H2 embedded database)"
   type        = bool
   default     = false
 }
 
-variable "keycloak_chart_version" {
-  description = "Keycloak Helm chart version"
+variable "keycloak_light_image" {
+  description = "Keycloak container image (official Quarkus distribution)"
   type        = string
-  default     = "25.2.0"
+  default     = "quay.io/keycloak/keycloak:26.1"
 }
 
-variable "keycloak_admin_user" {
-  description = "Keycloak admin username"
+variable "keycloak_light_admin_user" {
+  description = "Keycloak bootstrap admin username"
   type        = string
   default     = "admin"
 }
 
-variable "keycloak_admin_password" {
-  description = "Keycloak admin password"
+variable "keycloak_light_admin_password" {
+  description = "Keycloak bootstrap admin password"
   type        = string
   sensitive   = true
   default     = "CHANGE_ME_KEYCLOAK_ADMIN_PASSWORD"
 }
 
-variable "keycloak_realm" {
-  description = "Realm name intended for homelab OIDC clients"
+variable "keycloak_light_realm" {
+  description = "Default realm name for OIDC clients (created manually after first login)"
   type        = string
   default     = "homelab"
 }
 
-variable "keycloak_postgresql_username" {
-  description = "PostgreSQL username for the bundled Keycloak database"
-  type        = string
-  default     = "keycloak"
-}
-
-variable "keycloak_postgresql_password" {
-  description = "PostgreSQL password for the bundled Keycloak database"
-  type        = string
-  sensitive   = true
-  default     = "CHANGE_ME_KEYCLOAK_DB_PASSWORD"
-}
-
-variable "keycloak_postgresql_database" {
-  description = "PostgreSQL database name for Keycloak"
-  type        = string
-  default     = "keycloak"
-}
-
-variable "keycloak_postgresql_storage_class" {
-  description = "Storage class for the bundled Keycloak PostgreSQL volume"
+variable "keycloak_light_storage_class" {
+  description = "Storage class for the Keycloak H2 data volume"
   type        = string
   default     = "local-path"
 }
 
-variable "keycloak_postgresql_storage_size" {
-  description = "Persistent volume size for the bundled Keycloak PostgreSQL database"
+variable "keycloak_light_storage_size" {
+  description = "Persistent volume size for the Keycloak H2 database"
   type        = string
-  default     = "8Gi"
+  default     = "2Gi"
 }
 
-variable "keycloak_bootstrap_enabled" {
-  description = "Bootstrap the homelab realm and known OIDC clients declaratively inside Keycloak"
-  type        = bool
-  default     = true
-}
-
-variable "enable_argocd_oidc" {
-  description = "Enable native OIDC login in Argo CD using the local identity provider"
-  type        = bool
-  default     = false
-}
-
-variable "argocd_oidc_client_id" {
-  description = "OIDC client ID for Argo CD"
+variable "keycloak_light_cpu_request" {
+  description = "CPU request for Keycloak"
   type        = string
-  sensitive   = true
-  default     = "argocd"
+  default     = "100m"
 }
 
-variable "argocd_oidc_client_secret" {
-  description = "OIDC client secret for Argo CD"
+variable "keycloak_light_memory_request" {
+  description = "Memory request for Keycloak"
   type        = string
-  sensitive   = true
-  default     = "CHANGE_ME_ARGOCD_OIDC_SECRET"
+  default     = "256Mi"
+}
+
+variable "keycloak_light_cpu_limit" {
+  description = "CPU limit for Keycloak"
+  type        = string
+  default     = "500m"
+}
+
+variable "keycloak_light_memory_limit" {
+  description = "Memory limit for Keycloak"
+  type        = string
+  default     = "512Mi"
 }
 
 variable "enable_grafana_oidc" {
@@ -829,31 +660,6 @@ variable "grafana_oidc_client_secret" {
   type        = string
   sensitive   = true
   default     = "CHANGE_ME_GRAFANA_OIDC_SECRET"
-}
-
-variable "alertmanager_enabled" {
-  description = "Enable Alertmanager notification configuration. Requires alertmanager_webhook_url to be set."
-  type        = bool
-  default     = false
-}
-
-variable "alertmanager_webhook_url" {
-  description = "Webhook URL for Alertmanager to send notifications to (Slack incoming webhook, n8n webhook, etc.)"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "alertmanager_repeat_interval" {
-  description = "How long to wait before re-sending an already-firing alert"
-  type        = string
-  default     = "4h"
-}
-
-variable "create_alert_rules" {
-  description = "Create PrometheusRule with critical baseline alerts (node down, disk, OOM, crash-loop, Velero backup)"
-  type        = bool
-  default     = true
 }
 
 # ---------------------------------------------------------------------------
@@ -1083,6 +889,157 @@ variable "matrix_synapse_well_known_enabled" {
   default     = true
 }
 
+# ---------------------------------------------------------------------------
+# Matrix Dendrite (Go-based, lightweight alternative to Synapse)
+# ---------------------------------------------------------------------------
+
+variable "enable_matrix_dendrite" {
+  description = "Deploy Matrix Dendrite chat server (Go-based, ~50-80 MB RAM vs Synapse's ~172 MB)"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_dendrite_image" {
+  description = "Container image for Matrix Dendrite monolith"
+  type        = string
+  default     = "matrixdotorg/dendrite-monolith:v0.14.1"
+}
+
+variable "matrix_dendrite_server_name" {
+  description = "Optional explicit Matrix server_name used for user IDs and federation. Leave empty to use chat.<ingress_base_domain>."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_dendrite_public_base_url" {
+  description = "Optional explicit public base URL for Dendrite. Leave empty to use https://chat.<ingress_base_domain>."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_dendrite_ingress_host" {
+  description = "Optional explicit ingress host for Matrix Dendrite. Leave empty to use chat.<ingress_base_domain>."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_dendrite_cluster_issuer" {
+  description = "cert-manager ClusterIssuer used by Matrix Dendrite ingress TLS"
+  type        = string
+  default     = "local-lan-ca"
+}
+
+variable "matrix_dendrite_storage_size" {
+  description = "Persistent volume size for Matrix Dendrite data"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "matrix_dendrite_storage_class" {
+  description = "Storage class for Matrix Dendrite persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+variable "matrix_dendrite_cpu_request" {
+  description = "CPU request for Matrix Dendrite"
+  type        = string
+  default     = "100m"
+}
+
+variable "matrix_dendrite_memory_request" {
+  description = "Memory request for Matrix Dendrite"
+  type        = string
+  default     = "128Mi"
+}
+
+variable "matrix_dendrite_cpu_limit" {
+  description = "CPU limit for Matrix Dendrite"
+  type        = string
+  default     = "500m"
+}
+
+variable "matrix_dendrite_memory_limit" {
+  description = "Memory limit for Matrix Dendrite"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "matrix_dendrite_registration_shared_secret" {
+  description = "Shared secret used for controlled user provisioning via Dendrite create-account"
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_MATRIX_DENDRITE_SHARED_SECRET"
+}
+
+variable "matrix_dendrite_bootstrap_admin_enabled" {
+  description = "Run one-shot Kubernetes Job to create the first Matrix Dendrite admin user"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_dendrite_bootstrap_admin_username" {
+  description = "Username for first Matrix Dendrite admin account"
+  type        = string
+  default     = "admin"
+}
+
+variable "matrix_dendrite_bootstrap_admin_password" {
+  description = "Password for first Matrix Dendrite admin account"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "matrix_dendrite_oidc_enabled" {
+  description = "Enable OIDC login for Matrix Dendrite"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_dendrite_oidc_issuer_url" {
+  description = "Optional explicit OIDC issuer URL. Leave empty to use Keycloak realm URL derived from ingress_base_domain and keycloak_realm."
+  type        = string
+  default     = ""
+}
+
+variable "matrix_dendrite_oidc_client_id" {
+  description = "OIDC client ID for Matrix Dendrite"
+  type        = string
+  default     = "matrix-dendrite"
+}
+
+variable "matrix_dendrite_oidc_client_secret" {
+  description = "OIDC client secret for Matrix Dendrite"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "matrix_dendrite_oidc_scopes" {
+  description = "OIDC scopes requested by Matrix Dendrite"
+  type        = list(string)
+  default     = ["openid", "profile", "email"]
+}
+
+variable "matrix_dendrite_federation_enabled" {
+  description = "Enable Matrix federation with external homeservers"
+  type        = bool
+  default     = false
+}
+
+variable "matrix_dendrite_federation_domain_whitelist" {
+  description = "Optional allow-list of external homeserver domains for federation. Empty means unrestricted when federation is enabled."
+  type        = list(string)
+  default     = []
+}
+
+variable "matrix_dendrite_well_known_enabled" {
+  description = "Expose .well-known/matrix/server and .well-known/matrix/client endpoints"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
@@ -1107,64 +1064,6 @@ variable "control_plane_node_name" {
   description = "Name of the control-plane node to taint."
   type        = string
   default     = "k8s-master"
-}
-
-# ---------------------------------------------------------------------------
-# AI Orchestrator
-# ---------------------------------------------------------------------------
-
-variable "enable_ai_orchestrator" {
-  description = "Manage the ai-orchestrator namespace, NetworkPolicies, and ResourceQuota via Terraform. Workloads are owned by Argo CD."
-  type        = bool
-  default     = true
-}
-
-variable "ai_orchestrator_api_gateway_port" {
-  description = "Port exposed by the api-gateway service (used in NetworkPolicy allow rule)"
-  type        = number
-  default     = 8080
-}
-
-variable "ai_orchestrator_cpu_request" {
-  description = "Namespace ResourceQuota: total CPU requests"
-  type        = string
-  default     = "500m"
-}
-
-variable "ai_orchestrator_memory_request" {
-  description = "Namespace ResourceQuota: total memory requests"
-  type        = string
-  default     = "1Gi"
-}
-
-variable "ai_orchestrator_cpu_limit" {
-  description = "Namespace ResourceQuota: total CPU limits"
-  type        = string
-  default     = "16"
-}
-
-variable "ai_orchestrator_memory_limit" {
-  description = "Namespace ResourceQuota: total memory limits"
-  type        = string
-  default     = "32Gi"
-}
-
-variable "ai_orchestrator_gpu_limit" {
-  description = "Namespace ResourceQuota: maximum nvidia.com/gpu devices"
-  type        = number
-  default     = 2
-}
-
-variable "ai_orchestrator_max_pods" {
-  description = "Namespace ResourceQuota: maximum pod count"
-  type        = number
-  default     = 20
-}
-
-variable "ai_orchestrator_max_pvcs" {
-  description = "Namespace ResourceQuota: maximum PersistentVolumeClaims"
-  type        = number
-  default     = 10
 }
 
 # ---------------------------------------------------------------------------
@@ -1199,19 +1098,6 @@ variable "velero_backup_ttl" {
   description = "Retention period for backups created by the schedule (Go duration string)"
   type        = string
   default     = "720h0m0s" # 30 days
-}
-
-# Skills Dashboard Configuration
-variable "enable_skills_dashboard" {
-  description = "Enable the Kubernetes infrastructure skills dashboard"
-  type        = bool
-  default     = true
-}
-
-variable "skills_dashboard_host" {
-  description = "Hostname for the skills dashboard"
-  type        = string
-  default     = ""
 }
 
 variable "harbor_oidc_client_id" {
@@ -1278,18 +1164,6 @@ variable "traefik_load_balancer_ip" {
   description = "Static IP for Traefik LoadBalancer service (leave empty for dynamic)"
   type        = string
   default     = ""
-}
-
-variable "enable_metallb" {
-  description = "Deploy MetalLB load balancer via Helm"
-  type        = bool
-  default     = false
-}
-
-variable "metallb_chart_version" {
-  description = "MetalLB Helm chart version"
-  type        = string
-  default     = "0.15.3"
 }
 
 variable "enable_linkerd" {
@@ -1414,36 +1288,6 @@ variable "gitea_storage_class" {
 }
 
 # ---------------------------------------------------------------------------
-# Monitoring: Grafana Alloy
-# ---------------------------------------------------------------------------
-
-variable "enable_grafana_alloy" {
-  description = "Deploy Grafana Alloy-based k8s-monitoring via Helm (replaces kube-prometheus-stack)"
-  type        = bool
-  default     = false
-}
-
-variable "grafana_alloy_chart_version" {
-  description = "k8s-monitoring Helm chart version (Grafana Alloy)"
-  type        = string
-  default     = "4.1.3"
-}
-
-variable "grafana_alloy_metrics_password" {
-  description = "Grafana Cloud metrics (Prometheus) API key"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "grafana_alloy_logs_password" {
-  description = "Grafana Cloud logs (Loki) API key"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-# ---------------------------------------------------------------------------
 # Rancher ecosystem: Fleet, Turtles
 # ---------------------------------------------------------------------------
 
@@ -1456,7 +1300,7 @@ variable "enable_fleet" {
 variable "fleet_chart_version" {
   description = "Fleet Helm chart version"
   type        = string
-  default     = "109.0.1+up0.15.1"
+  default     = "0.15.2"
 }
 
 variable "enable_rancher_turtles" {
@@ -1468,7 +1312,7 @@ variable "enable_rancher_turtles" {
 variable "rancher_turtles_chart_version" {
   description = "Rancher Turtles Helm chart version"
   type        = string
-  default     = "109.0.1+up0.26.1"
+  default     = "0.26.2"
 }
 
 # ---------------------------------------------------------------------------
@@ -1553,4 +1397,83 @@ variable "website_tracker_chart_version" {
   description = "Website Tracker Helm chart version"
   type        = string
   default     = "0.1.0"
+}
+
+# ---------------------------------------------------------------------------
+# Ansible Automation Platform (AWX)
+# ---------------------------------------------------------------------------
+
+variable "enable_awx" {
+  description = "Deploy AWX (Ansible Automation Platform upstream) via the AWX Operator on Kubernetes"
+  type        = bool
+  default     = false
+}
+
+variable "awx_operator_chart_version" {
+  description = "AWX Operator Helm chart version"
+  type        = string
+  default     = "2.19.1"
+}
+
+variable "awx_image_version" {
+  description = "AWX container image version tag"
+  type        = string
+  default     = "24.6.1"
+}
+
+variable "awx_admin_user" {
+  description = "AWX admin username"
+  type        = string
+  default     = "admin"
+}
+
+variable "awx_admin_password" {
+  description = "AWX admin password (leave empty to auto-generate via the operator; retrieve with kubectl get secret awx-admin-password -n awx)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "awx_admin_email" {
+  description = "AWX admin email"
+  type        = string
+  default     = "admin@local.lan"
+}
+
+variable "awx_web_replicas" {
+  description = "Number of AWX web UI replicas"
+  type        = number
+  default     = 1
+}
+
+variable "awx_task_replicas" {
+  description = "Number of AWX background task replicas"
+  type        = number
+  default     = 1
+}
+
+variable "awx_postgres_storage_size" {
+  description = "Persistent volume size for AWX PostgreSQL"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "awx_postgres_storage_class" {
+  description = "Storage class for AWX PostgreSQL persistent volume"
+  type        = string
+  default     = "local-path"
+}
+
+# ---------------------------------------------------------------------------
+# Ansible node management (playbook-driven)
+# ---------------------------------------------------------------------------
+
+variable "ansible_node_ips" {
+  description = "Map of node hostnames to IPs used by the Ansible inventory"
+  type        = map(string)
+  default = {
+    "k8s-master" = "192.168.0.83"
+    "k8s"        = "192.168.0.107"
+    "k8s2"       = "192.168.0.159"
+  }
 }

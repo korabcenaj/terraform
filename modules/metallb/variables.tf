@@ -15,3 +15,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "address_pool_name" {
+  description = "Name of the MetalLB IPAddressPool"
+  type        = string
+  default     = "home-lab-pool"
+}
+
+variable "address_range" {
+  description = "IP address range for MetalLB (CIDR or range)"
+  type        = string
+  default     = "192.168.0.200-192.168.0.220"
+}
+
+variable "l2_advertisement_name" {
+  description = "Name of the MetalLB L2Advertisement"
+  type        = string
+  default     = "home-lab-l2"
+}

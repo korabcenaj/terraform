@@ -10,40 +10,6 @@ locals {
     rememberMe             = true
     clients = [
       {
-        clientId                  = var.argocd_client_id
-        name                      = "Argo CD"
-        description               = "Argo CD local OIDC client"
-        enabled                   = true
-        protocol                  = "openid-connect"
-        publicClient              = false
-        secret                    = var.argocd_client_secret
-        standardFlowEnabled       = true
-        implicitFlowEnabled       = false
-        directAccessGrantsEnabled = false
-        serviceAccountsEnabled    = false
-        redirectUris              = var.argocd_redirect_uris
-        webOrigins                = var.argocd_web_origins
-        protocolMappers = [
-          {
-            name            = "groups"
-            protocol        = "openid-connect"
-            protocolMapper  = "oidc-group-membership-mapper"
-            consentRequired = false
-            config = {
-              "full.path"            = "false"
-              "id.token.claim"       = "true"
-              "access.token.claim"   = "true"
-              "userinfo.token.claim" = "true"
-              "claim.name"           = "groups"
-            }
-          }
-        ]
-        attributes = {
-          "pkce.code.challenge.method" = "S256"
-          "post.logout.redirect.uris"  = "+"
-        }
-      },
-      {
         clientId                  = var.grafana_client_id
         name                      = "Grafana"
         description               = "Grafana local OIDC client"
@@ -144,6 +110,40 @@ locals {
         serviceAccountsEnabled    = false
         redirectUris              = var.matrix_redirect_uris
         webOrigins                = var.matrix_web_origins
+        protocolMappers = [
+          {
+            name            = "groups"
+            protocol        = "openid-connect"
+            protocolMapper  = "oidc-group-membership-mapper"
+            consentRequired = false
+            config = {
+              "full.path"            = "false"
+              "id.token.claim"       = "true"
+              "access.token.claim"   = "true"
+              "userinfo.token.claim" = "true"
+              "claim.name"           = "groups"
+            }
+          }
+        ]
+        attributes = {
+          "pkce.code.challenge.method" = "S256"
+          "post.logout.redirect.uris"  = "+"
+        }
+      },
+      {
+        clientId                  = var.dendrite_client_id
+        name                      = "Matrix Dendrite"
+        description               = "Matrix Dendrite lightweight Go homeserver OIDC client"
+        enabled                   = true
+        protocol                  = "openid-connect"
+        publicClient              = false
+        secret                    = var.dendrite_client_secret
+        standardFlowEnabled       = true
+        implicitFlowEnabled       = false
+        directAccessGrantsEnabled = false
+        serviceAccountsEnabled    = false
+        redirectUris              = var.dendrite_redirect_uris
+        webOrigins                = var.dendrite_web_origins
         protocolMappers = [
           {
             name            = "groups"
@@ -329,7 +329,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.ingress_host]

@@ -18,19 +18,13 @@ enable_pod_security_standards = true
 enable_resource_quotas     = true
 enable_pod_disruption_budgets = true
 
-# ingress-nginx hardening defaults (set >0 to enable global limits)
-ingress_nginx_limit_rps         = 10
-ingress_nginx_limit_connections = 20
-ingress_nginx_enable_modsecurity = false
-ingress_nginx_enable_owasp_crs   = false
-
 # Pi-hole configuration
 pihole_web_password = "changeme"  # Change this to a secure password!
-pihole_load_balancer_ip = "192.168.1.210"
+pihole_load_balancer_ip = "192.168.0.210"
 
 # CoreDNS forwarding for private domain resolution from inside the cluster.
 # Set to your Pi-hole/router DNS IP.
-private_dns_ip = "192.168.1.210"
+private_dns_ip = "192.168.0.210"
 
 # Application configurations
 portfolio_replicas   = 1
@@ -56,9 +50,12 @@ qbittorrent_replicas = 1
 # qbittorrent_storage_class = "local-path"
 
 # Storage configuration
-jellyfin_storage_class = "local-path"
-jellyfin_config_size   = "20Gi"
-jellyfin_cache_size    = "5Gi"
+jellyfin_storage_class    = "local-path"
+jellyfin_config_size      = "20Gi"
+jellyfin_cache_size       = "5Gi"
+jellyfin_node_name        = "k8s-master"
+jellyfin_media_path       = "/media/library"
+jellyfin_load_balancer_ip = "192.168.0.209"
 
 # Resource defaults (for standard services)
 default_cpu_request    = "100m"

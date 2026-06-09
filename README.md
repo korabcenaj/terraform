@@ -47,7 +47,7 @@ version-controlled codebase.
 │  Kubernetes Cluster  (4-node bare-metal, k8s v1.29)             │
 │                                                                 │
 │  Platform (Terraform-owned)         Apps (Argo CD-owned)        │
-│  ├── ingress-nginx (Helm)           └── portfolio               │
+│  ├── traefik (Helm)           └── portfolio               │
 │  ├── kube-prometheus-stack (Helm)                               │
 │  ├── cert-manager (kubectl/manual)                              │
 │  ├── metrics-server (Helm)                                      │
@@ -63,7 +63,7 @@ version-controlled codebase.
 | Resource | Owned by | Rationale |
 |---|---|---|
 | Namespaces, RBAC, Network Policies | Terraform | Platform concerns — stable, long-lived |
-| ingress-nginx, kube-prometheus-stack, Loki, Tempo, MinIO, Velero, Vault, External Secrets, metrics-server | Terraform | Infrastructure — needs version pinning and drift detection |
+| traefik, kube-prometheus-stack, Loki, Tempo, MinIO, Velero, Vault, External Secrets, metrics-server | Terraform | Infrastructure — needs version pinning and drift detection |
 | Jellyfin, qBittorrent, Pi-hole | Terraform | No GitOps controller managing these |
 | Portfolio workload (Deployment, Service, Ingress) | Argo CD | Argo CD tracks image updates; Terraform owns the namespace only |
 | cert-manager | Unmanaged (manual) | Installed via kubectl with no Helm release secret; migration pending |
@@ -77,7 +77,7 @@ version-controlled codebase.
 |---|---|
 | IaC | Terraform ≥ 1.8, `hashicorp/kubernetes` ~> 2.25, `hashicorp/helm` ~> 2.13 |
 | Container Orchestration | Kubernetes 1.29 (bare-metal, kubeadm) |
-| Ingress | ingress-nginx 4.15.1 (Helm-managed) |
+| Ingress | traefik 4.15.1 (Helm-managed) |
 | Monitoring | kube-prometheus-stack 82.18.0 — Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
 | Logging | Loki + Promtail (Helm module available, staged disabled by default) |
 | Tracing | Grafana Tempo (Helm module available, staged disabled by default) |
@@ -122,7 +122,7 @@ terraform/
     ├── argocd/                      # Helm release for Argo CD (staged for import)
     ├── external-secrets/            # Helm release + optional Vault ClusterSecretStore bootstrap
     ├── gpu-device-plugins/          # Intel/AMD/NVIDIA device plugins for GPU resource advertisement
-    ├── ingress-nginx/               # Helm release, default IngressClass, metrics integration
+    ├── traefik/               # Helm release, default IngressClass, metrics integration
     ├── kube-prometheus-stack/       # Helm release, Prometheus + Grafana + Alertmanager
     ├── loki/                        # Helm release for Loki + Promtail log aggregation
     ├── metrics-server/              # Kubernetes-native metrics-server resources
@@ -287,7 +287,7 @@ All tunable settings live in `terraform.tfvars`. Secrets go in `secrets.auto.tfv
 enable_portfolio              = true
 manage_portfolio_workload     = false  # Argo CD owns the workload; Terraform owns the namespace
 enable_jellyfin               = true
-enable_ingress_nginx          = true
+enable_traefik                = true
 enable_kube_prometheus_stack  = true
 enable_gpu_device_plugins     = true
 enable_network_policies       = true
@@ -298,7 +298,7 @@ enable_pod_disruption_budgets = true
 ingress_base_domain           = "local.lan"
 
 # Pin Helm chart versions to running cluster versions
-ingress_nginx_chart_version         = "4.15.1"
+traefik_chart_version               = "40.2.0"
 kube_prometheus_stack_chart_version = "82.18.0"
 ```
 
@@ -485,4 +485,4 @@ terraform plan   # verify no unexpected changes
 - [Terraform Registry — kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes)
 - [Terraform Registry — helm provider](https://registry.terraform.io/providers/hashicorp/helm)
 - [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
-- [ingress-nginx](https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx)
+- [traefik](https://github.com/kubernetes/traefik/tree/main/charts/traefik)

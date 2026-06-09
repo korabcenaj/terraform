@@ -468,6 +468,8 @@ resource "kubernetes_job_v1" "bootstrap_admin" {
     labels    = var.tags
   }
 
+  wait_for_completion = false
+
   spec {
     backoff_limit = 3
 
@@ -686,7 +688,7 @@ resource "kubernetes_ingress_v1" "synapse" {
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     tls {
       hosts       = [var.ingress_host]
@@ -725,7 +727,7 @@ resource "kubernetes_ingress_v1" "well_known" {
   }
 
   spec {
-    ingress_class_name = "nginx"
+    ingress_class_name = "traefik"
 
     rule {
       host = var.ingress_host
