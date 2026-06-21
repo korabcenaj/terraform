@@ -94,7 +94,11 @@ resource "kubernetes_network_policy" "allow_dns" {
   }
 }
 
-# Allow traefik to reach pods in every managed namespace
+# Allow traefik to reach pods in every managed namespace.
+# NOTE: No port restriction here because kube-proxy DNAT rewrites service ports
+# to pod-level targetPorts. Each app listens on a different port (8080, 8096, 3000,
+# etc.), so we allow all TCP. Individual NetworkPolicies (e.g., portfolio-netpol)
+# provide finer-grained per-app port restrictions.
 resource "kubernetes_network_policy" "allow_from_ingress" {
   for_each = toset(var.namespaces_with_policies)
   metadata {
@@ -113,16 +117,6 @@ resource "kubernetes_network_policy" "allow_from_ingress" {
             name = "traefik"
           }
         }
-      }
-
-      ports {
-        port     = "80"
-        protocol = "TCP"
-      }
-
-      ports {
-        port     = "443"
-        protocol = "TCP"
       }
     }
   }

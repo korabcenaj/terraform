@@ -37,7 +37,7 @@ resource "helm_release" "loki" {
     value = "true"
   }
 
-  # Grafana is already provided by kube-prometheus-stack.
+  # Grafana is deployed separately via VictoriaMetrics stack.
   set {
     name  = "grafana.enabled"
     value = "false"

@@ -8,7 +8,7 @@
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-3-0F1689?logo=helm&logoColor=white)
 ![Argo CD](https://img.shields.io/badge/Argo_CD-GitOps-EF7B4D?logo=argo&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-Grafana-E6522C?logo=prometheus&logoColor=white)
+![VictoriaMetrics](https://img.shields.io/badge/VictoriaMetrics-Grafana-1A8CFF?logo=grafana&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
 
 ---
@@ -48,7 +48,7 @@ version-controlled codebase.
 │                                                                 │
 │  Platform (Terraform-owned)         Apps (Argo CD-owned)        │
 │  ├── traefik (Helm)           └── portfolio               │
-│  ├── kube-prometheus-stack (Helm)                               │
+│  ├── victoria-metrics (Helm)                                    │
 │  ├── cert-manager (kubectl/manual)                              │
 │  ├── metrics-server (Helm)                                      │
 │  ├── Jellyfin                                                   │
@@ -63,7 +63,7 @@ version-controlled codebase.
 | Resource | Owned by | Rationale |
 |---|---|---|
 | Namespaces, RBAC, Network Policies | Terraform | Platform concerns — stable, long-lived |
-| traefik, kube-prometheus-stack, Loki, Tempo, MinIO, Velero, Vault, External Secrets, metrics-server | Terraform | Infrastructure — needs version pinning and drift detection |
+| traefik, victoria-metrics, Loki, Tempo, MinIO, Velero, Vault, External Secrets, metrics-server | Terraform | Infrastructure — needs version pinning and drift detection |
 | Jellyfin, qBittorrent, Pi-hole | Terraform | No GitOps controller managing these |
 | Portfolio workload (Deployment, Service, Ingress) | Argo CD | Argo CD tracks image updates; Terraform owns the namespace only |
 | cert-manager | Unmanaged (manual) | Installed via kubectl with no Helm release secret; migration pending |
@@ -78,7 +78,7 @@ version-controlled codebase.
 | IaC | Terraform ≥ 1.8, `hashicorp/kubernetes` ~> 2.25, `hashicorp/helm` ~> 2.13 |
 | Container Orchestration | Kubernetes 1.29 (bare-metal, kubeadm) |
 | Ingress | traefik 4.15.1 (Helm-managed) |
-| Monitoring | kube-prometheus-stack 82.18.0 — Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
+| Monitoring | victoria-metrics-single — VictoriaMetrics, Grafana, node-exporter, kube-state-metrics |
 | Logging | Loki + Promtail (Helm module available, staged disabled by default) |
 | Tracing | Grafana Tempo (Helm module available, staged disabled by default) |
 | Backup/DR | MinIO (S3-compatible) + Velero (Helm modules available, staged disabled by default) |
@@ -123,16 +123,15 @@ terraform/
     ├── external-secrets/            # Helm release + optional Vault ClusterSecretStore bootstrap
     ├── gpu-device-plugins/          # Intel/AMD/NVIDIA device plugins for GPU resource advertisement
     ├── traefik/               # Helm release, default IngressClass, metrics integration
-    ├── kube-prometheus-stack/       # Helm release, Prometheus + Grafana + Alertmanager
+    ├── victoria-metrics/            # Helm release, VictoriaMetrics + Grafana
     ├── loki/                        # Helm release for Loki + Promtail log aggregation
     ├── metrics-server/              # Kubernetes-native metrics-server resources
     ├── minio/                       # Helm release for in-cluster S3-compatible object storage
-    ├── monitoring/                  # Ingress + network-allow rules for Grafana/Prometheus
+    ├── monitoring/                  # Ingress + network-allow rules for Grafana/VictoriaMetrics
     ├── networking/                  # Default-deny NetworkPolicy per namespace
     ├── network-policies/            # Per-app allow rules (ingress, DNS, metrics scrape)
     ├── resource-quotas/             # CPU/memory quotas per namespace
     ├── tempo/                       # Helm release for distributed trace storage (OTLP/Jaeger receivers)
-    ├── pod-disruption-budgets/      # minAvailable PDBs for HA
     ├── portfolio/                   # Namespace-only (workload owned by Argo CD)
     ├── jellyfin/                    # Deployment, PVC, Service, Ingress, security hardening
     ├── qbittorrent/                 # Deployment, PVC, Service, Ingress
@@ -288,7 +287,7 @@ enable_portfolio              = true
 manage_portfolio_workload     = false  # Argo CD owns the workload; Terraform owns the namespace
 enable_jellyfin               = true
 enable_traefik                = true
-enable_kube_prometheus_stack  = true
+enable_victoria_metrics       = true
 enable_gpu_device_plugins     = true
 enable_network_policies       = true
 enable_resource_quotas        = true
@@ -299,7 +298,7 @@ ingress_base_domain           = "local.lan"
 
 # Pin Helm chart versions to running cluster versions
 traefik_chart_version               = "40.2.0"
-kube_prometheus_stack_chart_version = "82.18.0"
+victoria_metrics_chart_version      = "0.39.0"
 ```
 
 Scale an application without editing files:
@@ -484,5 +483,5 @@ terraform plan   # verify no unexpected changes
 **See Also:**
 - [Terraform Registry — kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes)
 - [Terraform Registry — helm provider](https://registry.terraform.io/providers/hashicorp/helm)
-- [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
+- [VictoriaMetrics](https://github.com/VictoriaMetrics/helm-charts)
 - [traefik](https://github.com/kubernetes/traefik/tree/main/charts/traefik)

@@ -1,50 +1,73 @@
 ################################################################################
 # Terraform Import Blocks (Terraform 1.5+)
-#
-# These blocks import pre-existing cluster resources into Terraform state so
-# they can be managed going forward without recreation.
-#
-# USAGE:
-#   1. Ensure the target module/resource is enabled in terraform.tfvars
-#      (enable_cert_manager = true, manage_cert_manager_controller = true)
-#   2. If cert-manager was installed via plain kubectl (no Helm release secret),
-#      first adopt it into Helm:
-#        helm -n cert-manager upgrade --install cert-manager \
-#          jetstack/cert-manager --version v1.17.1 \
-#          --reuse-values
-#      This creates the Helm release secret so the import below can succeed.
-#   3. Run: terraform plan   (Terraform will show import + no-change plan)
-#   4. Run: terraform apply
-#   5. These blocks are safe to leave in permanently. Terraform is idempotent:
-#      if a resource is already in state the import is a no-op.
+# Import cluster resources that already exist so Terraform manages them
 ################################################################################
 
-# ---------------------------------------------------------------------------
-# cert-manager — adopted from manual/pre-Terraform installation
-# ---------------------------------------------------------------------------
-
+# Namespaces
 import {
   to = module.cert_manager[0].kubernetes_namespace.cert_manager
   id = "cert-manager"
 }
 
 import {
-  to = module.cert_manager[0].helm_release.cert_manager[0]
-  id = "cert-manager/cert-manager"
+  to = module.keda[0].kubernetes_namespace.keda
+  id = "keda"
 }
 
-# ---------------------------------------------------------------------------
-# Existing cluster resources to adopt into Terraform state
-# ---------------------------------------------------------------------------
+import {
+  to = module.traefik[0].kubernetes_namespace.traefik
+  id = "traefik"
+}
 
 import {
-  to = kubernetes_service_account_v1.kaniko_builder
-  id = "default/kaniko-builder"
+  to = module.tempo[0].kubernetes_namespace.tracing
+  id = "tracing"
+}
+
+import {
+  to = kubernetes_namespace.portfolio[0]
+  id = "portfolio"
+}
+
+import {
+  to = kubernetes_namespace.jellyfin[0]
+  id = "jellyfin"
+}
+
+import {
+  to = kubernetes_namespace.pihole[0]
+  id = "pihole"
 }
 
 import {
   to = kubernetes_namespace.ci_builds
   id = "ci-builds"
+}
+
+# Helm releases
+import {
+  to = module.cert_manager[0].helm_release.cert_manager[0]
+  id = "cert-manager/cert-manager"
+}
+
+import {
+  to = module.keda[0].helm_release.keda
+  id = "keda/keda"
+}
+
+import {
+  to = module.traefik[0].helm_release.traefik
+  id = "traefik/traefik"
+}
+
+import {
+  to = module.tempo[0].helm_release.tempo
+  id = "tracing/tempo"
+}
+
+import {
+  to = module.oauth2_proxy[0].helm_release.oauth2_proxy
+  id = "oauth2-proxy/oauth2-proxy"
 }
 
 

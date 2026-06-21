@@ -24,14 +24,14 @@
     - default.yml
 
 # ---------------------------------------------------------------------------
-# CATEGORY 2 — PROMETHEUS / MONITORING (HIGH PRIORITY)
+# CATEGORY 2 — VICTORIAMETRICS / MONITORING (HIGH PRIORITY)
 # ---------------------------------------------------------------------------
 
-# 2. cloudalchemy — Prometheus Node Exporter
-#    Deploys Prometheus node_exporter on all nodes
+# 2. cloudalchemy — Node Exporter (scraped by VictoriaMetrics)
+#    Deploys node_exporter on all nodes
 #    GitHub: https://github.com/cloudalchemy/ansible-node-exporter
 #    Playbooks: site.yml
-#    Why: Metrics collection for Grafana dashboards
+#    Why: Metrics collection for Grafana dashboards via VictoriaMetrics
 - name: ansible-node-exporter
   repo: https://github.com/cloudalchemy/ansible-node-exporter.git
   playbooks:

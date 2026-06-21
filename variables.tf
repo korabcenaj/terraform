@@ -99,7 +99,7 @@ variable "pihole_web_password" {
 }
 
 variable "enable_monitoring" {
-  description = "Enable monitoring stack (ingress + network policies for existing Prometheus/Grafana)"
+  description = "Enable monitoring stack (ingress + network policies for existing VictoriaMetrics/Grafana)"
   type        = bool
   default     = true
 }
@@ -1188,6 +1188,60 @@ variable "keda_chart_version" {
   description = "KEDA Helm chart version"
   type        = string
   default     = "2.19.0"
+}
+
+# ---------------------------------------------------------------------------
+# Networking: Cilium CNI
+# ---------------------------------------------------------------------------
+
+variable "enable_cilium" {
+  description = "Manage the Cilium CNI Helm release via Terraform"
+  type        = bool
+  default     = false
+}
+
+variable "cilium_chart_version" {
+  description = "Cilium Helm chart version"
+  type        = string
+  default     = "1.19.4"
+}
+
+variable "cilium_k8s_api_host" {
+  description = "Kubernetes API server IP that Cilium should connect to"
+  type        = string
+  default     = "192.168.0.83"
+}
+
+# ---------------------------------------------------------------------------
+# Load Balancing: MetalLB
+# ---------------------------------------------------------------------------
+
+variable "enable_metallb" {
+  description = "Manage the MetalLB Helm release via Terraform"
+  type        = bool
+  default     = false
+}
+
+variable "metallb_chart_version" {
+  description = "MetalLB Helm chart version"
+  type        = string
+  default     = "0.15.3"
+}
+
+# ---------------------------------------------------------------------------
+# Storage: Longhorn
+# ---------------------------------------------------------------------------
+
+variable "enable_longhorn" {
+  description = "Manage the Longhorn distributed storage Helm release via Terraform"
+  type        = bool
+  default     = false
+}
+
+variable "longhorn_chart_version" {
+  description = "Longhorn Helm chart version"
+  type        = string
+  default     = "1.12.0"
 }
 
 # ---------------------------------------------------------------------------

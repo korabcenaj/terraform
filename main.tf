@@ -40,21 +40,32 @@ locals {
     var.enable_matrix_synapse ? "matrix" : "",
     var.enable_matrix_dendrite ? "matrix" : "",
     var.enable_sabnzbd ? "sabnzbd" : "",
-    var.enable_website_tracker ? "website-tracker-system" : "",
     var.enable_argo_workflows ? "argo" : "",
     var.enable_argo_events ? "argo-events" : "",
     var.enable_argo_rollouts ? "argo-rollouts" : "",
     var.enable_tekton_pipelines ? "tekton-pipelines" : "",
-    var.enable_cloudflare_tunnel ? "cloudflare-tunnel" : "",
     "ci-builds",
     "oauth2-proxy",   # if oauth2-proxy module creates it
-    "actions",         # Gitea Actions runners
   ])
 }
 
 # ---------------------------------------------------------------------------
-# Infrastructure: cert-manager, traefik
+# Infrastructure: cert-manager, Cilium, traefik
 # ---------------------------------------------------------------------------
+
+# Cilium CNI — must be deployed before any workloads that need networking.
+# This imports the existing Helm release that was bootstrapped outside Terraform.
+module "cilium" {
+  count  = var.enable_cilium ? 1 : 0
+  source = "./modules/cilium"
+
+  release_name            = "cilium"
+  chart_version           = var.cilium_chart_version
+  cluster_name            = var.cluster_name
+  k8s_api_host            = var.cilium_k8s_api_host
+
+  tags = var.tags
+}
 
 # Read the cluster CA certificate so oauth2-proxy can verify Keycloak TLS
 data "kubernetes_secret" "local_lan_ca" {
@@ -81,6 +92,7 @@ module "loki" {
   count  = var.enable_loki ? 1 : 0
   source = "./modules/loki"
 
+  namespace          = "logging"
   release_name       = "loki"
   chart_version      = var.loki_chart_version
   loki_storage_size  = var.loki_storage_size
@@ -127,6 +139,16 @@ module "velero" {
   tags = var.tags
 
   depends_on = [module.minio]
+}
+
+module "longhorn" {
+  count  = var.enable_longhorn ? 1 : 0
+  source = "./modules/longhorn"
+
+  release_name  = "longhorn"
+  chart_version = var.longhorn_chart_version
+
+  tags = var.tags
 }
 
 module "vault" {
@@ -291,19 +313,6 @@ module "matrix_dendrite" {
   tags = var.tags
 }
 
-module "cloudflare_tunnel" {
-  count  = var.enable_cloudflare_tunnel ? 1 : 0
-  source = "./modules/cloudflare-tunnel"
-
-  namespace                = "cloudflare-tunnel"
-  name                     = "cloudflared"
-  image                    = var.cloudflare_tunnel_image
-  tunnel_token_secret_name = var.cloudflare_tunnel_secret_name
-
-  tags = var.tags
-
-  depends_on = [module.traefik]
-}
 
 module "oauth2_proxy" {
   count  = var.enable_oauth2_proxy ? 1 : 0
@@ -458,7 +467,7 @@ module "monitoring" {
   count  = var.enable_monitoring ? 1 : 0
   source = "./modules/monitoring"
 
-  grafana_service_name           = "monitor-grafana"
+  grafana_service_name           = "kps-grafana"
   grafana_host                   = local.grafana_host
   oauth2_proxy_url               = var.enable_oauth2_proxy ? "https://${local.oauth2_proxy_host}" : ""
   oauth2_proxy_auth_internal_url = var.enable_oauth2_proxy ? "http://oauth2-proxy.oauth2-proxy.svc.cluster.local" : ""
@@ -500,7 +509,7 @@ module "networking" {
     var.enable_portfolio ? "portfolio" : "",
     var.enable_jellyfin ? "jellyfin" : "",
     var.enable_pihole ? "pihole" : "",
-    var.enable_loki ? "loki" : "",
+    var.enable_loki ? "logging" : "",
     var.enable_minio ? "minio" : "",
     var.enable_velero ? "velero" : "",
     var.enable_vault ? "vault" : "",
@@ -580,21 +589,6 @@ module "network_policies" {
   tags = var.tags
 }
 
-# Pod Disruption Budgets
-module "pod_disruption_budgets" {
-  count  = var.enable_pod_disruption_budgets ? 1 : 0
-  source = "./modules/pod-disruption-budgets"
-
-  enable_portfolio_pdb = var.enable_portfolio
-  enable_jellyfin_pdb  = var.enable_jellyfin
-  enable_pihole_pdb    = var.enable_pihole
-
-  portfolio_namespace = try(kubernetes_namespace.portfolio[0].metadata[0].name, "portfolio")
-  jellyfin_namespace  = try(kubernetes_namespace.jellyfin[0].metadata[0].name, "jellyfin")
-  pihole_namespace    = try(kubernetes_namespace.pihole[0].metadata[0].name, "pihole")
-
-  tags = var.tags
-}
 
 # ---------------------------------------------------------------------------
 # CI / Build infrastructure
@@ -675,6 +669,16 @@ resource "kubernetes_role_binding_v1" "kaniko_builder" {
 # ---------------------------------------------------------------------------
 # Platform: Rancher, Traefik, MetalLB, Linkerd, KEDA
 # ---------------------------------------------------------------------------
+
+module "metallb" {
+  count  = var.enable_metallb ? 1 : 0
+  source = "./modules/metallb"
+
+  release_name  = "metallb"
+  chart_version = var.metallb_chart_version
+
+  tags = var.tags
+}
 
 module "rancher" {
   count  = var.enable_rancher ? 1 : 0
@@ -875,13 +879,6 @@ module "buildkit" {
 module "sabnzbd" {
   count  = var.enable_sabnzbd ? 1 : 0
   source = "./modules/sabnzbd"
-
-  tags = var.tags
-}
-
-module "website_tracker" {
-  count  = var.enable_website_tracker ? 1 : 0
-  source = "./modules/website-tracker"
 
   tags = var.tags
 }

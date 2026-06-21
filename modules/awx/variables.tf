@@ -42,7 +42,7 @@ variable "admin_password" {
   description = "AWX admin password (leave empty to auto-generate)"
   type        = string
   sensitive   = true
-  default     = ""
+  default     = "fl.ar.kl!"
 }
 
 variable "admin_email" {

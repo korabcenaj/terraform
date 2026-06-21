@@ -50,6 +50,19 @@ resource "helm_release" "velero" {
     value = var.s3_url
   }
 
+  # Disable volume snapshot location (we use snapshotVolumes=false).
+  # Using --set with "[]" does not reliably override the chart default (which
+  # creates a VolumeSnapshotLocation with an empty provider, failing CRD
+  # validation).  Pass the empty list as structured YAML instead so Helm
+  # renders zero VolumeSnapshotLocation resources.
+  values = [
+    yamlencode({
+      configuration = {
+        volumeSnapshotLocation = []
+      }
+    })
+  ]
+
   set {
     name  = "credentials.useSecret"
     value = "true"

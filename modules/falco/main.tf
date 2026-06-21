@@ -97,6 +97,14 @@ resource "helm_release" "falco" {
     value = "false"
   }
 
+  # Outbound HTTPS interception fix: the cilium module now sets
+  #   l7Proxy = false
+  #   socketLB.hostNamespaceOnly = true
+  # which prevents Cilium's eBPF programs from redirecting host-namespace
+  # port-443 traffic to Traefik's service backend.  Falco can now safely
+  # schedule on control-plane nodes.
+  # (Previously we set tolerations=[] as a workaround.)
+
   wait    = false
   timeout = 600
 }

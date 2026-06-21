@@ -23,7 +23,9 @@ resource "kubernetes_network_policy" "portfolio" {
       }
     }
 
-    # Allow ingress from traefik controller
+    # Allow ingress from traefik controller.
+    # Portfolio listens on 8080 (Caddy). NetworkPolicy is enforced after
+    # kube-proxy DNAT, so allow the pod port, not the service port.
     ingress {
       from {
         namespace_selector {
@@ -33,7 +35,7 @@ resource "kubernetes_network_policy" "portfolio" {
         }
       }
       ports {
-        port     = "80"
+        port     = "8080"
         protocol = "TCP"
       }
     }
@@ -522,13 +524,16 @@ resource "kubernetes_network_policy" "traefik" {
   spec {
     pod_selector {}
 
+    # HTTP — Traefik listens on 8000 (service maps 80→8000).
+    # NetworkPolicy is enforced after kube-proxy DNAT, so the
+    # pod-level port must be allowed, not the service port.
     ingress {
       ports {
-        port     = "80"
+        port     = "8000"
         protocol = "TCP"
       }
       ports {
-        port     = "443"
+        port     = "8443"
         protocol = "TCP"
       }
     }

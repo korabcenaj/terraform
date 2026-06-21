@@ -60,16 +60,6 @@ output "matrix_synapse_namespace" {
   value       = try(module.matrix_synapse[0].namespace, null)
 }
 
-output "cloudflare_tunnel_namespace" {
-  description = "Cloudflare tunnel namespace"
-  value       = try(module.cloudflare_tunnel[0].namespace, null)
-}
-
-output "cloudflare_tunnel_deployment" {
-  description = "Cloudflare tunnel deployment name"
-  value       = try(module.cloudflare_tunnel[0].deployment_name, null)
-}
-
 
 output "portfolio_service" {
   description = "Portfolio service information"
@@ -392,11 +382,6 @@ output "buildkit_namespace" {
 output "sabnzbd_namespace" {
   description = "Sabnzbd namespace"
   value       = try(module.sabnzbd[0].namespace, null)
-}
-
-output "website_tracker_namespace" {
-  description = "Website Tracker namespace"
-  value       = try(module.website_tracker[0].namespace, null)
 }
 
 # ---------------------------------------------------------------------------

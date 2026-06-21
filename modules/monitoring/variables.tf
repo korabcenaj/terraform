@@ -1,13 +1,77 @@
+variable "namespace" {
+  description = "Namespace for the monitoring stack"
+  type        = string
+  default     = "monitoring"
+}
+
 variable "tags" {
   description = "Tags for resources"
   type        = map(string)
   default     = {}
 }
 
-variable "grafana_service_name" {
-  description = "Name of the existing Grafana service"
+# --- kube-prometheus-stack Helm chart ---
+
+variable "kps_release_name" {
+  description = "Helm release name for kube-prometheus-stack"
   type        = string
-  default     = "monitoring-grafana"
+  default     = "kps"
+}
+
+variable "kps_chart_version" {
+  description = "kube-prometheus-stack Helm chart version"
+  type        = string
+  default     = "86.2.3"
+}
+
+variable "kps_timeout" {
+  description = "Helm install timeout in seconds"
+  type        = number
+  default     = 900
+}
+
+variable "prometheus_retention" {
+  description = "Prometheus data retention period"
+  type        = string
+  default     = "7d"
+}
+
+variable "prometheus_storage_size" {
+  description = "Persistent volume size for Prometheus"
+  type        = string
+  default     = "10Gi"
+}
+
+variable "prometheus_cpu_request" {
+  description = "CPU request for Prometheus"
+  type        = string
+  default     = "200m"
+}
+
+variable "prometheus_memory_request" {
+  description = "Memory request for Prometheus"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "prometheus_cpu_limit" {
+  description = "CPU limit for Prometheus"
+  type        = string
+  default     = "1"
+}
+
+variable "prometheus_memory_limit" {
+  description = "Memory limit for Prometheus"
+  type        = string
+  default     = "2Gi"
+}
+
+# --- Grafana ingress ---
+
+variable "grafana_service_name" {
+  description = "Name of the Grafana service created by kube-prometheus-stack"
+  type        = string
+  default     = "kps-grafana"
 }
 
 variable "grafana_service_port" {
