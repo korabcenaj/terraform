@@ -1,6 +1,29 @@
 ################################################################################
 # Kubernetes Infrastructure as Code
-# Manages all cluster and application deployments
+# Manages cluster-level infrastructure and core application deployments.
+#
+# ─── Ownership Boundary ───
+#
+#   TERRAFORM (this repo)                  GITOPS (Flux CD)
+#   ─────────────────────                  ────────────────
+#   • Cluster infra (CNI, CSI,             • Application deployments
+#     MetalLB, cert-manager,                 (portfolio, jellyfin, …)
+#     Traefik, Longhorn, …)                • Preview environments
+#   • Security (network policies,           • Image auto-updates
+#     resource quotas, Kyverno,            • Helm releases for apps
+#     Sealed Secrets, Falco)                 (when managed via Flux)
+#   • Observability (Loki, Tempo,          • Sync from git repos
+#     kube-prometheus-stack)               • Kustomize overlays
+#   • Storage & Backup (MinIO, Velero)
+#   • Auth (Keycloak, oauth2-proxy)
+#   • CI/CD platform (Gitea, Harbor,
+#     Gitea Runner, BuildKit)
+#
+#   Flux (namespace: flux-system) bootstraps and manages itself.
+#   It is NOT imported into Terraform — this avoids conflicting
+#   reconciliation loops.  Flux-owned resources are identified by
+#   labels such as `kustomize.toolkit.fluxcd.io/name` or
+#   `helm.toolkit.fluxcd.io/name`.
 ################################################################################
 
 locals {
@@ -425,6 +448,7 @@ module "jellyfin" {
   cache_size     = var.jellyfin_cache_size
   node_name      = var.jellyfin_node_name
   media_path     = var.jellyfin_media_path
+  media_pvc_name = var.jellyfin_media_pvc_name
   load_balancer_ip = var.jellyfin_load_balancer_ip
   gpu_count      = var.jellyfin_gpu_count
   cpu_request    = "250m"
@@ -585,6 +609,9 @@ module "network_policies" {
   harbor_namespace            = "harbor"
   enable_traefik_netpol       = var.enable_traefik
   traefik_namespace           = "traefik"
+
+  enable_awx_netpol           = var.enable_awx
+  awx_namespace               = "awx"
 
   tags = var.tags
 }
@@ -793,39 +820,8 @@ module "rancher_turtles" {
 }
 
 # ---------------------------------------------------------------------------
-# CI/CD: Argo Workflows, Tekton
+# Security: Sealed Secrets
 # ---------------------------------------------------------------------------
-
-module "argo_workflows" {
-  count  = var.enable_argo_workflows ? 1 : 0
-  source = "./modules/argo-workflows"
-
-  enable_argo_events   = var.enable_argo_events
-  enable_argo_rollouts = var.enable_argo_rollouts
-
-  tags = var.tags
-}
-
-module "tekton_pipelines" {
-  count  = var.enable_tekton_pipelines ? 1 : 0
-  source = "./modules/tekton-pipelines"
-
-  tags = var.tags
-}
-
-# ---------------------------------------------------------------------------
-# Security: Falco, Sealed Secrets
-# ---------------------------------------------------------------------------
-
-module "falco" {
-  count  = var.enable_falco ? 1 : 0
-  source = "./modules/falco"
-
-  release_name  = "falco"
-  chart_version = var.falco_chart_version
-
-  tags = var.tags
-}
 
 module "sealed_secrets" {
   count  = var.enable_sealed_secrets ? 1 : 0
@@ -866,7 +862,7 @@ module "awx" {
 }
 
 # ---------------------------------------------------------------------------
-# Build & Apps: BuildKit, Sabnzbd, Website Tracker
+# Build & Apps: BuildKit, Sabnzbd
 # ---------------------------------------------------------------------------
 
 module "buildkit" {
@@ -883,7 +879,7 @@ module "sabnzbd" {
   tags = var.tags
 }
 
-# ---------------------------------------------------------------------------
+# ------Sabnzbd---------------------------------------------------------------------
 # Control-plane scheduling
 # ---------------------------------------------------------------------------
 

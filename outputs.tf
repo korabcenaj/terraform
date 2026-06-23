@@ -336,35 +336,6 @@ output "rancher_turtles_release" {
 # CI/CD outputs
 # ---------------------------------------------------------------------------
 
-output "argo_workflows_namespace" {
-  description = "Argo Workflows namespace"
-  value       = try(module.argo_workflows[0].argo_namespace, null)
-}
-
-output "argo_events_namespace" {
-  description = "Argo Events namespace"
-  value       = try(module.argo_workflows[0].argo_events_namespace, null)
-}
-
-output "argo_rollouts_namespace" {
-  description = "Argo Rollouts namespace"
-  value       = try(module.argo_workflows[0].argo_rollouts_namespace, null)
-}
-
-output "tekton_pipelines_namespace" {
-  description = "Tekton Pipelines namespace"
-  value       = try(module.tekton_pipelines[0].pipelines_namespace, null)
-}
-
-# ---------------------------------------------------------------------------
-# Security outputs
-# ---------------------------------------------------------------------------
-
-output "falco_namespace" {
-  description = "Falco namespace"
-  value       = try(module.falco[0].namespace, null)
-}
-
 output "sealed_secrets_deployment" {
   description = "Sealed Secrets deployment name"
   value       = try(module.sealed_secrets[0].deployment_name, null)

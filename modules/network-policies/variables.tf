@@ -84,3 +84,15 @@ variable "traefik_namespace" {
   type        = string
   default     = "traefik"
 }
+
+variable "enable_awx_netpol" {
+  description = "Enable NetworkPolicy for AWX PostgreSQL ingress"
+  type        = bool
+  default     = true
+}
+
+variable "awx_namespace" {
+  description = "AWX namespace name"
+  type        = string
+  default     = "awx"
+}

@@ -423,9 +423,9 @@ variable "jellyfin_replicas" {
 
 # Storage
 variable "jellyfin_storage_class" {
-  description = "Storage class for Jellyfin data"
+  description = "Storage class for Jellyfin data (config + cache). Media uses its own PVC (see jellyfin_media_pvc_name)."
   type        = string
-  default     = "local-path"
+  default     = "longhorn"
 }
 
 variable "jellyfin_config_size" {
@@ -455,6 +455,12 @@ variable "jellyfin_media_path" {
   description = "Host path for Jellyfin media files (used for hostPath PV; ignored when media_pvc_name is set)"
   type        = string
   default     = "/media/library"
+}
+
+variable "jellyfin_media_pvc_name" {
+  description = "Name of an existing PVC to use for Jellyfin media. Leave empty to use hostPath (jellyfin_media_path). Set to a PVC name (e.g. 'jellyfin-media-pvc-longhorn') once enough Longhorn disk space is available."
+  type        = string
+  default     = ""
 }
 
 variable "jellyfin_load_balancer_ip" {
@@ -1530,4 +1536,45 @@ variable "ansible_node_ips" {
     "k8s"        = "192.168.0.107"
     "k8s2"       = "192.168.0.159"
   }
+}
+
+# ---------------------------------------------------------------------------
+# Directly managed resources — existing deployments imported into Terraform
+# (non-Helm, created outside Terraform, now brought under management)
+# ---------------------------------------------------------------------------
+
+variable "enable_minio_direct" {
+  description = "Manage existing non-Helm MinIO deployment (plain k8s, not the Helm module)"
+  type        = bool
+  default     = false
+}
+
+variable "enable_gitea_runner" {
+  description = "Manage existing Gitea Actions runner deployment"
+  type        = bool
+  default     = false
+}
+
+variable "enable_qbittorrent" {
+  description = "Manage existing qBittorrent deployment"
+  type        = bool
+  default     = false
+}
+
+variable "enable_local_path_storage" {
+  description = "Manage existing local-path-storage provisioner"
+  type        = bool
+  default     = false
+}
+
+variable "enable_portfolio_dev" {
+  description = "Manage existing portfolio-dev preview environment"
+  type        = bool
+  default     = false
+}
+
+variable "enable_portfolio_stage" {
+  description = "Manage existing portfolio-stage preview environment"
+  type        = bool
+  default     = false
 }

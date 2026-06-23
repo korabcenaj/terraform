@@ -49,12 +49,14 @@ qbittorrent_replicas = 1
 # qbittorrent_node_name = "k8s"
 # qbittorrent_storage_class = "local-path"
 
-# Storage configuration
-jellyfin_storage_class    = "local-path"
+# Storage configuration — config + cache on Longhorn, media on hostPath
+# Set jellyfin_media_pvc_name when enough Longhorn disk space is available
+jellyfin_storage_class    = "longhorn"
 jellyfin_config_size      = "20Gi"
 jellyfin_cache_size       = "5Gi"
 jellyfin_node_name        = "k8s-master"
 jellyfin_media_path       = "/media/library"
+# jellyfin_media_pvc_name = "jellyfin-media-pvc-longhorn"  # uncomment when ready
 jellyfin_load_balancer_ip = "192.168.0.209"
 
 # Resource defaults (for standard services)

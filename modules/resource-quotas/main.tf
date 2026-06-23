@@ -160,10 +160,10 @@ resource "kubernetes_resource_quota" "awx" {
   spec {
     hard = {
       "pods"                   = "20"
-      "requests.cpu"           = "4"
-      "requests.memory"        = "8Gi"
-      "limits.cpu"             = "8"
-      "limits.memory"          = "16Gi"
+      "requests.cpu"           = "6"
+      "requests.memory"        = "12Gi"
+      "limits.cpu"             = "10"
+      "limits.memory"          = "20Gi"
       "persistentvolumeclaims" = "5"
     }
   }

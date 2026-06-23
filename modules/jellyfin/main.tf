@@ -201,10 +201,24 @@ resource "kubernetes_deployment" "jellyfin" {
           }
         }
 
-        volume {
-          name = "media"
-          persistent_volume_claim {
-            claim_name = var.media_pvc_name
+        dynamic "volume" {
+          for_each = var.media_pvc_name != "" ? ["pvc"] : []
+          content {
+            name = "media"
+            persistent_volume_claim {
+              claim_name = var.media_pvc_name
+            }
+          }
+        }
+
+        dynamic "volume" {
+          for_each = var.media_pvc_name == "" ? ["hostpath"] : []
+          content {
+            name = "media"
+            host_path {
+              path = var.media_path
+              type = "Directory"
+            }
           }
         }
 

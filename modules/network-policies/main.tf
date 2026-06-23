@@ -570,3 +570,46 @@ resource "kubernetes_network_policy" "traefik" {
     policy_types = ["Ingress", "Egress"]
   }
 }
+
+# ===========================================================================
+# AWX — Allow PostgreSQL ingress from AWX pods within the namespace
+# ===========================================================================
+
+resource "kubernetes_network_policy" "awx_postgres" {
+  count = var.enable_awx_netpol ? 1 : 0
+
+  metadata {
+    name      = "allow-postgres-ingress"
+    namespace = var.awx_namespace
+    labels = merge(
+      var.tags,
+      {
+        app = "awx"
+      }
+    )
+  }
+
+  spec {
+    pod_selector {
+      match_labels = {
+        "app.kubernetes.io/name" = "postgres-15"
+      }
+    }
+
+    ingress {
+      from {
+        pod_selector {
+          match_labels = {
+            "app.kubernetes.io/part-of" = "awx"
+          }
+        }
+      }
+      ports {
+        port     = "5432"
+        protocol = "TCP"
+      }
+    }
+
+    policy_types = ["Ingress"]
+  }
+}
